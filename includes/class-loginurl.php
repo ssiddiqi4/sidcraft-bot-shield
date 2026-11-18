@@ -72,6 +72,7 @@ class Sidcraft_BotShield_LoginUrl {
 	/** A visitor who keeps opening the old login addresses is blocked after the number of tries the admin chose. */
 	private static function count_wrong_address( $s ) {
 		if ( empty( $s['url_block'] ) || is_user_logged_in() ) { return; }
+		foreach ( array_keys( $_COOKIE ) as $c ) { if ( 0 === strpos( (string) $c, 'wordpress_logged_in_' ) ) { return; } } // someone with a login cookie (for example an expired session) is not a bot.
 		$ip = Sidcraft_BotShield_Guard::client_ip(); if ( '' === $ip ) { return; }
 		$trusted = Sidcraft_BotShield_Settings::lines( 'ip_allow' ); if ( apply_filters( 'sidcraft_botshield_trust_loopback', true ) ) { $trusted = array_merge( $trusted, array( '127.0.0.1', '::1' ) ); }
 		if ( Sidcraft_BotShield_Ranges::in_list( $ip, $trusted ) || Sidcraft_BotShield_Bans::is_banned( $ip ) ) { return; }

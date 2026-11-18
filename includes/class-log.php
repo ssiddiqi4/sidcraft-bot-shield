@@ -5,8 +5,9 @@ class Sidcraft_BotShield_Log {
 	const LOG = 'sidcraft_botshield_log';
 	const STATS = 'sidcraft_botshield_stats';
 
-	public static function add( $action, $reason, $ip, $ua, $path, $country = '' ) {
-		$day = gmdate( 'Ymd' );
+	public static function add( $action, $reason, $ip, $ua, $path, $country = '', $time = 0 ) {
+		$time = $time ? (int) $time : time();
+		$day = gmdate( 'Ymd', $time );
 		$st  = get_option( self::STATS, array() ); $st = is_array( $st ) ? $st : array();
 		if ( ! isset( $st[ $day ] ) ) { $st[ $day ] = array( 'blocked' => 0, 'monitored' => 0, 'reasons' => array() ); }
 		$st[ $day ][ 'block' === $action ? 'blocked' : 'monitored' ]++;
@@ -15,7 +16,7 @@ class Sidcraft_BotShield_Log {
 		update_option( self::STATS, $st, false );
 		if ( ! Sidcraft_BotShield_Settings::get( 'keep_log' ) ) { return; }
 		$log = get_option( self::LOG, array() ); $log = is_array( $log ) ? $log : array();
-		array_unshift( $log, array( 't' => time(), 'a' => $action, 'r' => $reason, 'ip' => $ip, 'ua' => substr( $ua, 0, 160 ), 'p' => substr( $path, 0, 120 ), 'c' => (string) $country ) );
+		array_unshift( $log, array( 't' => $time, 'a' => $action, 'r' => $reason, 'ip' => $ip, 'ua' => substr( $ua, 0, 160 ), 'p' => substr( $path, 0, 120 ), 'c' => (string) $country ) );
 		$cut = time() - 30 * DAY_IN_SECONDS;
 		$log = array_values( array_filter( array_slice( $log, 0, 500 ), function ( $r ) use ( $cut ) { return $r['t'] >= $cut; } ) );
 		update_option( self::LOG, $log, false );
@@ -29,6 +30,8 @@ class Sidcraft_BotShield_Log {
 			'country' => array( __( 'Country', 'sidcraft-bot-shield' ), '#2271b1' ),
 			'ip'      => array( __( 'Blocked addresses', 'sidcraft-bot-shield' ), '#bd5b00' ),
 			'vpn'     => array( __( 'VPN / proxy / Tor', 'sidcraft-bot-shield' ), '#007a5a' ),
+			'waf'     => array( __( 'Firewall rules', 'sidcraft-bot-shield' ), '#d63638' ),
+			'login'   => array( __( 'Login protection', 'sidcraft-bot-shield' ), '#996800' ),
 			'rate'    => array( __( 'Too many requests', 'sidcraft-bot-shield' ), '#646970' ),
 		);
 	}
@@ -36,6 +39,8 @@ class Sidcraft_BotShield_Log {
 	public static function type_of( $reason ) {
 		if ( 0 === strpos( $reason, 'bad_bot' ) || in_array( $reason, array( 'empty_ua', 'fake_bot', 'custom_block' ), true ) ) { return 'bots'; }
 		if ( in_array( $reason, array( 'scanner_path', 'trap', 'banned' ), true ) ) { return 'probes'; }
+		if ( 0 === strpos( $reason, 'waf_' ) || in_array( $reason, array( 'enum_author', 'blank_post' ), true ) ) { return 'waf'; }
+		if ( 0 === strpos( $reason, 'brute_' ) ) { return 'login'; }
 		if ( 0 === strpos( $reason, 'geo_' ) ) { return 'country'; }
 		if ( 'ip_blocked' === $reason ) { return 'ip'; }
 		if ( in_array( $reason, array( 'tor', 'vpn', 'datacenter', 'proxy_header', 'vpn_api' ), true ) ) { return 'vpn'; }

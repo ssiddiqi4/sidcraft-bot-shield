@@ -6,6 +6,7 @@ class Sidcraft_BotShield_Admin {
 	private static $allowed = array( 'a' => array( 'href' => array() ), 'em' => array(), 'br' => array() );
 
 	public static function init() {
+		Sidcraft_BotShield_SecureAdmin::init();
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
 		add_action( 'admin_post_sidcraft_botshield_test', array( __CLASS__, 'test' ) );
@@ -46,11 +47,17 @@ class Sidcraft_BotShield_Admin {
 	public static function page() {
 		if ( ! current_user_can( 'manage_options' ) ) { return; }
 		$s = Sidcraft_BotShield_Settings::all(); $O = Sidcraft_BotShield_Settings::OPTION;
-		$tab = ( isset( $_GET['tab'] ) && 'log' === sanitize_key( wp_unslash( $_GET['tab'] ) ) ) ? 'log' : 'settings'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab switch.
+		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'settings'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab switch.
+		if ( ! in_array( $tab, array( 'settings', 'firewall', 'scan', 'log' ), true ) ) { $tab = 'settings'; }
 		$base = admin_url( 'options-general.php?page=sidcraft-bot-shield' );
 		echo '<div class="wrap"><h1>Sidcraft Bot Shield</h1>';
 		self::cards();
-		echo '<h2 class="nav-tab-wrapper"><a class="nav-tab ' . ( 'settings' === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $base ) . '">' . esc_html__( 'Settings', 'sidcraft-bot-shield' ) . '</a><a class="nav-tab ' . ( 'log' === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $base . '&tab=log' ) . '">' . esc_html__( 'Blocked log', 'sidcraft-bot-shield' ) . '</a></h2>';
+		$tabs = array( 'settings' => __( 'Settings', 'sidcraft-bot-shield' ), 'firewall' => __( 'Firewall', 'sidcraft-bot-shield' ), 'scan' => __( 'Scan', 'sidcraft-bot-shield' ), 'log' => __( 'Blocked log', 'sidcraft-bot-shield' ) );
+		echo '<h2 class="nav-tab-wrapper">';
+		foreach ( $tabs as $tk => $tl ) { echo '<a class="nav-tab ' . ( $tk === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( 'settings' === $tk ? $base : $base . '&tab=' . $tk ) . '">' . esc_html( $tl ) . '</a>'; }
+		echo '</h2>';
+		if ( 'firewall' === $tab ) { Sidcraft_BotShield_SecureAdmin::firewall_tab( $base ); echo '</div>'; return; }
+		if ( 'scan' === $tab ) { Sidcraft_BotShield_SecureAdmin::scan_tab( $base ); echo '</div>'; return; }
 		if ( 'log' === $tab ) { self::log_tab( $base ); echo '</div>'; return; }
 		echo '<p>' . esc_html__( 'Lets search engines and AI assistants in, and keeps scrapers, scripts, scanners and fake bots out. Visitors who look like normal browsers are never blocked, and neither are logged-in users.', 'sidcraft-bot-shield' ) . '</p>';
 		echo '<form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_group' );
@@ -217,7 +224,7 @@ class Sidcraft_BotShield_Admin {
 		$valid = '' !== Sidcraft_BotShield_Ranges::pack( $ip );
 		if ( 'allow' === $act && $valid ) {
 			Sidcraft_BotShield_Settings::remove_line( 'ip_block', $ip ); Sidcraft_BotShield_Settings::add_line( 'ip_allow', $ip );
-			delete_transient( 'sbs_ban_' . md5( $ip ) ); delete_transient( 'sbs_rate_' . md5( $ip ) );
+			Sidcraft_BotShield_Bans::remove( $ip ); delete_transient( 'sbs_rate_' . md5( $ip ) );
 		} elseif ( 'block' === $act && $valid ) {
 			Sidcraft_BotShield_Settings::remove_line( 'ip_allow', $ip ); Sidcraft_BotShield_Settings::add_line( 'ip_block', $ip );
 		} elseif ( 'allow_ua' === $act && strlen( $tok ) >= 3 ) {
@@ -271,7 +278,8 @@ class Sidcraft_BotShield_Admin {
 	}
 
 	public static function reason_label( $r ) {
-		$m = array( 'banned' => __( 'Address banned earlier', 'sidcraft-bot-shield' ), 'trap' => __( 'Opened the hidden trap link', 'sidcraft-bot-shield' ), 'scanner_path' => __( 'Attack probe', 'sidcraft-bot-shield' ), 'fake_bot' => __( 'Fake search-engine bot', 'sidcraft-bot-shield' ), 'empty_ua' => __( 'No browser name', 'sidcraft-bot-shield' ), 'rate_limit' => __( 'Too many requests', 'sidcraft-bot-shield' ), 'custom_block' => __( 'On your block list', 'sidcraft-bot-shield' ), 'bad_bot_seo' => __( 'SEO / data-mining crawler', 'sidcraft-bot-shield' ), 'bad_bot_tools' => __( 'Script or headless browser', 'sidcraft-bot-shield' ), 'bad_bot_attack' => __( 'Attack tool', 'sidcraft-bot-shield' ), 'ip_blocked' => __( 'On your blocked addresses', 'sidcraft-bot-shield' ), 'geo_blocked' => __( 'Blocked country', 'sidcraft-bot-shield' ), 'geo_not_allowed' => __( 'Country not on your allowed list', 'sidcraft-bot-shield' ), 'geo_unknown' => __( 'Country unknown', 'sidcraft-bot-shield' ), 'tor' => __( 'Tor', 'sidcraft-bot-shield' ), 'vpn' => __( 'VPN', 'sidcraft-bot-shield' ), 'datacenter' => __( 'Hosting / data-centre address', 'sidcraft-bot-shield' ), 'proxy_header' => __( 'Proxy', 'sidcraft-bot-shield' ), 'vpn_api' => __( 'VPN / proxy (live check)', 'sidcraft-bot-shield' ) );
+		if ( 0 === strpos( $r, 'waf_' ) ) { $rules = Sidcraft_BotShield_Waf::rules(); $id = substr( $r, 4 ); return isset( $rules[ $id ] ) ? $rules[ $id ][1] : $r; }
+		$m = array( 'banned' => __( 'Address banned earlier', 'sidcraft-bot-shield' ), 'trap' => __( 'Opened the hidden trap link', 'sidcraft-bot-shield' ), 'scanner_path' => __( 'Attack probe', 'sidcraft-bot-shield' ), 'fake_bot' => __( 'Fake search-engine bot', 'sidcraft-bot-shield' ), 'empty_ua' => __( 'No browser name', 'sidcraft-bot-shield' ), 'rate_limit' => __( 'Too many requests', 'sidcraft-bot-shield' ), 'custom_block' => __( 'On your block list', 'sidcraft-bot-shield' ), 'bad_bot_seo' => __( 'SEO / data-mining crawler', 'sidcraft-bot-shield' ), 'bad_bot_tools' => __( 'Script or headless browser', 'sidcraft-bot-shield' ), 'bad_bot_attack' => __( 'Attack tool', 'sidcraft-bot-shield' ), 'enum_author' => __( 'User enumeration attempt', 'sidcraft-bot-shield' ), 'blank_post' => __( 'POST without browser name and referrer', 'sidcraft-bot-shield' ), 'brute_login' => __( 'Too many failed logins', 'sidcraft-bot-shield' ), 'brute_invalid' => __( 'Login with a user that does not exist', 'sidcraft-bot-shield' ), 'brute_reset' => __( 'Too many password reset requests', 'sidcraft-bot-shield' ), 'rate_crawler' => __( 'Crawler too fast', 'sidcraft-bot-shield' ), 'rate_404' => __( 'Too many missing pages (404)', 'sidcraft-bot-shield' ), 'ip_blocked' => __( 'On your blocked addresses', 'sidcraft-bot-shield' ), 'geo_blocked' => __( 'Blocked country', 'sidcraft-bot-shield' ), 'geo_not_allowed' => __( 'Country not on your allowed list', 'sidcraft-bot-shield' ), 'geo_unknown' => __( 'Country unknown', 'sidcraft-bot-shield' ), 'tor' => __( 'Tor', 'sidcraft-bot-shield' ), 'vpn' => __( 'VPN', 'sidcraft-bot-shield' ), 'datacenter' => __( 'Hosting / data-centre address', 'sidcraft-bot-shield' ), 'proxy_header' => __( 'Proxy', 'sidcraft-bot-shield' ), 'vpn_api' => __( 'VPN / proxy (live check)', 'sidcraft-bot-shield' ) );
 		return $m[ $r ] ?? $r;
 	}
 

@@ -1,15 +1,15 @@
 === Sidcraft Bot Shield ===
 Contributors: ssiddiqi4
 Donate link: https://paypal.me/SSiddiqi275
-Tags: bots, security, block countries, ip blocker, vpn
+Tags: firewall, malware scanner, security, bots, block countries
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Lets search engines and AI assistants in. Blocks scrapers and fake bots. Block countries, IP ranges, VPNs, proxies and Tor.
+Lets search engines and AI assistants in. Firewall, malware scan, login protection. Blocks bad bots, countries, VPNs.
 
 == Description ==
 
@@ -45,6 +45,29 @@ Most of the traffic that hits a small site is not people. Some of it you want: s
 * Search engines and AI assistants can be exempt from these rules (on by default), because Google and others crawl from the USA. Logged-in users, your own addresses and wp-cron are never blocked.
 * The visitor's country is read from Cloudflare, CloudFront or your server when available. Otherwise upload a free country database (.mmdb, for example GeoLite2-Country or DB-IP Lite).
 
+= Advanced firewall =
+
+* **Web application firewall:** stops SQL injection, cross-site scripting, file inclusion and directory traversal, code execution (PHP, shell, Log4Shell, Shellshock, PHP object injection) and malicious file uploads. Every rule can be switched off, and you can allow specific pages and fields.
+* **Learning mode:** a new install only records for 7 days, learns from what administrators do, then turns on by itself. Administrators are never blocked.
+* **Extended protection:** optionally runs the firewall before WordPress and every other plugin loads (auto_prepend_file, set up for you and removed again with one click).
+* **Login security:** lock out addresses that guess passwords, lock out at once on a user name that does not exist, hide whether the user name or the password was wrong, require strong passwords, optionally refuse passwords from known data breaches.
+* **Rate limiting:** limits for crawlers and for missing-page (404) requests, for people and bots separately. Search engines are never limited.
+* **Hardening:** hide the WordPress version, stop user name guessing (?author=1 and the REST users list), switch XML-RPC off or block its multicall trick.
+* **Blocked addresses list** with one-click unblock.
+
+= Malware scan =
+
+* **Core files:** compares every WordPress file with the official version and reports changed, missing and unknown files. Repair restores the official file.
+* **Plugin files:** compares plugins from WordPress.org with the official version.
+* **Malware and backdoors:** looks for web shells, hidden or encoded code, code that runs visitor input, hacked .htaccess files, and PHP in the uploads folder. Hidden PHP inside images is checked too.
+* **Posts, pages and comments:** hidden iframes, hidden links, scripts that hide their code, spam links.
+* **Exposed files:** backups, database dumps, .env, logs, phpinfo, and open directory listings.
+* **Updates and abandoned plugins:** out-of-date WordPress, plugins and themes; plugins not updated for 2 years or removed from WordPress.org.
+* **Weak passwords** of administrators and editors; low disk space; old PHP version.
+* **Scan types** (quick, standard, high sensitivity, custom), file size and time limits, excluded paths, daily or weekly schedule, email alerts.
+* **Works on any host:** the scan runs in short steps and continues in the background. For each result you can view the file, repair it, delete it, ignore it or mark it as fixed.
+* Files that match WordPress.org are trusted and skipped by the malware check, which keeps false alarms low.
+
 = Safe by design =
 
 * **Monitor mode first.** After installing, nothing is blocked. The plugin only lists what it would block, so you can check the list before you switch to blocking.
@@ -57,7 +80,7 @@ Most of the traffic that hits a small site is not people. Some of it you want: s
 
 = Honest limits =
 
-VPN and country detection is never perfect: lists lag behind new VPN servers, and a visitor can use an address from another country. A country rule with no country source finds every visitor “unknown” (you choose what happens then). A browser name can be faked. Search engines that publish how to verify them (Google, Bing, Apple, Yahoo, Yandex, Baidu) are verified. Most AI companies do not publish a way to prove who is calling, so their crawlers are recognised by name only. A determined scraper that pretends to be a normal browser or an AI crawler can get through. This plugin removes the bulk of the noise and the obvious abuse; it is not a replacement for a firewall such as Cloudflare or a security plugin.
+VPN and country detection is never perfect: lists lag behind new VPN servers, and a visitor can use an address from another country. A country rule with no country source finds every visitor “unknown” (you choose what happens then). The scanner looks for known patterns and changes against official files; it cannot promise to find every kind of malware, and it does not use a cloud database of signatures. Keep backups. The firewall catches common attack patterns, but it is not a replacement for keeping WordPress, plugins and themes up to date. A browser name can be faked. Search engines that publish how to verify them (Google, Bing, Apple, Yahoo, Yandex, Baidu) are verified. Most AI companies do not publish a way to prove who is calling, so their crawlers are recognised by name only. A determined scraper that pretends to be a normal browser or an AI crawler can get through. This plugin removes the bulk of the noise and the obvious abuse; it is not a replacement for a firewall such as Cloudflare or a security plugin.
 
 == Installation ==
 
@@ -104,6 +127,10 @@ By default this plugin contacts no external service about your visitors.
 * **proxycheck.io (only if you turn on the live check and enter a key):** the visitor's IP address and your key are sent to https://proxycheck.io once per address per week to ask whether it is a VPN or proxy. Terms: https://proxycheck.io/terms Privacy: https://proxycheck.io/privacy
 * **Country database:** a file you upload yourself; it is read on your server and nothing is sent.
 
+* **WordPress.org (scan; only when you run or schedule a scan):** the plugin asks api.wordpress.org for the official checksums of your WordPress version and for update and plugin information, downloads.wordpress.org for the official checksums of your plugins, and (only when you click Repair) core.svn.wordpress.org or plugins.svn.wordpress.org for the official copy of one file. Your WordPress version, locale, and the names and versions of your plugins are sent, as WordPress itself does when it checks for updates. Privacy: https://wordpress.org/about/privacy/
+* **Pwned Passwords (only if you turn on "Block passwords that appeared in data breaches"):** the first 5 characters of the SHA-1 hash of a password are sent to https://api.pwnedpasswords.com/range/ when an administrator logs in or a password is set. The password itself never leaves your site. Terms: https://haveibeenpwned.com/API/v3
+* **Your own site:** the scan sends requests to your own website address to check whether backup or log files can be downloaded.
+
 Downloaded lists and the uploaded database are stored in wp-content/uploads/sidcraft-bot-shield/ (protected from direct access).
 
 == Screenshots ==
@@ -112,6 +139,10 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.2.0 =
+* New: advanced firewall (rule engine, learning mode, extended protection, login security, rate limits, hardening, blocked addresses list).
+* New: malware scan (core and plugin file checks with repair, malware signatures, content scan, exposed files, updates, abandoned plugins, weak passwords, schedule and email alerts).
 
 = 1.1.0 =
 * New: Unblock / Block for good / Allow this bot name links on every log row, and a WordPress Dashboard widget with the latest blocks.
@@ -125,6 +156,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Adds an advanced firewall and a malware scanner. The firewall starts in learning mode and does not block anything for the first 7 days.
 
 = 1.1.0 =
 Adds country, IP range, VPN, proxy and Tor blocking. All new rules are off by default.

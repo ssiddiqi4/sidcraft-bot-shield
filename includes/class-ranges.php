@@ -1,5 +1,5 @@
 <?php
-if ( ! defined( 'ABSPATH' ) ) { exit; }
+if ( ! defined( 'ABSPATH' ) && ! defined( 'SIDCRAFT_BOTSHIELD_WAF' ) ) { exit; }
 
 /**
  * IPv4 / IPv6 helpers: single addresses, CIDR (10.0.0.0/8, 2001:db8::/32) and dash ranges (1.2.3.4 - 1.2.3.99),

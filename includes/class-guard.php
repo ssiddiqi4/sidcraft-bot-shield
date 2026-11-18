@@ -129,7 +129,7 @@ class Sidcraft_BotShield_Guard {
 		$enforce = 'block' === Sidcraft_BotShield_Settings::get( 'mode' );
 		Sidcraft_BotShield_Log::add( $enforce ? 'block' : 'monitor', $d['reason'], $ip, $ua, (string) $uri, 'off' !== Sidcraft_BotShield_Settings::get( 'geo_mode' ) ? Sidcraft_BotShield_Geo::country( $ip ) : '' );
 		if ( ! $enforce ) { return; }
-		if ( $d['ban'] && '' !== $ip ) { set_transient( 'sbs_ban_' . md5( $ip ), 1, (int) Sidcraft_BotShield_Settings::get( 'ban_hours' ) * HOUR_IN_SECONDS ); }
+		if ( $d['ban'] && '' !== $ip ) { Sidcraft_BotShield_Bans::add( $ip, (int) Sidcraft_BotShield_Settings::get( 'ban_hours' ) * HOUR_IN_SECONDS, $d['reason'] ); }
 		status_header( 'rate_limit' === $d['reason'] ? 429 : 403 );
 		nocache_headers();
 		header( 'X-Robots-Tag: noindex, nofollow' );

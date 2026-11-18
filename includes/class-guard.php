@@ -6,9 +6,19 @@ class Sidcraft_BotShield_Guard {
 
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'run' ), 0 );
+		add_action( 'wp_login', array( __CLASS__, 'remember_admin_login' ), 5, 2 );
+		add_action( 'admin_init', array( __CLASS__, 'remember_admin_visit' ) );
 		add_filter( 'robots_txt', array( __CLASS__, 'robots' ), 50 );
 		add_action( 'wp_footer', array( __CLASS__, 'trap_link' ), 99 );
 	}
+
+	/** An administrator's address is remembered for a week so that a rule can never lock the owner out. */
+	public static function remember_admin( $ip ) {
+		if ( '' !== $ip && Sidcraft_BotShield_Settings::get( 'remember_admin' ) ) { set_transient( 'sbs_adm_' . md5( $ip ), 1, 7 * DAY_IN_SECONDS ); }
+	}
+	public static function is_admin_ip( $ip ) { return '' !== $ip && Sidcraft_BotShield_Settings::get( 'remember_admin' ) && (bool) get_transient( 'sbs_adm_' . md5( $ip ) ); }
+	public static function remember_admin_login( $login, $user ) { if ( $user instanceof WP_User && user_can( $user, 'manage_options' ) ) { self::remember_admin( self::client_ip() ); } }
+	public static function remember_admin_visit() { if ( ! wp_doing_ajax() && current_user_can( 'manage_options' ) ) { $ip = self::client_ip(); if ( '' !== $ip && ! get_transient( 'sbs_adm_' . md5( $ip ) ) ) { self::remember_admin( $ip ); } } }
 
 	/** The visitor's IP address. Proxy headers are only trusted when the owner chose so. */
 	public static function client_ip() {
@@ -69,6 +79,8 @@ class Sidcraft_BotShield_Guard {
 		$trusted = Sidcraft_BotShield_Settings::lines( 'ip_allow' );
 		if ( apply_filters( 'sidcraft_botshield_trust_loopback', true ) ) { $trusted = array_merge( $trusted, array( '127.0.0.1', '::1' ) ); if ( ! empty( $_SERVER['SERVER_ADDR'] ) ) { $trusted[] = sanitize_text_field( wp_unslash( $_SERVER['SERVER_ADDR'] ) ); } }
 		if ( '' !== $ip && self::ip_in_list( $ip, $trusted ) ) { return $ok; }
+		// 1b. An address an administrator logged in from recently.
+		if ( self::is_admin_ip( $ip ) ) { return $ok; }
 		// 2. People who are logged in.
 		if ( ! empty( $r['logged_in'] ) ) { return $ok; }
 		// 3. Addresses that already misbehaved.
@@ -135,8 +147,8 @@ class Sidcraft_BotShield_Guard {
 		}
 		if ( ! $enforce ) { return; }
 		if ( $d['ban'] && '' !== $ip ) { Sidcraft_BotShield_Bans::add( $ip, (int) Sidcraft_BotShield_Settings::get( 'ban_hours' ) * HOUR_IN_SECONDS, $d['reason'] ); }
-		if ( 'banned' === $d['reason'] ) { self::banned_page( $ip ); }
-		status_header( 'rate_limit' === $d['reason'] ? 429 : 403 );
+		if ( 'rate_limit' !== $d['reason'] ) { self::banned_page( $ip, $d['reason'] ); }
+		status_header( 429 );
 		nocache_headers();
 		header( 'X-Robots-Tag: noindex, nofollow' );
 		if ( 'rate_limit' === $d['reason'] ) { header( 'Retry-After: 60' ); }
@@ -151,7 +163,7 @@ class Sidcraft_BotShield_Guard {
 		if ( isset( $_GET['sbs_unlock'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the signed link is the proof.
 			$ip = Sidcraft_BotShield_Notify::check_unlock( sanitize_text_field( wp_unslash( $_GET['sbs_unlock'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			status_header( $ip ? 200 : 403 ); nocache_headers(); header( 'Content-Type: text/html; charset=UTF-8' );
-			if ( $ip ) { Sidcraft_BotShield_Bans::remove( $ip ); foreach ( array( 'sbs_nf_', 'sbs_lf_', 'sbs_fp_', 'sbs_wafn_', 'sbs_rate_' ) as $p ) { delete_transient( $p . md5( $ip ) ); } }
+			if ( $ip ) { Sidcraft_BotShield_Bans::remove( $ip ); set_transient( 'sbs_adm_' . md5( $ip ), 1, 7 * DAY_IN_SECONDS ); foreach ( array( 'sbs_nf_', 'sbs_lf_', 'sbs_fp_', 'sbs_wafn_', 'sbs_rate_' ) as $p ) { delete_transient( $p . md5( $ip ) ); } }
 			echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html__( 'Unblock', 'sidcraft-bot-shield' ) . '</title></head><body style="font:16px/1.5 sans-serif;max-width:480px;margin:12vh auto;padding:0 16px"><p>' . esc_html( $ip ? sprintf( /* translators: %s: IP address */ __( 'The address %s is unblocked.', 'sidcraft-bot-shield' ), $ip ) : __( 'This unlock link is not valid any more.', 'sidcraft-bot-shield' ) ) . '</p><p><a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Go to the site', 'sidcraft-bot-shield' ) . '</a></p></body></html>';
 			exit;
 		}
@@ -159,13 +171,13 @@ class Sidcraft_BotShield_Guard {
 	}
 
 	/** What a blocked address sees: a short message and a button that emails the site owner an unlock link. */
-	public static function banned_page( $ip ) {
+	public static function banned_page( $ip, $reason = 'banned' ) {
 		status_header( 403 ); nocache_headers(); header( 'X-Robots-Tag: noindex, nofollow' ); header( 'Content-Type: text/html; charset=UTF-8' );
 		$sent = isset( $_POST['sbs_unlock_request'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- display only.
-		echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html__( 'Access denied', 'sidcraft-bot-shield' ) . '</title></head><body style="font:16px/1.5 -apple-system,Segoe UI,sans-serif;max-width:520px;margin:12vh auto;padding:0 16px;color:#1d2327"><h1 style="font-size:22px">' . esc_html__( 'Access denied', 'sidcraft-bot-shield' ) . '</h1><p>' . esc_html__( 'Your address has been blocked because it sent too many suspicious requests.', 'sidcraft-bot-shield' ) . '</p>';
+		echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html__( 'Access denied', 'sidcraft-bot-shield' ) . '</title></head><body style="font:16px/1.5 -apple-system,Segoe UI,sans-serif;max-width:520px;margin:12vh auto;padding:0 16px;color:#1d2327"><h1 style="font-size:22px">' . esc_html__( 'Access denied', 'sidcraft-bot-shield' ) . '</h1><p>' . esc_html( 'banned' === $reason ? __( 'Your address has been blocked because it sent too many suspicious requests.', 'sidcraft-bot-shield' ) : __( 'Your request was stopped by the security rules of this site.', 'sidcraft-bot-shield' ) ) . '</p>';
 		if ( $sent ) { echo '<p style="background:#edfaef;border-left:4px solid #00a32a;padding:8px 12px">' . esc_html__( 'If you are the owner of this site, an unlock link was emailed to the site administrator.', 'sidcraft-bot-shield' ) . '</p>'; }
 		else { echo '<p>' . esc_html__( 'If you are the owner of this site and blocked yourself, you can ask for an unlock link by email.', 'sidcraft-bot-shield' ) . '</p><form method="post"><input type="hidden" name="sbs_unlock_request" value="1"><button style="font:inherit;padding:8px 14px;cursor:pointer">' . esc_html__( 'Email me an unlock link', 'sidcraft-bot-shield' ) . '</button></form>'; }
-		echo '<p style="color:#646970;font-size:13px">' . esc_html( $ip ) . '</p></body></html>';
+		echo '<p style="color:#646970;font-size:13px">' . esc_html( $ip ) . ( defined( 'SIDCRAFT_BOTSHIELD_DEBUG' ) && SIDCRAFT_BOTSHIELD_DEBUG ? ' &middot; ' . esc_html( $reason ) : '' ) . '</p></body></html>';
 		exit;
 	}
 

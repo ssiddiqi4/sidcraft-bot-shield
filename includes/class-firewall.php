@@ -40,7 +40,7 @@ class Sidcraft_BotShield_Firewall {
 		if ( '' === $ip ) { return false; }
 		$t = Sidcraft_BotShield_Settings::lines( 'ip_allow' );
 		if ( apply_filters( 'sidcraft_botshield_trust_loopback', true ) ) { $t = array_merge( $t, array( '127.0.0.1', '::1' ) ); }
-		return Sidcraft_BotShield_Ranges::in_list( $ip, $t );
+		return Sidcraft_BotShield_Ranges::in_list( $ip, $t ) || Sidcraft_BotShield_Guard::is_admin_ip( $ip );
 	}
 
 	private static function deny( $reason, $status = 403, $retry = 0 ) {

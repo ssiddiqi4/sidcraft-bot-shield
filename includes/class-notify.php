@@ -62,9 +62,9 @@ class Sidcraft_BotShield_Notify {
 
 	/** A blocked visitor asks for an unlock email for the site owner. Always answers the same, so that it reveals nothing. */
 	public static function request_unlock( $ip ) {
-		$k = 'sbs_unlockreq_' . md5( $ip ); if ( get_transient( $k ) || ! Sidcraft_BotShield_Bans::is_banned( $ip ) ) { return; }
+		$k = 'sbs_unlockreq_' . md5( $ip ); if ( get_transient( $k ) ) { return; }
 		set_transient( $k, 1, 10 * MINUTE_IN_SECONDS );
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
-		wp_mail( self::to(), sprintf( /* translators: %s: site */ __( '[%s] Someone asked to be unblocked', 'sidcraft-bot-shield' ), $site ), sprintf( /* translators: 1: IP 2: link */ __( "The address %1\$s is blocked on your site and asked for an unlock link.\n\nIf this is you or someone you trust, open this link within an hour to unblock the address:\n%2\$s\n\nIf you do not know who this is, ignore this email.", 'sidcraft-bot-shield' ), $ip, self::unlock_link( $ip ) ) );
+		wp_mail( self::to(), sprintf( /* translators: %s: site */ __( '[%s] Someone asked to be unblocked', 'sidcraft-bot-shield' ), $site ), sprintf( /* translators: 1: IP 2: link */ __( "The address %1\$s is blocked on your site and asked for an unlock link.\n\nIf this is you or someone you trust, open this link within an hour to unblock the address and keep it unblocked for a week:\n%2\$s\n\nIf you do not know who this is, ignore this email.", 'sidcraft-bot-shield' ), $ip, self::unlock_link( $ip ) ) );
 	}
 }

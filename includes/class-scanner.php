@@ -471,15 +471,53 @@ class Sidcraft_BotShield_Scanner {
 
 	public static function ignore( $id ) { $i = self::ignored(); if ( ! in_array( $id, $i, true ) ) { $i[] = $id; update_option( self::IGNORED, array_slice( $i, -1000 ), false ); } self::remove_finding( $id ); }
 
-	/** Delete a file the scan flagged. Returns '' or an error. */
-	public static function delete_file( $id ) {
-		$f = self::findings(); if ( ! isset( $f[ $id ] ) || '' === $f[ $id ]['rel'] ) { return __( 'Unknown result.', 'sidcraft-bot-shield' ); }
-		if ( ! in_array( $f[ $id ]['type'], array( 'malware', 'upload_php', 'image_php', 'config_file', 'core_unknown', 'plugin_unknown' ), true ) ) { return __( 'This file cannot be deleted from here.', 'sidcraft-bot-shield' ); }
-		$abs = self::safe_path( $f[ $id ]['rel'] );
-		if ( '' === $abs || in_array( basename( $abs ), array( 'wp-config.php', 'index.php' ), true ) && 'malware' !== $f[ $id ]['type'] ) { return __( 'This file cannot be deleted from here.', 'sidcraft-bot-shield' ); }
-		if ( 'wp-config.php' === basename( $abs ) ) { return __( 'wp-config.php cannot be deleted from here.', 'sidcraft-bot-shield' ); }
-		wp_delete_file( $abs ); if ( is_file( $abs ) ) { return __( 'The file could not be deleted (permissions).', 'sidcraft-bot-shield' ); }
+	const QUARANTINE = 'sidcraft_botshield_quarantine';
+
+	/** Part of WordPress itself? Such a file is repaired (restored from the official copy), never removed. */
+	public static function is_core_path( $rel ) { return (bool) preg_match( '#^(?:wp-admin/|wp-includes/|[^/]+\.php$)#', (string) $rel ); }
+
+	public static function quarantined() { $q = get_option( self::QUARANTINE, array() ); return is_array( $q ) ? $q : array(); }
+	private static function qdir() { return self::dir() . 'quarantine/'; }
+
+	/** Why a file may not be taken away, or ''. */
+	public static function removal_block( $f ) {
+		$rel = $f['rel']; $base = basename( $rel );
+		if ( ! in_array( $f['type'], array( 'malware', 'upload_php', 'image_php', 'config_file', 'core_unknown', 'plugin_unknown' ), true ) || '' === $rel ) { return __( 'This file cannot be removed from here.', 'sidcraft-bot-shield' ); }
+		if ( 'wp-config.php' === $base ) { return __( 'wp-config.php cannot be removed from here. Open it and delete the bad code by hand, or restore it from a backup.', 'sidcraft-bot-shield' ); }
+		if ( 'core_unknown' !== $f['type'] && self::is_core_path( $rel ) ) { return __( 'This is a WordPress core file with bad code in it. Removing it would break the site. Use “Repair” on the matching “WordPress core file was modified” result to restore the official file.', 'sidcraft-bot-shield' ); }
+		return '';
+	}
+
+	/** Move a flagged file into the quarantine folder (it can be put back). Returns '' or an error. */
+	public static function quarantine_file( $id ) {
+		$f = self::findings(); if ( ! isset( $f[ $id ] ) ) { return __( 'Unknown result.', 'sidcraft-bot-shield' ); }
+		$why = self::removal_block( $f[ $id ] ); if ( '' !== $why ) { return $why; }
+		$abs = self::safe_path( $f[ $id ]['rel'] ); if ( '' === $abs ) { return __( 'The file is not there any more.', 'sidcraft-bot-shield' ); }
+		if ( ! Sidcraft_BotShield_Lists::ensure_dir() ) { return __( 'The quarantine folder cannot be created (permissions).', 'sidcraft-bot-shield' ); }
+		wp_mkdir_p( self::qdir() );
+		$qid = strtolower( wp_generate_password( 12, false ) ); $to = self::qdir() . $qid . '.q';
+		$ok = @rename( $abs, $to ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
+		if ( ! $ok && @copy( $abs, $to ) ) { wp_delete_file( $abs ); $ok = ! is_file( $abs ); } // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.copy_copy
+		if ( ! $ok || is_file( $abs ) ) { return __( 'The file could not be moved (permissions).', 'sidcraft-bot-shield' ); }
+		$q = self::quarantined(); $q[ $qid ] = array( 'rel' => $f[ $id ]['rel'], 'time' => time(), 'title' => $f[ $id ]['title'], 'size' => (int) @filesize( $to ) ); update_option( self::QUARANTINE, $q, false ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		self::remove_finding( $id ); return '';
+	}
+
+	/** Put a quarantined file back where it was. */
+	public static function restore_file( $qid ) {
+		$q = self::quarantined(); if ( ! isset( $q[ $qid ] ) ) { return __( 'Unknown file.', 'sidcraft-bot-shield' ); }
+		$from = self::qdir() . $qid . '.q'; $root = realpath( ABSPATH ); $to = $root . '/' . $q[ $qid ]['rel'];
+		if ( ! is_file( $from ) ) { unset( $q[ $qid ] ); update_option( self::QUARANTINE, $q, false ); return __( 'The quarantined file is gone.', 'sidcraft-bot-shield' ); }
+		$dir = realpath( dirname( $to ) ); if ( ! $dir || 0 !== strpos( $dir, $root ) ) { return __( 'The original folder does not exist any more.', 'sidcraft-bot-shield' ); }
+		if ( file_exists( $to ) ) { return __( 'A file already exists at the original place.', 'sidcraft-bot-shield' ); }
+		if ( ! @rename( $from, $to ) ) { return __( 'The file could not be moved back (permissions).', 'sidcraft-bot-shield' ); } // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
+		unset( $q[ $qid ] ); update_option( self::QUARANTINE, $q, false ); return '';
+	}
+
+	/** Delete a quarantined file for good. */
+	public static function purge_file( $qid ) {
+		$q = self::quarantined(); if ( isset( $q[ $qid ] ) ) { wp_delete_file( self::qdir() . $qid . '.q' ); unset( $q[ $qid ] ); update_option( self::QUARANTINE, $q, false ); }
+		return '';
 	}
 
 	/** Replace a modified or missing core/plugin file with the official copy. Returns '' or an error. */

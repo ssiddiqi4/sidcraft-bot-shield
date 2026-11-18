@@ -229,10 +229,11 @@ class Sidcraft_BotShield_SecureAdmin {
 				echo '<tr><td><span style="' . esc_attr( self::sev_style( $x['sev'] ) ) . '">' . esc_html( $x['sev'] ) . '</span></td><td><strong>' . esc_html( $x['title'] ) . '</strong>';
 				if ( '' !== $x['detail'] ) { echo '<br><span class="description">' . esc_html( $x['detail'] ) . '</span>'; }
 				if ( ! empty( $x['extra']['snippet'] ) ) { echo '<br><code style="font-size:11px;word-break:break-all">' . esc_html( $x['extra']['snippet'] ) . '</code>'; }
-				echo '</td><td>' . wp_kses( self::finding_links( $id, $x, $base ), array( 'a' => array( 'href' => array(), 'onclick' => array() ) ) ) . '</td></tr>';
+				echo '</td><td>' . wp_kses( self::finding_links( $id, $x, $base ), array( 'a' => array( 'href' => array(), 'onclick' => array() ), 'em' => array() ) ) . '</td></tr>';
 			}
 			echo '</tbody></table>';
 		}
+		self::quarantine_box( $base );
 		// Options.
 		self::scan_options();
 	}
@@ -244,7 +245,10 @@ class Sidcraft_BotShield_SecureAdmin {
 		$out = array();
 		if ( '' !== $x['rel'] && '' !== Sidcraft_BotShield_Scanner::safe_path( $x['rel'] ) ) { $out[] = '<a href="' . esc_url( add_query_arg( array( 'tab' => 'scan', 'view' => $id ), $base ) ) . '">' . esc_html__( 'View file', 'sidcraft-bot-shield' ) . '</a>'; }
 		if ( ! empty( $x['extra']['repair'] ) ) { $out[] = $act( 'repair', __( 'Repair (restore the official file)', 'sidcraft-bot-shield' ), __( 'Replace this file with the official copy from WordPress.org?', 'sidcraft-bot-shield' ) ); }
-		if ( in_array( $x['type'], array( 'malware', 'upload_php', 'image_php', 'config_file', 'core_unknown', 'plugin_unknown' ), true ) && '' !== $x['rel'] ) { $out[] = $act( 'delete', __( 'Delete file', 'sidcraft-bot-shield' ), __( 'Delete this file permanently? Make a backup first if you are not sure.', 'sidcraft-bot-shield' ) ); }
+		if ( in_array( $x['type'], array( 'malware', 'upload_php', 'image_php', 'config_file', 'core_unknown', 'plugin_unknown' ), true ) && '' !== $x['rel'] ) {
+			if ( '' === Sidcraft_BotShield_Scanner::removal_block( $x ) ) { $out[] = $act( 'quarantine', __( 'Quarantine (can be undone)', 'sidcraft-bot-shield' ), __( 'Move this file out of the site into quarantine? You can put it back from the Quarantine list. If it is part of your theme or a plugin the site may stop working until you restore it.', 'sidcraft-bot-shield' ) ); }
+			elseif ( 'malware' === $x['type'] && Sidcraft_BotShield_Scanner::is_core_path( $x['rel'] ) ) { $out[] = '<em>' . esc_html__( 'Core file: use Repair on the matching “core file was modified” result', 'sidcraft-bot-shield' ) . '</em>'; }
+		}
 		if ( ! empty( $x['extra']['post'] ) ) { $out[] = '<a href="' . esc_url( get_edit_post_link( (int) $x['extra']['post'], 'raw' ) ) . '">' . esc_html__( 'Edit post', 'sidcraft-bot-shield' ) . '</a>'; }
 		if ( ! empty( $x['extra']['comment'] ) ) { $out[] = '<a href="' . esc_url( admin_url( 'comment.php?action=editcomment&c=' . (int) $x['extra']['comment'] ) ) . '">' . esc_html__( 'Edit comment', 'sidcraft-bot-shield' ) . '</a>'; }
 		if ( ! empty( $x['extra']['link'] ) ) { $out[] = '<a href="' . esc_url( $x['extra']['link'] ) . '">' . esc_html__( 'Open', 'sidcraft-bot-shield' ) . '</a>'; }
@@ -265,6 +269,17 @@ class Sidcraft_BotShield_SecureAdmin {
 		echo '<div style="background:#fff;border:1px solid #c3c4c7;overflow:auto;max-height:640px"><table style="border-collapse:collapse;font:12px/1.5 monospace;width:100%">';
 		for ( $i = $from; $i < $to; $i++ ) { $on = ( $i + 1 === $hl ); echo '<tr style="' . ( $on ? 'background:#fcf0f1' : '' ) . '"><td style="text-align:right;padding:0 8px;color:#8c8f94;user-select:none;vertical-align:top;border-right:1px solid #dcdcde">' . (int) ( $i + 1 ) . '</td><td style="padding:0 8px;white-space:pre-wrap;word-break:break-all">' . esc_html( $lines[ $i ] ) . '</td></tr>'; }
 		echo '</table></div>';
+	}
+
+	private static function quarantine_box( $base ) {
+		$q = Sidcraft_BotShield_Scanner::quarantined(); if ( ! $q ) { return; }
+		echo '<h2 style="margin-top:30px">' . esc_html__( 'Quarantine', 'sidcraft-bot-shield' ) . '</h2><p class="description">' . esc_html__( 'Files moved out of the site. They cannot run here. If the site broke after you quarantined one, restore it.', 'sidcraft-bot-shield' ) . '</p>';
+		echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'File', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'When', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Why', 'sidcraft-bot-shield' ) . '</th><th></th></tr></thead><tbody>';
+		foreach ( $q as $qid => $x ) {
+			$u = function ( $a ) use ( $qid ) { return wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_finding&act=' . $a . '&id=' . rawurlencode( $qid ) ), 'sidcraft_botshield_finding' ); };
+			echo '<tr><td><code>' . esc_html( $x['rel'] ) . '</code></td><td>' . esc_html( human_time_diff( $x['time'] ) ) . ' ' . esc_html__( 'ago', 'sidcraft-bot-shield' ) . '</td><td>' . esc_html( $x['title'] ) . '</td><td><a href="' . esc_url( $u( 'restore' ) ) . '">' . esc_html__( 'Restore', 'sidcraft-bot-shield' ) . '</a> · <a href="' . esc_url( $u( 'purge' ) ) . '" onclick="return confirm(\'' . esc_js( __( 'Delete this file for good? It cannot be undone.', 'sidcraft-bot-shield' ) ) . '\')">' . esc_html__( 'Delete for good', 'sidcraft-bot-shield' ) . '</a></td></tr>';
+		}
+		echo '</tbody></table>';
 	}
 
 	private static function scan_options() {
@@ -318,7 +333,9 @@ class Sidcraft_BotShield_SecureAdmin {
 		$err = '';
 		if ( 'ignore' === $act ) { Sidcraft_BotShield_Scanner::ignore( $id ); }
 		elseif ( 'dismiss' === $act ) { Sidcraft_BotShield_Scanner::remove_finding( $id ); }
-		elseif ( 'delete' === $act ) { $err = Sidcraft_BotShield_Scanner::delete_file( $id ); }
+		elseif ( 'quarantine' === $act ) { $err = Sidcraft_BotShield_Scanner::quarantine_file( $id ); }
+		elseif ( 'restore' === $act ) { $err = Sidcraft_BotShield_Scanner::restore_file( $id ); }
+		elseif ( 'purge' === $act ) { $err = Sidcraft_BotShield_Scanner::purge_file( $id ); }
 		elseif ( 'repair' === $act ) { $err = Sidcraft_BotShield_Scanner::repair_file( $id ); }
 		if ( '' !== $err ) { set_transient( 'sidcraft_botshield_notice', $err, 60 ); self::back( 'scan' ); }
 		self::back( 'scan', array( 'sbs_ok' => 1 ) );

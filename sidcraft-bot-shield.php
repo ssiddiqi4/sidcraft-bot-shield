@@ -3,7 +3,7 @@
  * Plugin Name:       Sidcraft Bot Shield
  * Plugin URI:        https://github.com/ssiddiqi4/sidcraft-bot-shield
  * Description:       Lets search engines and AI assistants (Google, Bing, Apple, ChatGPT, Claude, Perplexity, Copilot and more) in, and blocks scrapers, scripts, scanners and fake bots. Also blocks countries, IP ranges, VPNs and Tor, with a web application firewall, two-factor login, a custom login address and a malware scanner.
- * Version:           1.3.7
+ * Version:           1.3.8
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Suhaib Siddiqi
@@ -16,7 +16,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'SIDCRAFT_BOTSHIELD_VERSION', '1.3.7' );
+define( 'SIDCRAFT_BOTSHIELD_VERSION', '1.3.8' );
 define( 'SIDCRAFT_BOTSHIELD_FILE', __FILE__ );
 define( 'SIDCRAFT_BOTSHIELD_DIR', plugin_dir_path( __FILE__ ) );
 

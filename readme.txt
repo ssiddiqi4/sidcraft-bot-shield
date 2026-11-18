@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.3.11
+Stable tag: 1.3.12
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -164,6 +164,10 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.3.12 =
+* New: the Quarantine list is always shown on the Scan tab (with a link at the top), so you can restore or delete quarantined files at any time.
+* Plugin Check: two remaining notes.
+
 = 1.3.11 =
 * Plugin Check clean-up: escaping, sanitising and nonce notes, ordered placeholders, direct-access guard on the firewall files, scan "skip paths" setting renamed.
 
@@ -188,6 +192,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.3.12 =
+Quarantined files can now always be viewed, restored or deleted from the Scan tab.
 
 = 1.3.11 =
 Tidies the code for the WordPress.org Plugin Check. No change in how it works.

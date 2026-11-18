@@ -519,7 +519,8 @@ class Sidcraft_BotShield_Scanner {
 		if ( ! is_file( $from ) ) { unset( $q[ $qid ] ); update_option( self::QUARANTINE, $q, false ); return __( 'The quarantined file is gone.', 'sidcraft-bot-shield' ); }
 		$dir = realpath( dirname( $to ) ); if ( ! $dir || 0 !== strpos( $dir, $root ) ) { return __( 'The original folder does not exist any more.', 'sidcraft-bot-shield' ); }
 		if ( file_exists( $to ) ) { return __( 'A file already exists at the original place.', 'sidcraft-bot-shield' ); }
-		if ( ! @rename( $from, $to ) ) { return __( 'The file could not be moved back (permissions).', 'sidcraft-bot-shield' ); } // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
+		if ( ! @rename( $from, $to ) ) { // phpcs:ignore PluginCheck.CodeAnalysis.WriteFile.ABSPATHDetected -- restoring a file to the place it was taken from
+			 return __( 'The file could not be moved back (permissions).', 'sidcraft-bot-shield' ); } // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename
 		unset( $q[ $qid ] ); update_option( self::QUARANTINE, $q, false ); return '';
 	}
 

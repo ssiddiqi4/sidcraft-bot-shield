@@ -152,7 +152,7 @@ class Sidcraft_BotShield_SecureAdmin {
 		if ( ! is_user_logged_in() ) { auth_redirect(); }
 		self::cap();
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- an emailed link: it carries an HMAC signature instead of a nonce, and an administrator must be logged in
-		$ip = isset( $_GET['ip'] ) ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['ip'] ) ) ) : ''; $sig = isset( $_GET['sig'] ) ? sanitize_text_field( wp_unslash( $_GET['sig'] ) ) : '';
+		$ip = isset( $_GET['ip'] ) ? rawurldecode( sanitize_text_field( wp_unslash( $_GET['ip'] ) ) ) : ''; $sig = isset( $_GET['sig'] ) ? sanitize_text_field( wp_unslash( $_GET['sig'] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 		if ( '' !== Sidcraft_BotShield_Ranges::pack( $ip ) && hash_equals( Sidcraft_BotShield_Notify::sign( 'unban|' . $ip ), $sig ) ) { self::lift( $ip ); set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: IP */ __( '%s is unblocked.', 'sidcraft-bot-shield' ), $ip ), 60 ); }
 		else { set_transient( 'sidcraft_botshield_notice', __( 'This unblock link is not valid.', 'sidcraft-bot-shield' ), 60 ); }
@@ -212,6 +212,7 @@ class Sidcraft_BotShield_SecureAdmin {
 		if ( '' !== $view && isset( $f[ $view ] ) ) { self::file_view( $f[ $view ], $base ); return; }
 		self::notice();
 		echo '<p>' . esc_html__( 'Looks for hacked or changed WordPress files, malware and backdoors, injected content, exposed backup files, out-of-date software and weak passwords. The scan works in short steps and keeps going in the background if you close this page.', 'sidcraft-bot-shield' ) . '</p>';
+		echo '<p><a href="#sbs-quarantine">' . esc_html( sprintf( /* translators: %d: number of files */ __( 'Quarantined files (%d): restore or delete', 'sidcraft-bot-shield' ), count( Sidcraft_BotShield_Scanner::quarantined() ) ) ) . '</a></p>';
 		echo '<div style="background:#fff;border:1px solid #c3c4c7;border-radius:6px;padding:14px 18px;margin:14px 0">';
 		echo '<p style="margin-top:0"><button id="sbs-scan-btn" class="button button-primary button-hero" data-running="' . ( $running ? '1' : '0' ) . '">' . esc_html( $running ? __( 'Stop scan', 'sidcraft-bot-shield' ) : __( 'Start scan', 'sidcraft-bot-shield' ) ) . '</button> <span id="sbs-scan-label" style="margin-left:10px">';
 		if ( $running ) { echo esc_html__( 'Scanning…', 'sidcraft-bot-shield' ); } elseif ( $st['finished'] ) { echo esc_html( sprintf( /* translators: %s: time */ __( 'Last scan finished %s ago.', 'sidcraft-bot-shield' ), human_time_diff( $st['finished'] ) ) ); } else { echo esc_html__( 'No scan yet.', 'sidcraft-bot-shield' ); }
@@ -275,8 +276,10 @@ class Sidcraft_BotShield_SecureAdmin {
 	}
 
 	private static function quarantine_box( $base ) {
-		$q = Sidcraft_BotShield_Scanner::quarantined(); if ( ! $q ) { return; }
-		echo '<h2 style="margin-top:30px">' . esc_html__( 'Quarantine', 'sidcraft-bot-shield' ) . '</h2><p class="description">' . esc_html__( 'Files moved out of the site. They cannot run here. If the site broke after you quarantined one, restore it.', 'sidcraft-bot-shield' ) . '</p>';
+		$q = Sidcraft_BotShield_Scanner::quarantined();
+		echo '<h2 id="sbs-quarantine" style="margin-top:30px">' . esc_html( sprintf( /* translators: %d: number of files */ __( 'Quarantine (%d)', 'sidcraft-bot-shield' ), count( $q ) ) ) . '</h2>';
+		if ( ! $q ) { echo '<p class="description">' . esc_html__( 'No files are in quarantine. When you quarantine a flagged file it appears here, and you can restore or delete it.', 'sidcraft-bot-shield' ) . '</p>'; return; }
+		echo '<p class="description">' . esc_html__( 'Files moved out of the site. They cannot run here. If the site broke after you quarantined one, restore it.', 'sidcraft-bot-shield' ) . '</p>';
 		echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'File', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'When', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Why', 'sidcraft-bot-shield' ) . '</th><th></th></tr></thead><tbody>';
 		foreach ( $q as $qid => $x ) {
 			$u = function ( $a ) use ( $qid ) { return wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_finding&act=' . $a . '&id=' . rawurlencode( $qid ) ), 'sidcraft_botshield_finding' ); };

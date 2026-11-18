@@ -9,6 +9,9 @@ class Sidcraft_BotShield_SecureAdmin {
 		add_action( 'admin_post_sidcraft_botshield_finding', array( __CLASS__, 'finding_action' ) );
 		add_action( 'admin_post_sidcraft_botshield_ext', array( __CLASS__, 'ext_action' ) );
 		add_action( 'admin_post_sidcraft_botshield_unban', array( __CLASS__, 'unban' ) );
+		add_action( 'admin_post_sidcraft_botshield_unban_mail', array( __CLASS__, 'unban_mail' ) );
+		add_action( 'update_option_' . Sidcraft_BotShield_LoginSettings::OPTION, array( __CLASS__, 'login_saved' ), 10, 2 );
+		add_action( 'add_option_' . Sidcraft_BotShield_LoginSettings::OPTION, function ( $o, $v ) { Sidcraft_BotShield_SecureAdmin::login_saved( Sidcraft_BotShield_LoginSettings::defaults(), $v ); }, 10, 2 );
 		add_action( 'update_option_' . Sidcraft_BotShield_FwSettings::OPTION, array( 'Sidcraft_BotShield_Firewall', 'ext_sync' ) );
 		add_action( 'update_option_' . Sidcraft_BotShield_ScanSettings::OPTION, function () { Sidcraft_BotShield_Scanner::schedule( true ); } );
 		add_action( 'add_option_' . Sidcraft_BotShield_ScanSettings::OPTION, function () { Sidcraft_BotShield_Scanner::schedule( true ); } );
@@ -16,6 +19,7 @@ class Sidcraft_BotShield_SecureAdmin {
 
 	public static function register() {
 		register_setting( 'sidcraft_botshield_fw_group', Sidcraft_BotShield_FwSettings::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( 'Sidcraft_BotShield_FwSettings', 'sanitize' ), 'default' => Sidcraft_BotShield_FwSettings::defaults() ) );
+		register_setting( 'sidcraft_botshield_login_group', Sidcraft_BotShield_LoginSettings::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( 'Sidcraft_BotShield_LoginSettings', 'sanitize' ), 'default' => Sidcraft_BotShield_LoginSettings::defaults() ) );
 		register_setting( 'sidcraft_botshield_scan_group', Sidcraft_BotShield_ScanSettings::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( 'Sidcraft_BotShield_ScanSettings', 'sanitize' ), 'default' => Sidcraft_BotShield_ScanSettings::defaults() ) );
 	}
 
@@ -54,11 +58,21 @@ class Sidcraft_BotShield_SecureAdmin {
 			echo '<p>' . esc_html__( 'Strong passwords:', 'sidcraft-bot-shield' ) . ' <select name="' . esc_attr( $O ) . '[strong_pw]"><option value="off" ' . selected( $s['strong_pw'], 'off', false ) . '>' . esc_html__( 'not required', 'sidcraft-bot-shield' ) . '</option><option value="admins" ' . selected( $s['strong_pw'], 'admins', false ) . '>' . esc_html__( 'required for administrators and editors', 'sidcraft-bot-shield' ) . '</option><option value="all" ' . selected( $s['strong_pw'], 'all', false ) . '>' . esc_html__( 'required for everyone', 'sidcraft-bot-shield' ) . '</option></select> <span class="description">' . esc_html__( '12+ characters, mixed, not common, not your user name.', 'sidcraft-bot-shield' ) . '</span></p>';
 			echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[breached_pw]" value="1" ' . checked( ! empty( $s['breached_pw'] ), true, false ) . '> ' . esc_html__( 'Block passwords that appeared in data breaches (administrators cannot log in with one until they reset it)', 'sidcraft-bot-shield' ) . '</label><br><span class="description">' . esc_html__( 'Uses the Pwned Passwords service. Only the first 5 characters of a hashed password are sent, never the password. Off by default.', 'sidcraft-bot-shield' ) . '</span></p>';
 		} );
+		self::box( __( 'Block bots that search for missing pages (404)', 'sidcraft-bot-shield' ), function () use ( $s, $O ) {
+			echo '<p class="description">' . esc_html__( 'Bots look for hidden pages and weak spots by asking for hundreds of addresses that do not exist. This blocks them. Search engines and logged-in users are never counted.', 'sidcraft-bot-shield' ) . '</p>';
+			echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[nf_on]" value="1" ' . checked( ! empty( $s['nf_on'] ), true, false ) . '> ' . esc_html__( 'Turn this on', 'sidcraft-bot-shield' ) . '</label></p>';
+			echo '<p>' . esc_html__( 'Block an address that asks for', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="3" max="1000" name="' . esc_attr( $O ) . '[nf_count]" value="' . (int) $s['nf_count'] . '"> ' . esc_html__( 'missing pages within', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="1" max="1440" name="' . esc_attr( $O ) . '[nf_minutes]" value="' . (int) $s['nf_minutes'] . '"> ' . esc_html__( 'minutes, for', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="0" max="3650" name="' . esc_attr( $O ) . '[nf_days]" value="' . (int) $s['nf_days'] . '"> ' . esc_html__( 'days (0 = block for good).', 'sidcraft-bot-shield' ) . '</p>';
+			echo '<p><strong>' . esc_html__( 'Do not count addresses containing', 'sidcraft-bot-shield' ) . '</strong><br><textarea name="' . esc_attr( $O ) . '[nf_exempt]" rows="4" cols="40">' . esc_textarea( $s['nf_exempt'] ) . '</textarea><br><span class="description">' . esc_html__( 'One per line. Browsers ask for icons and similar files that many sites do not have.', 'sidcraft-bot-shield' ) . '</span></p>';
+		} );
+		self::box( __( 'Email when someone is blocked', 'sidcraft-bot-shield' ), function () use ( $s, $O ) {
+			echo '<p><select name="' . esc_attr( $O ) . '[notify_mode]"><option value="nf" ' . selected( $s['notify_mode'], 'nf', false ) . '>' . esc_html__( 'when the missing-pages rule blocks an address', 'sidcraft-bot-shield' ) . '</option><option value="all" ' . selected( $s['notify_mode'], 'all', false ) . '>' . esc_html__( 'when any automatic rule bans an address (missing pages, logins, firewall, attack probes)', 'sidcraft-bot-shield' ) . '</option><option value="off" ' . selected( $s['notify_mode'], 'off', false ) . '>' . esc_html__( 'never', 'sidcraft-bot-shield' ) . '</option></select></p>';
+			echo '<p>' . esc_html__( 'Send to', 'sidcraft-bot-shield' ) . ' <input type="email" name="' . esc_attr( $O ) . '[notify_email]" value="' . esc_attr( $s['notify_email'] ) . '" placeholder="' . esc_attr( get_option( 'admin_email' ) ) . '"> &nbsp; ' . esc_html__( 'at most', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="0" max="500" name="' . esc_attr( $O ) . '[notify_cap]" value="' . (int) $s['notify_cap'] . '"> ' . esc_html__( 'emails an hour (0 = no limit)', 'sidcraft-bot-shield' ) . '</p>';
+			echo '<p class="description">' . esc_html__( 'The email shows the IP address, its host name (for example badperson.example.com), the reason and how long it is blocked, and has a link to unblock it.', 'sidcraft-bot-shield' ) . '</p>';
+		} );
 		self::box( __( 'Rate limiting', 'sidcraft-bot-shield' ), function () use ( $s, $O ) {
 			echo '<p class="description">' . esc_html__( '0 means off. Search engines such as Google and Bing are never limited. The “speed limit” for all visitors is on the Settings tab.', 'sidcraft-bot-shield' ) . '</p>';
 			echo '<p>' . esc_html__( 'Crawlers and scripts: no more than', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="0" max="5000" name="' . esc_attr( $O ) . '[crawler_per_min]" value="' . (int) $s['crawler_per_min'] . '"> ' . esc_html__( 'page requests a minute', 'sidcraft-bot-shield' ) . '</p>';
-			echo '<p>' . esc_html__( 'Missing pages (404): no more than', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="0" max="5000" name="' . esc_attr( $O ) . '[r404_human]" value="' . (int) $s['r404_human'] . '"> ' . esc_html__( 'a minute for people and', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="0" max="5000" name="' . esc_attr( $O ) . '[r404_crawler]" value="' . (int) $s['r404_crawler'] . '"> ' . esc_html__( 'for crawlers', 'sidcraft-bot-shield' ) . '</p>';
-			echo '<p>' . esc_html__( 'When a limit is passed:', 'sidcraft-bot-shield' ) . ' <select name="' . esc_attr( $O ) . '[rate_action]"><option value="throttle" ' . selected( $s['rate_action'], 'throttle', false ) . '>' . esc_html__( 'slow them down (answer “too many requests” for a minute)', 'sidcraft-bot-shield' ) . '</option><option value="block" ' . selected( $s['rate_action'], 'block', false ) . '>' . esc_html__( 'block the address (ban length from the Settings tab)', 'sidcraft-bot-shield' ) . '</option></select></p>';
+			echo '<p>' . esc_html__( 'When the limit is passed:', 'sidcraft-bot-shield' ) . ' <select name="' . esc_attr( $O ) . '[rate_action]"><option value="throttle" ' . selected( $s['rate_action'], 'throttle', false ) . '>' . esc_html__( 'slow them down (answer “too many requests” for a minute)', 'sidcraft-bot-shield' ) . '</option><option value="block" ' . selected( $s['rate_action'], 'block', false ) . '>' . esc_html__( 'block the address (ban length from the Settings tab)', 'sidcraft-bot-shield' ) . '</option></select></p>';
 		} );
 		self::box( __( 'Hardening', 'sidcraft-bot-shield' ), function () use ( $s, $O ) {
 			foreach ( array( 'hide_version' => __( 'Hide the WordPress version', 'sidcraft-bot-shield' ), 'enum_block' => __( 'Block user name guessing through ?author=1 (not for logged-in users)', 'sidcraft-bot-shield' ), 'rest_users' => __( 'Hide the list of users in the REST API from visitors', 'sidcraft-bot-shield' ), 'blank_post' => __( 'Block POST requests that send no browser name and no referrer (can affect some webhooks)', 'sidcraft-bot-shield' ) ) as $k => $l ) { echo '<p style="margin:4px 0"><label><input type="checkbox" name="' . esc_attr( $O ) . '[' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $s[ $k ] ), true, false ) . '> ' . esc_html( $l ) . '</label></p>'; }
@@ -85,9 +99,10 @@ class Sidcraft_BotShield_SecureAdmin {
 	private static function bans_box() {
 		$bans = Sidcraft_BotShield_Bans::all();
 		self::box( sprintf( /* translators: %d: number */ __( 'Blocked addresses right now (%d)', 'sidcraft-bot-shield' ), count( $bans ) ), function () use ( $bans ) {
-			if ( ! $bans ) { echo '<p>' . esc_html__( 'No address is locked out.', 'sidcraft-bot-shield' ) . '</p>'; return; }
-			echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Address', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Why', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Since', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Until', 'sidcraft-bot-shield' ) . '</th><th></th></tr></thead><tbody>';
-			foreach ( $bans as $ip => $b ) { $u = wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_unban&ip=' . rawurlencode( $ip ) ), 'sidcraft_botshield_unban' ); echo '<tr><td><code>' . esc_html( $ip ) . '</code></td><td>' . esc_html( $b['reason'] ) . '</td><td>' . esc_html( human_time_diff( $b['since'] ) ) . ' ' . esc_html__( 'ago', 'sidcraft-bot-shield' ) . '</td><td>' . esc_html( human_time_diff( time(), $b['until'] ) ) . '</td><td><a href="' . esc_url( $u ) . '">' . esc_html__( 'Unblock', 'sidcraft-bot-shield' ) . '</a></td></tr>'; }
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin-bottom:12px">'; wp_nonce_field( 'sidcraft_botshield_unban' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_unban"><label>' . esc_html__( 'Unblock an address:', 'sidcraft-bot-shield' ) . ' <input type="text" name="ip" placeholder="203.0.113.7" style="width:180px"></label> <button class="button">' . esc_html__( 'Unblock', 'sidcraft-bot-shield' ) . '</button> <span class="description">' . esc_html__( 'Use this if a real visitor, or you, got blocked by mistake.', 'sidcraft-bot-shield' ) . '</span></form>';
+			if ( ! $bans ) { echo '<p>' . esc_html__( 'No address is blocked.', 'sidcraft-bot-shield' ) . '</p>'; return; }
+			echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'Address', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Host name', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Why', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Since', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Until', 'sidcraft-bot-shield' ) . '</th><th></th></tr></thead><tbody>';
+			foreach ( $bans as $ip => $b ) { $u = wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_unban&ip=' . rawurlencode( $ip ) ), 'sidcraft_botshield_unban' ); echo '<tr><td><code>' . esc_html( $ip ) . '</code></td><td>' . esc_html( $b['host'] ?? '' ) . '</td><td>' . esc_html( $b['reason'] ) . '</td><td>' . esc_html( human_time_diff( $b['since'] ) ) . ' ' . esc_html__( 'ago', 'sidcraft-bot-shield' ) . '</td><td>' . esc_html( empty( $b['until'] ) ? __( 'for good', 'sidcraft-bot-shield' ) : human_time_diff( time(), $b['until'] ) ) . '</td><td><a href="' . esc_url( $u ) . '">' . esc_html__( 'Unblock', 'sidcraft-bot-shield' ) . '</a></td></tr>'; }
 			echo '</tbody></table>';
 		} );
 	}
@@ -102,9 +117,68 @@ class Sidcraft_BotShield_SecureAdmin {
 
 	public static function unban() {
 		self::cap(); check_admin_referer( 'sidcraft_botshield_unban' );
-		$ip = isset( $_GET['ip'] ) ? sanitize_text_field( wp_unslash( $_GET['ip'] ) ) : '';
-		if ( '' !== Sidcraft_BotShield_Ranges::pack( $ip ) ) { Sidcraft_BotShield_Bans::remove( $ip ); foreach ( array( 'sbs_lf_', 'sbs_fp_', 'sbs_wafn_', 'sbs_rc_', 'sbs_r404_', 'sbs_rate_' ) as $p ) { delete_transient( $p . md5( $ip ) ); } }
+		$ip = isset( $_REQUEST['ip'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['ip'] ) ) : '';
+		if ( '' !== Sidcraft_BotShield_Ranges::pack( $ip ) ) { self::lift( $ip ); set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: IP */ __( '%s is unblocked.', 'sidcraft-bot-shield' ), $ip ), 60 ); }
+		else { set_transient( 'sidcraft_botshield_notice', __( 'That is not a valid IP address.', 'sidcraft-bot-shield' ), 60 ); }
 		self::back( 'firewall' );
+	}
+
+	/** Remove every kind of block for one address. */
+	public static function lift( $ip ) {
+		Sidcraft_BotShield_Bans::remove( $ip );
+		foreach ( array( 'sbs_lf_', 'sbs_fp_', 'sbs_wafn_', 'sbs_rc_', 'sbs_nf_', 'sbs_rate_' ) as $p ) { delete_transient( $p . md5( $ip ) ); }
+	}
+
+	/** The unblock link in the email: only works for a logged-in administrator and a valid signature. */
+	public static function unban_mail() {
+		if ( ! is_user_logged_in() ) { auth_redirect(); }
+		self::cap();
+		$ip = isset( $_GET['ip'] ) ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['ip'] ) ) ) : ''; $sig = isset( $_GET['sig'] ) ? sanitize_text_field( wp_unslash( $_GET['sig'] ) ) : '';
+		if ( '' !== Sidcraft_BotShield_Ranges::pack( $ip ) && hash_equals( Sidcraft_BotShield_Notify::sign( 'unban|' . $ip ), $sig ) ) { self::lift( $ip ); set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: IP */ __( '%s is unblocked.', 'sidcraft-bot-shield' ), $ip ), 60 ); }
+		else { set_transient( 'sidcraft_botshield_notice', __( 'This unblock link is not valid.', 'sidcraft-bot-shield' ), 60 ); }
+		self::back( 'firewall' );
+	}
+
+
+	// =========================================================== Login tab
+	/** After saving: email the new login address to the admin so that it is not lost. */
+	public static function login_saved( $old, $new ) {
+		$old = is_array( $old ) ? $old : array(); $new = is_array( $new ) ? $new : array();
+		if ( ! empty( $new['url_on'] ) && ! empty( $new['url_slug'] ) && ( empty( $old['url_on'] ) || ( $old['url_slug'] ?? '' ) !== $new['url_slug'] ) ) {
+			$url = home_url( '/' . $new['url_slug'] . '/' );
+			wp_mail( get_option( 'admin_email' ), sprintf( /* translators: %s: site */ __( '[%s] Your new login address', 'sidcraft-bot-shield' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ), sprintf( /* translators: %s: URL */ __( "Your WordPress login address is now:\n%s\n\nKeep this email. The old addresses (/wp-login.php and /wp-admin) no longer work for visitors.\n\nIf you ever forget it, add this line to wp-config.php to switch the custom address off:\ndefine( 'SIDCRAFT_BOTSHIELD_LOGIN_URL_OFF', true );", 'sidcraft-bot-shield' ), $url ) );
+			set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: URL */ __( 'Your login address is now %s. Bookmark it. It was also emailed to the site administrator.', 'sidcraft-bot-shield' ), $url ), 120 );
+		}
+	}
+
+	public static function login_tab( $base ) {
+		self::notice();
+		$s = Sidcraft_BotShield_LoginSettings::all(); $O = Sidcraft_BotShield_LoginSettings::OPTION;
+		echo '<form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_login_group' );
+		self::box( __( 'Two-factor login', 'sidcraft-bot-shield' ), function () use ( $s, $O ) {
+			echo '<p>' . esc_html__( 'After the password, users must also prove it is them: with a code by email, a code from an authenticator app, a text message, or a passkey (fingerprint, face or security key).', 'sidcraft-bot-shield' ) . '</p>';
+			echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[tfa_on]" value="1" ' . checked( ! empty( $s['tfa_on'] ), true, false ) . '> <strong>' . esc_html__( 'Turn on two-factor login', 'sidcraft-bot-shield' ) . '</strong></label></p>';
+			echo '<p><strong>' . esc_html__( 'Allowed methods', 'sidcraft-bot-shield' ) . '</strong></p>';
+			foreach ( array( 'tfa_email' => __( 'Email code', 'sidcraft-bot-shield' ), 'tfa_totp' => __( 'Authenticator app (Google Authenticator, Microsoft Authenticator, Authy, 1Password…)', 'sidcraft-bot-shield' ), 'tfa_sms' => __( 'Text message (needs a Twilio account, below)', 'sidcraft-bot-shield' ), 'tfa_passkey' => __( 'Passkey or security key', 'sidcraft-bot-shield' ) ) as $k => $l ) { echo '<label style="display:block;margin:3px 0"><input type="checkbox" name="' . esc_attr( $O ) . '[' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $s[ $k ] ), true, false ) . '> ' . esc_html( $l ) . '</label>'; }
+			echo '<p style="margin-top:12px"><strong>' . esc_html__( 'These roles must set it up', 'sidcraft-bot-shield' ) . '</strong></p>';
+			foreach ( wp_roles()->get_names() as $rk => $rn ) { echo '<label style="display:inline-block;margin:0 14px 4px 0"><input type="checkbox" name="' . esc_attr( $O ) . '[tfa_roles][]" value="' . esc_attr( $rk ) . '" ' . checked( in_array( $rk, (array) $s['tfa_roles'], true ), true, false ) . '> ' . esc_html( translate_user_role( $rn ) ) . '</label>'; }
+			echo '<p>' . esc_html__( 'Grace period:', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="0" max="90" name="' . esc_attr( $O ) . '[tfa_grace]" value="' . (int) $s['tfa_grace'] . '"> ' . esc_html__( 'days to set it up before they are made to. Anyone can also turn it on for themselves under Users → Profile.', 'sidcraft-bot-shield' ) . '</p>';
+			echo '<p class="description">' . esc_html__( 'Passkeys need a secure (https) address. Recovery codes are made on each profile. If an administrator loses every second step, another administrator can reset them on the user’s profile; or add define( \'SIDCRAFT_BOTSHIELD_DISABLE_2FA\', true ); to wp-config.php to switch two-factor login off.', 'sidcraft-bot-shield' ) . '</p>';
+			echo '<h4>' . esc_html__( 'Text messages (Twilio)', 'sidcraft-bot-shield' ) . '</h4><p class="description">' . esc_html__( 'Text messages are sent through your own Twilio account, which costs a little per message. Fill in all three fields to switch them on.', 'sidcraft-bot-shield' ) . '</p>';
+			echo '<p><label>' . esc_html__( 'Account SID', 'sidcraft-bot-shield' ) . ' <input type="text" name="' . esc_attr( $O ) . '[twilio_sid]" value="' . esc_attr( $s['twilio_sid'] ) . '" class="regular-text" autocomplete="off"></label></p>';
+			echo '<p><label>' . esc_html__( 'Auth token', 'sidcraft-bot-shield' ) . ' <input type="password" name="' . esc_attr( $O ) . '[twilio_token]" value="" class="regular-text" autocomplete="new-password" placeholder="' . esc_attr( '' !== $s['twilio_token'] ? __( '(saved; leave empty to keep)', 'sidcraft-bot-shield' ) : '' ) . '"></label></p>';
+			echo '<p><label>' . esc_html__( 'Send from number', 'sidcraft-bot-shield' ) . ' <input type="text" name="' . esc_attr( $O ) . '[twilio_from]" value="' . esc_attr( $s['twilio_from'] ) . '" placeholder="+15551234567" autocomplete="off"></label></p>';
+		} );
+		self::box( __( 'Custom login address', 'sidcraft-bot-shield' ), function () use ( $s, $O ) {
+			echo '<p>' . esc_html__( 'Move the login page from /wp-admin to an address only you know. Most password-guessing bots go straight to /wp-login.php and /wp-admin, and will get a “not found” page instead.', 'sidcraft-bot-shield' ) . '</p>';
+			if ( is_multisite() ) { echo '<p><strong>' . esc_html__( 'Not available on multisite.', 'sidcraft-bot-shield' ) . '</strong></p>'; return; }
+			echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[url_on]" value="1" ' . checked( ! empty( $s['url_on'] ), true, false ) . '> <strong>' . esc_html__( 'Use a custom login address', 'sidcraft-bot-shield' ) . '</strong></label></p>';
+			echo '<p>' . esc_html( trailingslashit( home_url() ) ) . ' <input type="text" name="' . esc_attr( $O ) . '[url_slug]" value="' . esc_attr( $s['url_slug'] ) . '" placeholder="mysecret" pattern="[a-zA-Z0-9][a-zA-Z0-9_\-]{2,39}" style="width:200px"> <span class="description">' . esc_html__( 'Letters, numbers, - and _. At least 3 characters.', 'sidcraft-bot-shield' ) . '</span></p>';
+			echo '<p>' . esc_html__( 'Visitors who open /wp-login.php or /wp-admin:', 'sidcraft-bot-shield' ) . ' <select name="' . esc_attr( $O ) . '[url_redirect]"><option value="404" ' . selected( $s['url_redirect'], '404', false ) . '>' . esc_html__( 'see a “page not found”', 'sidcraft-bot-shield' ) . '</option><option value="home" ' . selected( $s['url_redirect'], 'home', false ) . '>' . esc_html__( 'go to the home page', 'sidcraft-bot-shield' ) . '</option><option value="custom" ' . selected( $s['url_redirect'], 'custom', false ) . '>' . esc_html__( 'go to this address:', 'sidcraft-bot-shield' ) . '</option></select> <input type="url" name="' . esc_attr( $O ) . '[url_custom]" value="' . esc_attr( $s['url_custom'] ) . '" placeholder="https://example.com/oops" style="width:260px"></p>';
+			if ( $s['url_on'] && '' !== $s['url_slug'] ) { echo '<p style="background:#edfaef;border-left:4px solid #00a32a;padding:8px 12px"><strong>' . esc_html__( 'Your login address:', 'sidcraft-bot-shield' ) . '</strong> <a href="' . esc_url( home_url( '/' . $s['url_slug'] . '/' ) ) . '">' . esc_html( home_url( '/' . $s['url_slug'] . '/' ) ) . '</a></p>'; }
+			echo '<p class="description">' . esc_html__( 'Write the address down: after saving, it is also emailed to the site administrator. Logged-in users are not affected, and admin-ajax.php keeps working for the front end. If you forget the address, add define( \'SIDCRAFT_BOTSHIELD_LOGIN_URL_OFF\', true ); to wp-config.php, or rename this plugin’s folder over FTP.', 'sidcraft-bot-shield' ) . '</p>';
+		} );
+		submit_button( __( 'Save login options', 'sidcraft-bot-shield' ) ); echo '</form>';
 	}
 
 	// =========================================================== Scan tab
@@ -144,7 +218,7 @@ class Sidcraft_BotShield_SecureAdmin {
 		self::scan_options();
 	}
 
-	private static function notice() { $n = get_transient( 'sidcraft_botshield_notice' ); if ( $n ) { echo '<div class="notice notice-error"><p>' . esc_html( $n ) . '</p></div>'; delete_transient( 'sidcraft_botshield_notice' ); } if ( isset( $_GET['sbs_ok'] ) ) { echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Done.', 'sidcraft-bot-shield' ) . '</p></div>'; } } // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only.
+	public static function notice() { $ok = get_transient( 'sidcraft_botshield_notice_ok' ); if ( $ok ) { echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $ok ) . '</p></div>'; delete_transient( 'sidcraft_botshield_notice_ok' ); } $n = get_transient( 'sidcraft_botshield_notice' ); if ( $n ) { echo '<div class="notice notice-error"><p>' . esc_html( $n ) . '</p></div>'; delete_transient( 'sidcraft_botshield_notice' ); } if ( isset( $_GET['sbs_ok'] ) ) { echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Done.', 'sidcraft-bot-shield' ) . '</p></div>'; } } // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only.
 
 	private static function finding_links( $id, $x, $base ) {
 		$act = function ( $a, $label, $confirm = '' ) use ( $id ) { $u = wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_finding&act=' . $a . '&id=' . rawurlencode( $id ) ), 'sidcraft_botshield_finding' ); return '<a href="' . esc_url( $u ) . '"' . ( '' !== $confirm ? ' onclick="return confirm(\'' . esc_js( $confirm ) . '\')"' : '' ) . '>' . esc_html( $label ) . '</a>'; };

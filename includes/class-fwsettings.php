@@ -23,8 +23,14 @@ class Sidcraft_BotShield_FwSettings {
 			'strong_pw'       => 'admins',   // off | admins | all
 			'breached_pw'     => 0,
 			'crawler_per_min' => 0,
-			'r404_human'      => 0,
-			'r404_crawler'    => 0,
+			'nf_on'           => 1,          // block addresses that keep asking for pages that do not exist.
+			'nf_count'        => 15,
+			'nf_minutes'      => 2,
+			'nf_days'         => 7,          // 0 = block for good.
+			'nf_exempt'       => "favicon.ico\napple-touch-icon\nrobots.txt\n.well-known\nsitemap",
+			'notify_mode'     => 'nf',       // off | nf (missing-pages blocks) | all (every automatic block).
+			'notify_email'    => '',
+			'notify_cap'      => 20,
 			'rate_action'     => 'throttle', // throttle | block
 			'hide_version'    => 0,
 			'xmlrpc'          => 'allow',    // allow | multicall | all
@@ -65,10 +71,19 @@ class Sidcraft_BotShield_FwSettings {
 		$o['bf_max_reset']  = max( 2, min( 500, (int) ( $in['bf_max_reset'] ?? 20 ) ) );
 		$o['bf_window_min'] = max( 5, min( 1440, (int) ( $in['bf_window_min'] ?? 240 ) ) );
 		$o['bf_lock_hours'] = max( 1, min( 720, (int) ( $in['bf_lock_hours'] ?? 4 ) ) );
-		$o['strong_pw']     = in_array( $in['strong_pw'] ?? '', array( 'off', 'admins', 'all' ), true ) ? $in['strong_pw'] : 'admins';
-		foreach ( array( 'crawler_per_min', 'r404_human', 'r404_crawler' ) as $k ) { $o[ $k ] = max( 0, min( 5000, (int) ( $in[ $k ] ?? 0 ) ) ); }
+		$sp = $in['strong_pw'] ?? ''; $o['strong_pw'] = in_array( $sp, array( 'off', 'admins', 'all' ), true ) ? $sp : 'admins';
+		$o['crawler_per_min'] = max( 0, min( 5000, (int) ( $in['crawler_per_min'] ?? 0 ) ) );
+		$o['nf_on']      = empty( $in['nf_on'] ) ? 0 : 1;
+		$o['nf_count']   = max( 3, min( 1000, (int) ( $in['nf_count'] ?? 15 ) ) );
+		$o['nf_minutes'] = max( 1, min( 1440, (int) ( $in['nf_minutes'] ?? 2 ) ) );
+		$o['nf_days']    = max( 0, min( 3650, (int) ( $in['nf_days'] ?? 7 ) ) );
+		$ex = array(); foreach ( preg_split( '/\R/', (string) ( $in['nf_exempt'] ?? '' ) ) as $l ) { $l = trim( sanitize_text_field( $l ) ); if ( '' !== $l && count( $ex ) < 100 ) { $ex[] = $l; } }
+		$o['nf_exempt']  = implode( "\n", $ex );
+		$nm = $in['notify_mode'] ?? 'nf'; $o['notify_mode'] = in_array( $nm, array( 'off', 'nf', 'all' ), true ) ? $nm : 'nf';
+		$o['notify_email'] = ( isset( $in['notify_email'] ) && is_email( $in['notify_email'] ) ) ? sanitize_email( $in['notify_email'] ) : '';
+		$o['notify_cap']  = max( 0, min( 500, (int) ( $in['notify_cap'] ?? 20 ) ) );
 		$o['rate_action'] = 'block' === ( $in['rate_action'] ?? '' ) ? 'block' : 'throttle';
-		$o['xmlrpc']      = in_array( $in['xmlrpc'] ?? '', array( 'allow', 'multicall', 'all' ), true ) ? $in['xmlrpc'] : 'allow';
+		$xr = $in['xmlrpc'] ?? ''; $o['xmlrpc'] = in_array( $xr, array( 'allow', 'multicall', 'all' ), true ) ? $xr : 'allow';
 		return $o;
 	}
 }

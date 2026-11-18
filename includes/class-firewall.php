@@ -29,6 +29,7 @@ class Sidcraft_BotShield_Firewall {
 		if ( 'multicall' === $s['xmlrpc'] ) { add_filter( 'xmlrpc_methods', array( __CLASS__, 'no_multicall' ) ); }
 		if ( $s['rest_users'] ) { add_filter( 'rest_endpoints', array( __CLASS__, 'hide_rest_users' ) ); }
 		add_action( 'admin_init', array( __CLASS__, 'import_waf_log' ) );
+		Sidcraft_BotShield_Notify::init();
 	}
 
 	private static function ip() { return Sidcraft_BotShield_Guard::client_ip(); }
@@ -225,14 +226,23 @@ class Sidcraft_BotShield_Firewall {
 		if ( $n > (int) $s['crawler_per_min'] ) { self::limit_hit( 'rate_crawler', $ip, $ua, $path, $s ); }
 	}
 
+	/** Block addresses that keep asking for pages that do not exist (bots looking for weak spots). */
 	public static function on_404() {
 		if ( ! is_404() ) { return; }
 		$s = Sidcraft_BotShield_FwSettings::all(); $ip = self::ip(); $ua = self::ua();
-		if ( '' === $ip || ( ! $s['r404_human'] && ! $s['r404_crawler'] ) || self::trusted( $ip ) || is_user_logged_in() ) { return; }
-		$crawler = self::is_crawler( $ua ); if ( $crawler && self::is_search_engine( $ua ) ) { return; }
-		$limit = $crawler ? (int) $s['r404_crawler'] : (int) $s['r404_human']; if ( ! $limit ) { return; }
-		$k = 'sbs_r404_' . md5( $ip ); $n = (int) get_transient( $k ) + 1; set_transient( $k, $n, MINUTE_IN_SECONDS );
-		if ( $n > $limit ) { self::limit_hit( 'rate_404', $ip, $ua, self::path(), $s ); }
+		if ( ! $s['nf_on'] || '' === $ip || self::trusted( $ip ) || is_user_logged_in() || self::is_search_engine( $ua ) || Sidcraft_BotShield_Bans::is_banned( $ip ) ) { return; }
+		$path = self::path();
+		foreach ( preg_split( '/\R/', (string) $s['nf_exempt'], -1, PREG_SPLIT_NO_EMPTY ) as $x ) { if ( false !== stripos( $path, $x ) ) { return; } }
+		$k = 'sbs_nf_' . md5( $ip ); $now = time(); $win = (int) $s['nf_minutes'] * MINUTE_IN_SECONDS;
+		$hits = get_transient( $k ); $hits = is_array( $hits ) ? array_values( array_filter( $hits, function ( $t ) use ( $now, $win ) { return $t > $now - $win; } ) ) : array();
+		$hits[] = $now; $hits = array_slice( $hits, -( (int) $s['nf_count'] ) );
+		set_transient( $k, $hits, $win );
+		if ( count( $hits ) >= (int) $s['nf_count'] ) {
+			delete_transient( $k );
+			Sidcraft_BotShield_Log::add( 'block', 'rate_404', $ip, $ua, $path );
+			Sidcraft_BotShield_Bans::add( $ip, (int) $s['nf_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d missing pages in %2$d minutes', 'sidcraft-bot-shield' ), (int) $s['nf_count'], (int) $s['nf_minutes'] ), 'nf' );
+			self::deny( 'rate' );
+		}
 	}
 
 	// ---- Hardening ----

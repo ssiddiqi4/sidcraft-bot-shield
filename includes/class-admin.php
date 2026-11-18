@@ -48,15 +48,16 @@ class Sidcraft_BotShield_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) { return; }
 		$s = Sidcraft_BotShield_Settings::all(); $O = Sidcraft_BotShield_Settings::OPTION;
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'settings'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab switch.
-		if ( ! in_array( $tab, array( 'settings', 'firewall', 'scan', 'log' ), true ) ) { $tab = 'settings'; }
+		if ( ! in_array( $tab, array( 'settings', 'firewall', 'login', 'scan', 'log' ), true ) ) { $tab = 'settings'; }
 		$base = admin_url( 'options-general.php?page=sidcraft-bot-shield' );
 		echo '<div class="wrap"><h1>Sidcraft Bot Shield</h1>';
 		self::cards();
-		$tabs = array( 'settings' => __( 'Settings', 'sidcraft-bot-shield' ), 'firewall' => __( 'Firewall', 'sidcraft-bot-shield' ), 'scan' => __( 'Scan', 'sidcraft-bot-shield' ), 'log' => __( 'Blocked log', 'sidcraft-bot-shield' ) );
+		$tabs = array( 'settings' => __( 'Settings', 'sidcraft-bot-shield' ), 'firewall' => __( 'Firewall', 'sidcraft-bot-shield' ), 'login' => __( 'Login', 'sidcraft-bot-shield' ), 'scan' => __( 'Scan', 'sidcraft-bot-shield' ), 'log' => __( 'Blocked log', 'sidcraft-bot-shield' ) );
 		echo '<h2 class="nav-tab-wrapper">';
 		foreach ( $tabs as $tk => $tl ) { echo '<a class="nav-tab ' . ( $tk === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( 'settings' === $tk ? $base : $base . '&tab=' . $tk ) . '">' . esc_html( $tl ) . '</a>'; }
 		echo '</h2>';
 		if ( 'firewall' === $tab ) { Sidcraft_BotShield_SecureAdmin::firewall_tab( $base ); echo '</div>'; return; }
+		if ( 'login' === $tab ) { Sidcraft_BotShield_SecureAdmin::login_tab( $base ); echo '</div>'; return; }
 		if ( 'scan' === $tab ) { Sidcraft_BotShield_SecureAdmin::scan_tab( $base ); echo '</div>'; return; }
 		if ( 'log' === $tab ) { self::log_tab( $base ); echo '</div>'; return; }
 		echo '<p>' . esc_html__( 'Lets search engines and AI assistants in, and keeps scrapers, scripts, scanners and fake bots out. Visitors who look like normal browsers are never blocked, and neither are logged-in users.', 'sidcraft-bot-shield' ) . '</p>';

@@ -12,7 +12,6 @@ class Sidcraft_BotShield_FwSettings {
 			'waf_disabled'    => array(),    // rule ids switched off.
 			'waf_allow'       => '',         // lines: /path/ param [rule]
 			'waf_ban'         => 1,          // ban an address after 5 firewall blocks in 10 minutes.
-			'extended'        => 0,
 			'bf_on'           => 1,
 			'bf_max_login'    => 20,
 			'bf_max_reset'    => 20,
@@ -66,7 +65,6 @@ class Sidcraft_BotShield_FwSettings {
 		foreach ( preg_split( '/\R/', (string) ( $in['waf_allow'] ?? '' ) ) as $l ) { $l = trim( sanitize_text_field( $l ) ); if ( '' !== $l && preg_match( '#^(\*|/\S*)(\s+\S+){0,2}$#', $l ) && count( $lines ) < 300 ) { $lines[] = $l; } }
 		$o['waf_allow'] = implode( "\n", array_unique( $lines ) );
 		foreach ( array( 'waf_ban', 'bf_on', 'bf_invalid_lock', 'bf_generic', 'breached_pw', 'hide_version', 'enum_block', 'rest_users', 'blank_post' ) as $k ) { $o[ $k ] = empty( $in[ $k ] ) ? 0 : 1; }
-		$o['extended'] = $old['extended'];
 		$o['bf_max_login']  = max( 2, min( 500, (int) ( $in['bf_max_login'] ?? 20 ) ) );
 		$o['bf_max_reset']  = max( 2, min( 500, (int) ( $in['bf_max_reset'] ?? 20 ) ) );
 		$o['bf_window_min'] = max( 5, min( 1440, (int) ( $in['bf_window_min'] ?? 240 ) ) );

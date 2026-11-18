@@ -6,6 +6,8 @@ class Sidcraft_BotShield_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
 		add_action( 'admin_post_sidcraft_botshield_test', array( __CLASS__, 'test' ) );
+		add_action( 'admin_post_sidcraft_botshield_act', array( __CLASS__, 'act' ) );
+		add_action( 'wp_dashboard_setup', array( __CLASS__, 'dash_setup' ) );
 		add_action( 'admin_post_sidcraft_botshield_csv', array( __CLASS__, 'csv' ) );
 		add_action( 'admin_post_sidcraft_botshield_clear', array( __CLASS__, 'clear' ) );
 		add_action( 'admin_post_sidcraft_botshield_lists', array( __CLASS__, 'lists_now' ) );
@@ -24,6 +26,11 @@ class Sidcraft_BotShield_Admin {
 	}
 
 	public static function notice() {
+		if ( isset( $_GET['sbs_done'] ) && current_user_can( 'manage_options' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only.
+			$m = array( 'allow' => __( 'Address allowed: it will never be blocked, and any ban was lifted.', 'sidcraft-bot-shield' ), 'block' => __( 'Address blocked permanently.', 'sidcraft-bot-shield' ), 'allow_ua' => __( 'Browser name allowed.', 'sidcraft-bot-shield' ) );
+			$k = sanitize_key( wp_unslash( $_GET['sbs_done'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( isset( $m[ $k ] ) ) { echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( $m[ $k ] ) . '</p></div>'; }
+		}
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only screen check.
 		if ( 'sidcraft-bot-shield' !== $page || ! current_user_can( 'manage_options' ) ) { return; }
 		if ( 'monitor' === Sidcraft_BotShield_Settings::get( 'mode' ) ) {
@@ -165,13 +172,81 @@ class Sidcraft_BotShield_Admin {
 		$top = array_slice( $by, 0, 8, true ); $parts = array();
 		foreach ( $top as $ip => $n ) { $parts[] = '<code>' . esc_html( '' === $ip ? '?' : $ip ) . '</code> × ' . (int) $n; }
 		echo '<p><strong>' . esc_html__( 'Most blocked addresses:', 'sidcraft-bot-shield' ) . '</strong> ' . wp_kses( implode( ' &nbsp; ', $parts ), array( 'code' => array() ) ) . '</p>';
-		echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'When', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'What', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Type', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Why', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Address', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Country', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Page', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Browser name', 'sidcraft-bot-shield' ) . '</th></tr></thead><tbody>';
+		echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'When', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'What', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Type', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Why', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Address', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Country', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Page', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Browser name', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Action', 'sidcraft-bot-shield' ) . '</th></tr></thead><tbody>';
+		$back = $base . '&tab=log' . ( '' !== $type ? '&type=' . $type : '' );
 		foreach ( $rows as $r ) {
 			$tk = Sidcraft_BotShield_Log::type_of( $r['r'] );
-			echo '<tr><td title="' . esc_attr( wp_date( 'Y-m-d H:i:s', $r['t'] ) ) . '">' . esc_html( human_time_diff( $r['t'] ) ) . '</td><td>' . esc_html( 'block' === $r['a'] ? __( 'Blocked', 'sidcraft-bot-shield' ) : __( 'Would block', 'sidcraft-bot-shield' ) ) . '</td><td><span style="color:' . esc_attr( $types[ $tk ][1] ) . '">●</span> ' . esc_html( $types[ $tk ][0] ) . '</td><td>' . esc_html( self::reason_label( $r['r'] ) ) . '</td><td>' . esc_html( $r['ip'] ) . '</td><td>' . esc_html( $r['c'] ?? '' ) . '</td><td style="word-break:break-all">' . esc_html( $r['p'] ) . '</td><td style="word-break:break-all">' . esc_html( $r['ua'] ) . '</td></tr>';
+			echo '<tr><td title="' . esc_attr( wp_date( 'Y-m-d H:i:s', $r['t'] ) ) . '">' . esc_html( human_time_diff( $r['t'] ) ) . '</td><td>' . esc_html( 'block' === $r['a'] ? __( 'Blocked', 'sidcraft-bot-shield' ) : __( 'Would block', 'sidcraft-bot-shield' ) ) . '</td><td><span style="color:' . esc_attr( $types[ $tk ][1] ) . '">●</span> ' . esc_html( $types[ $tk ][0] ) . '</td><td>' . esc_html( self::reason_label( $r['r'] ) ) . '</td><td>' . esc_html( $r['ip'] ) . '</td><td>' . esc_html( $r['c'] ?? '' ) . '</td><td style="word-break:break-all">' . esc_html( $r['p'] ) . '</td><td style="word-break:break-all">' . esc_html( $r['ua'] ) . '</td><td style="white-space:nowrap">' . self::row_actions( $r, $back ) . '</td></tr>';
 		}
 		echo '</tbody></table><p style="margin-top:10px"><a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_csv&type=' . $type ), 'sidcraft_botshield_csv' ) ) . '">' . esc_html__( 'Download as CSV', 'sidcraft-bot-shield' ) . '</a> ';
 		echo '</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'; wp_nonce_field( 'sidcraft_botshield_clear' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_clear"><button class="button">' . esc_html__( 'Clear list and counters', 'sidcraft-bot-shield' ) . '</button></form>';
+	}
+
+	/** Never-block / block-forever links for one log row (already escaped). */
+	public static function row_actions( $r, $back ) {
+		$ip = (string) $r['ip']; $out = array();
+		$link = function ( $act, $label, $extra = array() ) use ( $back ) {
+			$u = add_query_arg( array_merge( array( 'action' => 'sidcraft_botshield_act', 'act' => $act, 'back' => rawurlencode( $back ) ), $extra ), admin_url( 'admin-post.php' ) );
+			return '<a href="' . esc_url( wp_nonce_url( $u, 'sidcraft_botshield_act' ) ) . '">' . esc_html( $label ) . '</a>';
+		};
+		if ( '' !== $ip ) {
+			if ( Sidcraft_BotShield_Ranges::in_list( $ip, Sidcraft_BotShield_Settings::lines( 'ip_allow' ) ) ) { $out[] = '<em>' . esc_html__( 'Allowed', 'sidcraft-bot-shield' ) . '</em> · ' . $link( 'block', __( 'Block', 'sidcraft-bot-shield' ), array( 'ip' => $ip ) ); }
+			elseif ( Sidcraft_BotShield_Ranges::in_list( $ip, Sidcraft_BotShield_Settings::lines( 'ip_block' ) ) ) { $out[] = '<em>' . esc_html__( 'Blocked for good', 'sidcraft-bot-shield' ) . '</em> · ' . $link( 'allow', __( 'Unblock', 'sidcraft-bot-shield' ), array( 'ip' => $ip ) ); }
+			else { $out[] = $link( 'allow', __( 'Unblock', 'sidcraft-bot-shield' ), array( 'ip' => $ip ) ) . ' · ' . $link( 'block', __( 'Block for good', 'sidcraft-bot-shield' ), array( 'ip' => $ip ) ); }
+		}
+		$tok = self::ua_token( (string) $r['ua'] );
+		if ( '' !== $tok && 'bots' === Sidcraft_BotShield_Log::type_of( $r['r'] ) && 'fake_bot' !== $r['r'] && ! in_array( $tok, Sidcraft_BotShield_Settings::lines( 'custom_allow' ), true ) ) { $out[] = $link( 'allow_ua', sprintf( /* translators: %s: browser name token */ __( 'Allow “%s”', 'sidcraft-bot-shield' ), $tok ), array( 'tok' => $tok ) ); }
+		return implode( '<br>', $out );
+	}
+
+	/** The bot's own name inside a browser string, e.g. “AhrefsBot” from “Mozilla/5.0 (compatible; AhrefsBot/7.0)”. */
+	private static function ua_token( $ua ) {
+		if ( preg_match_all( '/([A-Za-z][A-Za-z0-9._-]{2,})\/[0-9]/', $ua, $m ) ) { foreach ( $m[1] as $t ) { if ( ! in_array( strtolower( $t ), array( 'mozilla', 'applewebkit', 'safari', 'chrome', 'gecko', 'khtml' ), true ) ) { return strtolower( $t ); } } }
+		return '';
+	}
+
+	public static function act() {
+		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Not allowed.', 'sidcraft-bot-shield' ), 403 ); }
+		check_admin_referer( 'sidcraft_botshield_act' );
+		$act = isset( $_GET['act'] ) ? sanitize_key( wp_unslash( $_GET['act'] ) ) : '';
+		$ip  = isset( $_GET['ip'] ) ? sanitize_text_field( wp_unslash( $_GET['ip'] ) ) : '';
+		$tok = isset( $_GET['tok'] ) ? strtolower( preg_replace( '/[^A-Za-z0-9._-]/', '', wp_unslash( $_GET['tok'] ) ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- stripped by preg_replace.
+		$valid = '' !== Sidcraft_BotShield_Ranges::pack( $ip );
+		if ( 'allow' === $act && $valid ) {
+			Sidcraft_BotShield_Settings::remove_line( 'ip_block', $ip ); Sidcraft_BotShield_Settings::add_line( 'ip_allow', $ip );
+			delete_transient( 'sbs_ban_' . md5( $ip ) ); delete_transient( 'sbs_rate_' . md5( $ip ) );
+		} elseif ( 'block' === $act && $valid ) {
+			Sidcraft_BotShield_Settings::remove_line( 'ip_allow', $ip ); Sidcraft_BotShield_Settings::add_line( 'ip_block', $ip );
+		} elseif ( 'allow_ua' === $act && strlen( $tok ) >= 3 ) {
+			Sidcraft_BotShield_Settings::add_line( 'custom_allow', $tok );
+		} else { $act = ''; }
+		$back = isset( $_GET['back'] ) ? esc_url_raw( rawurldecode( wp_unslash( $_GET['back'] ) ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( 0 !== strpos( $back, admin_url() ) ) { $back = admin_url( 'options-general.php?page=sidcraft-bot-shield&tab=log' ); }
+		wp_safe_redirect( add_query_arg( 'sbs_done', $act, $back ) );
+		exit;
+	}
+
+	// ---- WordPress dashboard widget ----
+	public static function dash_setup() {
+		if ( current_user_can( 'manage_options' ) ) { wp_add_dashboard_widget( 'sidcraft_botshield_widget', 'Sidcraft Bot Shield', array( __CLASS__, 'dash_widget' ) ); }
+	}
+
+	public static function dash_widget() {
+		$base = admin_url( 'options-general.php?page=sidcraft-bot-shield' );
+		$types = Sidcraft_BotShield_Log::types(); $monitor = 'monitor' === Sidcraft_BotShield_Settings::get( 'mode' );
+		$t = Sidcraft_BotShield_Log::summary( 1 ); $w = Sidcraft_BotShield_Log::summary( 7 );
+		$n = function ( $s ) use ( $monitor ) { return number_format_i18n( $monitor ? $s['blocked'] + $s['monitored'] : $s['blocked'] ); };
+		echo '<p style="margin-top:0"><strong style="font-size:22px">' . esc_html( $n( $t ) ) . '</strong> ' . esc_html( $monitor ? __( 'would be blocked today', 'sidcraft-bot-shield' ) : __( 'blocked today', 'sidcraft-bot-shield' ) ) . ' &nbsp;·&nbsp; <strong>' . esc_html( $n( $w ) ) . '</strong> ' . esc_html__( 'in 7 days', 'sidcraft-bot-shield' ) . '</p>';
+		$bits = array(); foreach ( $types as $k => $ty ) { if ( ! empty( $w['by_type'][ $k ] ) ) { $bits[] = '<span style="color:' . esc_attr( $ty[1] ) . '">●</span> ' . esc_html( $ty[0] . ' ' . $w['by_type'][ $k ] ); } }
+		if ( $bits ) { echo '<p class="description">' . wp_kses( implode( ' &nbsp; ', $bits ), array( 'span' => array( 'style' => array() ) ) ) . '</p>'; }
+		$rows = array_slice( Sidcraft_BotShield_Log::entries(), 0, 8 );
+		if ( ! $rows ) { echo '<p>' . esc_html__( 'Nothing blocked yet.', 'sidcraft-bot-shield' ) . '</p>'; }
+		else {
+			echo '<table class="widefat striped" style="margin-bottom:8px"><tbody>';
+			foreach ( $rows as $r ) { echo '<tr><td><code>' . esc_html( $r['ip'] ) . '</code><br><span class="description">' . esc_html( human_time_diff( $r['t'] ) . ' · ' . self::reason_label( $r['r'] ) ) . '</span></td><td style="text-align:right;font-size:12px">' . self::row_actions( $r, admin_url( 'index.php' ) ) . '</td></tr>'; } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- row_actions escapes.
+			echo '</tbody></table>';
+		}
+		echo '<p><a href="' . esc_url( $base . '&tab=log' ) . '">' . esc_html__( 'Full blocked log', 'sidcraft-bot-shield' ) . '</a> · <a href="' . esc_url( $base ) . '">' . esc_html__( 'Settings', 'sidcraft-bot-shield' ) . '</a></p>';
 	}
 
 	public static function csv() {

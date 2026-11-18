@@ -82,5 +82,16 @@ class Sidcraft_BotShield_Settings {
 		return implode( "\n", array_unique( $lines ) );
 	}
 
+	/** Add a line to a list option (ip_allow, ip_block, custom_allow). */
+	public static function add_line( $key, $line ) {
+		$o = self::all(); $lines = self::lines( $key );
+		if ( ! in_array( $line, $lines, true ) && count( $lines ) < 2000 ) { $lines[] = $line; }
+		$o[ $key ] = implode( "\n", $lines ); update_option( self::OPTION, $o );
+	}
+
+	public static function remove_line( $key, $line ) {
+		$o = self::all(); $o[ $key ] = implode( "\n", array_diff( self::lines( $key ), array( $line ) ) ); update_option( self::OPTION, $o );
+	}
+
 	public static function lines( $key ) { return array_values( array_filter( array_map( 'trim', explode( "\n", (string) self::get( $key ) ) ) ) ); }
 }

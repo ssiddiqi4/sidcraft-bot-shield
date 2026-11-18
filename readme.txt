@@ -51,6 +51,7 @@ Most of the traffic that hits a small site is not people. Some of it you want: s
 * **People are never blocked** because of their browser: anything that looks like a normal browser passes. Logged-in users, your own addresses and the server itself are always allowed.
 * **Only page requests** are checked for browser names. Forms, payment webhooks, apps and the REST API keep working.
 * **Your own lists:** add names to allow or block, and addresses that must never be blocked.
+* **Wordfence-style actions:** from the log or the Dashboard widget, unblock an address (lifts a ban and adds it to your never-block list), block it for good, or allow a bot name, in one click.
 * **Test tool:** type a browser name and see what would happen.
 * Optional extras: a hidden trap link for robots that ignore robots.txt, and a speed limit per address.
 
@@ -113,6 +114,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 == Changelog ==
 
 = 1.1.0 =
+* New: Unblock / Block for good / Allow this bot name links on every log row, and a WordPress Dashboard widget with the latest blocks.
 * New: overview cards (blocked today / 7 / 30 days, by type) and a Blocked log tab with filter, top addresses and CSV download.
 * New: block countries, or allow only chosen countries.
 * New: block IPv4 / IPv6 addresses, CIDR ranges and from-to ranges.

@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.3.2
+Stable tag: 1.3.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -164,7 +164,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
-= 1.3.2 =
+= 1.3.3 =
 * New: two-factor login (email code, authenticator app, text message, passkey, recovery codes).
 * New: custom login address.
 * New: block bots that search for missing pages; email alerts with IP and host name; unblock links; permanent blocks.
@@ -186,7 +186,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Upgrade Notice ==
 
-= 1.3.2 =
+= 1.3.3 =
 Adds two-factor login, a custom login address and missing-page (404) blocking. Two-factor login and the custom address are off until you turn them on. The 404 rule is on by default (15 missing pages in 2 minutes block an address for 7 days).
 
 = 1.2.0 =

@@ -84,14 +84,27 @@ class Sidcraft_BotShield_SecureAdmin {
 	}
 
 	private static function extended_box() {
-		list( $on, $seen ) = Sidcraft_BotShield_Firewall::ext_status();
-		self::box( __( 'Extended protection', 'sidcraft-bot-shield' ), function () use ( $on, $seen ) {
+		list( $on, $seen ) = Sidcraft_BotShield_Firewall::ext_status(); $err = Sidcraft_BotShield_Firewall::ext_error();
+		self::box( __( 'Extended protection', 'sidcraft-bot-shield' ), function () use ( $on, $seen, $err ) {
 			echo '<p>' . esc_html__( 'Normally the firewall starts together with WordPress, so a request is checked after other plugins have loaded. Extended protection runs it first, before WordPress and every plugin, which also covers attacks on other plugins’ files.', 'sidcraft-bot-shield' ) . '</p>';
-			$active = $on && $seen && time() - $seen < 15 * MINUTE_IN_SECONDS;
-			echo '<p><strong>' . esc_html__( 'Status:', 'sidcraft-bot-shield' ) . '</strong> ' . esc_html( $active ? __( 'active', 'sidcraft-bot-shield' ) : ( $on ? __( 'set up, waiting for the first visit (some hosts need up to 5 minutes to notice)', 'sidcraft-bot-shield' ) : __( 'not set up', 'sidcraft-bot-shield' ) ) ) . '</p>';
+			$active = $seen && time() - $seen < 15 * MINUTE_IN_SECONDS;
+			if ( $active ) { $status = __( 'active', 'sidcraft-bot-shield' ); }
+			elseif ( $err ) { $status = __( 'not active', 'sidcraft-bot-shield' ); }
+			elseif ( $on ) { $status = __( 'set up, waiting for the first visit (some hosts need up to 5 minutes to notice)', 'sidcraft-bot-shield' ); }
+			else { $status = __( 'not set up', 'sidcraft-bot-shield' ); }
+			echo '<p><strong>' . esc_html__( 'Status:', 'sidcraft-bot-shield' ) . '</strong> ' . esc_html( $status ) . '</p>';
+			if ( $err ) {
+				echo '<div class="notice notice-error inline" style="margin:8px 0"><p><strong>' . esc_html__( 'The last attempt did not work:', 'sidcraft-bot-shield' ) . '</strong> ' . esc_html( $err['msg'] ) . '</p></div>';
+				if ( ! empty( $err['manual'] ) ) {
+					$m = Sidcraft_BotShield_Firewall::manual_lines();
+					echo '<p>' . esc_html__( 'You can add the lines yourself. Use the first block in .user.ini (PHP-FPM, CGI, most cPanel hosts; in cPanel: MultiPHP INI Editor, or File Manager) or the second in .htaccess (Apache with mod_php, LiteSpeed). One of them is enough. The firewall start file is already prepared.', 'sidcraft-bot-shield' ) . '</p>';
+					echo '<p><strong>.user.ini</strong><br><textarea readonly rows="2" style="width:100%;font-family:monospace" onclick="this.select()">' . esc_textarea( $m[0] ) . '</textarea></p>';
+					echo '<p><strong>.htaccess</strong><br><textarea readonly rows="8" style="width:100%;font-family:monospace" onclick="this.select()">' . esc_textarea( $m[1] ) . '</textarea></p>';
+				}
+			}
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'; wp_nonce_field( 'sidcraft_botshield_ext' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_ext">';
-			echo '<button class="button button-primary" name="do" value="enable">' . esc_html( $on ? __( 'Set up again', 'sidcraft-bot-shield' ) : __( 'Turn on extended protection', 'sidcraft-bot-shield' ) ) . '</button> ';
-			if ( $on ) { echo '<button class="button" name="do" value="disable">' . esc_html__( 'Turn off', 'sidcraft-bot-shield' ) . '</button>'; }
+			echo '<button class="button button-primary" name="do" value="enable">' . esc_html( $on || $err ? __( 'Try again', 'sidcraft-bot-shield' ) : __( 'Turn on extended protection', 'sidcraft-bot-shield' ) ) . '</button> ';
+			if ( $on || $err ) { echo '<button class="button" name="do" value="disable">' . esc_html__( 'Turn off', 'sidcraft-bot-shield' ) . '</button>'; }
 			echo '</form><p class="description">' . esc_html__( 'This adds a marked block to .htaccess and .user.ini in your WordPress folder. It works on Apache (mod_php), LiteSpeed, and PHP-FPM / FastCGI hosts, including Nginx with PHP-FPM. It is removed when you turn it off or deactivate the plugin. Take a backup of those two files first. If the site shows an error afterwards, delete the block between the “BEGIN/END Sidcraft Bot Shield Firewall” lines in both files.', 'sidcraft-bot-shield' ) . '</p>';
 		} );
 	}
@@ -110,7 +123,7 @@ class Sidcraft_BotShield_SecureAdmin {
 	public static function ext_action() {
 		self::cap(); check_admin_referer( 'sidcraft_botshield_ext' );
 		$do = isset( $_POST['do'] ) ? sanitize_key( wp_unslash( $_POST['do'] ) ) : '';
-		if ( 'enable' === $do ) { $err = Sidcraft_BotShield_Firewall::ext_enable(); if ( '' !== $err ) { Sidcraft_BotShield_Firewall::ext_disable(); set_transient( 'sidcraft_botshield_notice', $err, 60 ); } }
+		if ( 'enable' === $do ) { $err = Sidcraft_BotShield_Firewall::ext_enable(); if ( '' !== $err ) { set_transient( 'sidcraft_botshield_notice', $err, 60 ); } }
 		elseif ( 'disable' === $do ) { Sidcraft_BotShield_Firewall::ext_disable(); }
 		self::back( 'firewall' );
 	}

@@ -314,7 +314,12 @@ class Sidcraft_BotShield_Scanner {
 		$hits = array();
 		foreach ( self::signatures() as $id => $s ) {
 			$k = $s[3] ?? 'php'; if ( $k !== $kind ) { continue; }
-			if ( @preg_match( $s[2], $text, $m, PREG_OFFSET_CAPTURE ) ) { $line = substr_count( substr( $text, 0, (int) $m[0][1] ), "\n" ) + 1; $hits[] = array( $id, $s[0], $s[1], $line, substr( preg_replace( '/\s+/', ' ', $m[0][0] ), 0, 120 ) ); }
+			if ( @preg_match( $s[2], $text, $m, PREG_OFFSET_CAPTURE ) ) {
+				$off = (int) $m[0][1]; $line = substr_count( substr( $text, 0, $off ), "\n" ) + 1;
+				// A list of names separated by | (for example a bot or scanner block list in a security plugin) is not a web shell.
+				if ( 'webshell_name' === $id ) { $a = strrpos( substr( $text, 0, $off ), "\n" ); $a = false === $a ? 0 : $a + 1; $e = strpos( $text, "\n", $off ); $ln = substr( $text, $a, ( false === $e ? strlen( $text ) : $e ) - $a ); if ( substr_count( $ln, '|' ) >= 3 ) { continue; } }
+				$hits[] = array( $id, $s[0], $s[1], $line, substr( preg_replace( '/\s+/', ' ', $m[0][0] ), 0, 120 ) );
+			}
 		}
 		// Heuristic: a very long base64 blob next to a decode call.
 		if ( 'php' === $kind && preg_match( '/base64_decode\s*\(/i', $text ) && preg_match( '/[A-Za-z0-9+\/=]{1500,}/', $text, $m, PREG_OFFSET_CAPTURE ) && preg_match( '/\b(?:eval|assert|include|file_put_contents|preg_replace)\b/i', $text ) ) { $hits[] = array( 'b64_blob', 'high', 'Large hidden (base64) block next to a decode call', substr_count( substr( $text, 0, (int) $m[0][1] ), "\n" ) + 1, substr( $m[0][0], 0, 60 ) . '…' ); }

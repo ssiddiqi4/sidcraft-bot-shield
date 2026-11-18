@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.3.10
+Stable tag: 1.3.11
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -164,6 +164,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.3.11 =
+* Plugin Check clean-up: escaping, sanitising and nonce notes, ordered placeholders, direct-access guard on the firewall files, scan "skip paths" setting renamed.
+
 = 1.3.3 =
 * New: two-factor login (email code, authenticator app, text message, passkey, recovery codes).
 * New: custom login address.
@@ -185,6 +188,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.3.11 =
+Tidies the code for the WordPress.org Plugin Check. No change in how it works.
 
 = 1.3.10 =
 Cuts false alarms in the malware scan and shows file paths.

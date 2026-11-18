@@ -96,7 +96,7 @@ class Sidcraft_BotShield_Scanner {
 		if ( 'running' !== $st['status'] ) { return $st; }
 		if ( get_transient( 'sbs_scan_lock' ) ) { return $st; }
 		set_transient( 'sbs_scan_lock', 1, 90 );
-		if ( function_exists( 'set_time_limit' ) ) { @set_time_limit( 60 ); }
+		if ( function_exists( 'set_time_limit' ) ) { @set_time_limit( 60 ); } // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.NoSilencedErrors.Discouraged -- each scan step is short and bounded by its own deadline
 		$deadline = microtime( true ) + (int) Sidcraft_BotShield_ScanSettings::get( 'tick_sec' );
 		try {
 			while ( $st['si'] < count( $st['stages'] ) ) {
@@ -168,7 +168,7 @@ class Sidcraft_BotShield_Scanner {
 	private static function excluded( $rel ) {
 		$own = 'wp-content/plugins/' . basename( rtrim( SIDCRAFT_BOTSHIELD_DIR, '/' ) ) . '/';
 		if ( 0 === strpos( $rel, $own ) ) { return true; }
-		foreach ( preg_split( '/\R/', (string) Sidcraft_BotShield_ScanSettings::get( 'exclude' ), -1, PREG_SPLIT_NO_EMPTY ) as $p ) { if ( fnmatch( $p, $rel ) || fnmatch( $p . '*', $rel ) ) { return true; } }
+		foreach ( preg_split( '/\R/', (string) Sidcraft_BotShield_ScanSettings::get( 'skip_paths' ), -1, PREG_SPLIT_NO_EMPTY ) as $p ) { if ( fnmatch( $p, $rel ) || fnmatch( $p . '*', $rel ) ) { return true; } }
 		return false;
 	}
 
@@ -242,7 +242,7 @@ class Sidcraft_BotShield_Scanner {
 			if ( 0 === strpos( $rel, 'wp-content/' ) ) { continue; }
 			$abs = $root . '/' . $rel;
 			if ( ! is_file( $abs ) ) { if ( ! preg_match( '#^(?:readme\.html|license\.txt|wp-config-sample\.php)$#', $rel ) ) { self::add( 'core_missing', 'medium', __( 'A WordPress core file is missing', 'sidcraft-bot-shield' ), $rel, $rel, array( 'repair' => 'core' ) ); } }
-			elseif ( md5_file( $abs ) !== $sums[ $rel ] ) { self::add( 'core_modified', 'high', __( 'WordPress core file was modified', 'sidcraft-bot-shield' ), sprintf( /* translators: %s: file */ __( '%s is different from the official WordPress %s file.', 'sidcraft-bot-shield' ), $rel, $wp_version ), $rel, array( 'repair' => 'core' ) ); }
+			elseif ( md5_file( $abs ) !== $sums[ $rel ] ) { self::add( 'core_modified', 'high', __( 'WordPress core file was modified', 'sidcraft-bot-shield' ), sprintf( /* translators: %s: file */ __( '%1$s is different from the official WordPress %2$s file.', 'sidcraft-bot-shield' ), $rel, $wp_version ), $rel, array( 'repair' => 'core' ) ); }
 			else { $ver[] = $rel; }
 			if ( microtime( true ) >= $deadline ) { self::verified_add( $ver ); $st['cursor'] = $i + 1; $st['frac'] = $i / $n; return false; }
 		}
@@ -378,7 +378,7 @@ class Sidcraft_BotShield_Scanner {
 		if ( '' === $st['sub'] ) { $st['sub'] = 'posts'; $st['cursor'] = 0; }
 		if ( 'posts' === $st['sub'] ) {
 			do {
-				$ids = get_posts( array( 'post_type' => 'any', 'post_status' => array( 'publish', 'private', 'draft', 'pending', 'future' ), 'posts_per_page' => $per, 'offset' => (int) $st['cursor'], 'orderby' => 'ID', 'order' => 'ASC', 'suppress_filters' => true, 'no_found_rows' => true ) );
+				$ids = get_posts( array( 'post_type' => 'any', 'post_status' => array( 'publish', 'private', 'draft', 'pending', 'future' ), 'posts_per_page' => $per, 'offset' => (int) $st['cursor'], 'orderby' => 'ID', 'order' => 'ASC', 'no_found_rows' => true ) );
 				foreach ( $ids as $p ) {
 					foreach ( self::content_hits( (string) $p->post_content, $host ) as $hit ) { self::add( 'content', $hit[0], sprintf( /* translators: %s: problem */ __( 'Suspicious content: %s', 'sidcraft-bot-shield' ), $hit[1] ), sprintf( /* translators: 1: title 2: type */ __( '“%1$s” (%2$s)', 'sidcraft-bot-shield' ), $p->post_title, $p->post_type ), '', array( 'post' => $p->ID, 'key' => $hit[1] ) ); }
 				}

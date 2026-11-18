@@ -30,11 +30,12 @@ class Sidcraft_BotShield_ScanSettings {
 	}
 
 	public static function defaults() {
-		return array( 'preset' => 'standard', 'checks' => self::presets()['standard']['checks'], 'max_mb' => 2, 'tick_sec' => 12, 'exclude' => '', 'schedule' => 'off', 'hour' => 3, 'weekday' => 1, 'email_on' => 0, 'email_to' => '', 'email_level' => 'high' );
+		return array( 'preset' => 'standard', 'checks' => self::presets()['standard']['checks'], 'max_mb' => 2, 'tick_sec' => 12, 'skip_paths' => '', 'schedule' => 'off', 'hour' => 3, 'weekday' => 1, 'email_on' => 0, 'email_to' => '', 'email_level' => 'high' );
 	}
 
 	public static function all() {
 		$o = get_option( self::OPTION, array() ); $d = self::defaults();
+		if ( is_array( $o ) && ! isset( $o['skip_paths'] ) && isset( $o['exclude'] ) ) { $o['skip_paths'] = $o['exclude']; }
 		$out = array_merge( $d, is_array( $o ) ? array_intersect_key( $o, $d ) : array() );
 		if ( 'custom' !== $out['preset'] && isset( self::presets()[ $out['preset'] ] ) ) { $out['checks'] = self::presets()[ $out['preset'] ]['checks']; }
 		return $out;
@@ -52,8 +53,8 @@ class Sidcraft_BotShield_ScanSettings {
 		$o['max_mb']   = max( 1, min( 20, (int) ( $in['max_mb'] ?? 2 ) ) );
 		if ( 'deep' === $o['preset'] ) { $o['max_mb'] = max( $o['max_mb'], 5 ); }
 		$o['tick_sec'] = max( 4, min( 30, (int) ( $in['tick_sec'] ?? 12 ) ) );
-		$ex = array(); foreach ( preg_split( '/\R/', (string) ( $in['exclude'] ?? '' ) ) as $l ) { $l = trim( sanitize_text_field( $l ) ); if ( '' !== $l && count( $ex ) < 100 ) { $ex[] = $l; } }
-		$o['exclude']  = implode( "\n", $ex );
+		$ex = array(); foreach ( preg_split( '/\R/', (string) ( $in['skip_paths'] ?? '' ) ) as $l ) { $l = trim( sanitize_text_field( $l ) ); if ( '' !== $l && count( $ex ) < 100 ) { $ex[] = $l; } }
+		$o['skip_paths']  = implode( "\n", $ex );
 		$o['schedule'] = in_array( $in['schedule'] ?? '', array( 'off', 'daily', 'weekly' ), true ) ? $in['schedule'] : 'off';
 		$o['hour']     = max( 0, min( 23, (int) ( $in['hour'] ?? 3 ) ) );
 		$o['weekday']  = max( 0, min( 6, (int) ( $in['weekday'] ?? 1 ) ) );

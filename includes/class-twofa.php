@@ -63,11 +63,11 @@ class Sidcraft_BotShield_TwoFa {
 
 	/** Handles every request of the second step (wp-login.php?action=sbs2fa). */
 	public static function challenge_request() {
-		$token = isset( $_REQUEST['sbs_token'] ) ? preg_replace( '/[^A-Za-z0-9]/', '', wp_unslash( $_REQUEST['sbs_token'] ) ) : '';
+		$token = isset( $_REQUEST['sbs_token'] ) ? preg_replace( '/[^A-Za-z0-9]/', '', sanitize_text_field( wp_unslash( $_REQUEST['sbs_token'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the one-time token is the credential for this step
 		$s = self::session( $token ); $user = $s ? get_userdata( $s['uid'] ) : null;
 		$op = isset( $_POST['op'] ) ? sanitize_key( wp_unslash( $_POST['op'] ) ) : '';
 		if ( ! $s || ! $user ) { if ( 'pk_begin' === $op || 'pk_finish' === $op ) { wp_send_json_error( array( 'message' => __( 'This login expired. Please sign in again.', 'sidcraft-bot-shield' ) ) ); } wp_safe_redirect( add_query_arg( 'sbs2fa', 'expired', self::login_url() ) ); exit; }
-		if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) ) { self::render( $token, $user, '' ); exit; }
+		if ( 'post' !== ( isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '' ) ) { self::render( $token, $user, '' ); exit; }
 		$methods = self::user_methods( $user->ID ); $msg = '';
 		if ( 'send_email' === $op && in_array( 'email', $methods, true ) ) { $msg = self::send_email_code( $token, $user ) ? __( 'We emailed you a code.', 'sidcraft-bot-shield' ) : __( 'Please wait a minute before asking for another code.', 'sidcraft-bot-shield' ); self::render( $token, $user, '', $msg, 'email' ); exit; }
 		if ( 'send_sms' === $op && in_array( 'sms', $methods, true ) ) { $r = self::send_sms_code( $token, $user ); self::render( $token, $user, is_wp_error( $r ) ? $r->get_error_message() : '', is_wp_error( $r ) ? '' : __( 'We sent you a text message.', 'sidcraft-bot-shield' ), 'sms' ); exit; }
@@ -76,7 +76,8 @@ class Sidcraft_BotShield_TwoFa {
 			wp_send_json_success( Sidcraft_BotShield_WebAuthn::request_options( $ch, (array) get_user_meta( $user->ID, 'sbs2fa_passkeys', true ) ) );
 		}
 		if ( 'pk_finish' === $op && in_array( 'passkey', $methods, true ) && ! empty( $s['pk'] ) ) {
-			$in = json_decode( (string) wp_unslash( $_POST['assertion'] ?? '' ), true ); $creds = (array) get_user_meta( $user->ID, 'sbs2fa_passkeys', true );
+			$in = json_decode( isset( $_POST['assertion'] ) ? (string) wp_unslash( $_POST['assertion'] ) : '', true ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON from the browser; every field is verified cryptographically
+			 $creds = (array) get_user_meta( $user->ID, 'sbs2fa_passkeys', true );
 			$res = is_array( $in ) ? Sidcraft_BotShield_WebAuthn::verify_assertion( $in, Sidcraft_BotShield_WebAuthn::unb64u( $s['pk'] ), $creds ) : new WP_Error( 'sbs_pk', 'Bad response.' );
 			unset( $s['pk'] ); self::save( $token, $s );
 			if ( is_wp_error( $res ) ) { self::fail( $token, $s, $user ); wp_send_json_error( array( 'message' => $res->get_error_message() ) ); }
@@ -96,7 +97,8 @@ class Sidcraft_BotShield_TwoFa {
 
 	/** Count a failed second step; too many and the login is cancelled. Returns the attempts left. */
 	private static function fail( $token, $s, $user ) {
-		$s['tries']++; do_action( 'wp_login_failed', $user->user_login, new WP_Error( 'sbs_2fa', 'Wrong second step' ) );
+		$s['tries']++; do_action( 'wp_login_failed', // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook
+			 $user->user_login, new WP_Error( 'sbs_2fa', 'Wrong second step' ) );
 		if ( $s['tries'] >= 5 ) { delete_transient( 'sbs2fa_' . $token ); wp_safe_redirect( add_query_arg( 'sbs2fa', 'toomany', self::login_url() ) ); exit; }
 		self::save( $token, $s ); return 5 - $s['tries'];
 	}
@@ -126,9 +128,9 @@ class Sidcraft_BotShield_TwoFa {
 	private static function finish( $token, $s, $user, $return_url = false ) {
 		delete_transient( 'sbs2fa_' . $token ); self::$done = true;
 		wp_set_current_user( $user->ID ); wp_set_auth_cookie( $user->ID, $s['remember'] );
-		do_action( 'wp_login', $user->user_login, $user );
+		do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook, fired so other plugins see a normal login
 		$to = '' !== $s['redirect'] ? $s['redirect'] : admin_url();
-		$to = apply_filters( 'login_redirect', $to, $s['redirect'], $user );
+		$to = apply_filters( 'login_redirect', $to, $s['redirect'], $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook, fired so other plugins see a normal login
 		$to = wp_validate_redirect( $to, admin_url() );
 		if ( $return_url ) { return $to; }
 		wp_safe_redirect( $to ); exit;
@@ -193,6 +195,7 @@ class Sidcraft_BotShield_TwoFa {
 
 	private static function passkey_login_js( $token ) {
 		$cfg = wp_json_encode( array( 'url' => site_url( 'wp-login.php?action=sbs2fa', 'login_post' ), 'token' => $token ) );
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $cfg is wp_json_encode() output and the rest is a fixed script.
 		echo '<script>(function(){var C=' . $cfg . ';function d(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a.buffer}function e(b){var a=new Uint8Array(b),s="";for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}' .
 			'var m=document.getElementById("sbs-pk-msg");function err(t){m.style.display="block";m.textContent=t}function post(op,x){var p=new URLSearchParams();p.set("sbs_token",C.token);p.set("op",op);for(var k in x||{})p.set(k,x[k]);return fetch(C.url,{method:"POST",credentials:"same-origin",body:p}).then(function(r){return r.json()})}' .
 			'function go(){if(!window.PublicKeyCredential){err("This browser does not support passkeys.");return}post("pk_begin").then(function(r){if(!r.success)throw new Error(r.data.message);var o=r.data;o.challenge=d(o.challenge);o.allowCredentials=o.allowCredentials.map(function(c){return{type:c.type,id:d(c.id)}});return navigator.credentials.get({publicKey:o})}).then(function(c){var x=c.response;return post("pk_finish",{assertion:JSON.stringify({id:e(c.rawId),clientDataJSON:e(x.clientDataJSON),authenticatorData:e(x.authenticatorData),signature:e(x.signature)})})}).then(function(r){if(!r.success)throw new Error(r.data.message);location.href=r.data.redirect}).catch(function(x){err(x.message||"Passkey failed")})}' .
@@ -231,7 +234,7 @@ class Sidcraft_BotShield_TwoFa {
 		echo '<h2 id="sbs2fa">' . esc_html__( 'Two-factor login', 'sidcraft-bot-shield' ) . '</h2><table class="form-table" role="presentation"><tbody>';
 		// The profile page is one big form, and forms cannot be nested: every button here sends the page's own form to this same page, where profile_action() picks it up before WordPress saves the profile.
 		$self = $own ? admin_url( 'profile.php' ) : admin_url( 'user-edit.php?user_id=' . (int) $user->ID );
-		echo '<input type="hidden" name="sbs_uid" value="' . (int) $user->ID . '">' . wp_nonce_field( 'sbs2fa_' . $user->ID, 'sbs_nonce', false, false );
+		echo '<input type="hidden" name="sbs_uid" value="' . (int) $user->ID . '">'; wp_nonce_field( 'sbs2fa_' . $user->ID, 'sbs_nonce', false );
 		$act = function ( $op, $label, $extra = '', $cls = 'button' ) use ( $self ) { return $extra . '<button type="submit" formnovalidate formaction="' . esc_url( $self ) . '" name="sbs_op" value="' . esc_attr( $op ) . '" class="' . esc_attr( $cls ) . '" style="margin:0 6px 6px 0">' . esc_html( $label ) . '</button>'; };
 		$allowed = array( 'form' => array( 'method' => array(), 'action' => array(), 'style' => array() ), 'input' => array( 'type' => array(), 'name' => array(), 'value' => array(), 'id' => array(), 'placeholder' => array(), 'class' => array(), 'autocomplete' => array(), 'inputmode' => array(), 'style' => array(), 'required' => array() ), 'button' => array( 'class' => array(), 'type' => array(), 'id' => array(), 'name' => array(), 'value' => array(), 'formaction' => array(), 'formnovalidate' => array(), 'style' => array() ), 'svg' => array( 'xmlns' => array(), 'width' => array(), 'height' => array(), 'viewbox' => array(), 'role' => array(), 'aria-label' => array() ), 'rect' => array( 'width' => array(), 'height' => array(), 'fill' => array() ), 'path' => array( 'd' => array(), 'fill' => array() ), 'code' => array(), 'p' => array( 'class' => array() ), 'br' => array(), 'strong' => array(), 'span' => array( 'class' => array(), 'style' => array(), 'id' => array() ) );
 		$row = function ( $label, $html ) use ( $allowed ) { echo '<tr><th>' . esc_html( $label ) . '</th><td>' . wp_kses( $html, $allowed ) . '</td></tr>'; };

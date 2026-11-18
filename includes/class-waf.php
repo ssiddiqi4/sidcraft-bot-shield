@@ -5,7 +5,12 @@
  *
  * @package Sidcraft_BotShield
  */
-if ( ! defined( 'ABSPATH' ) && ! defined( 'SIDCRAFT_BOTSHIELD_WAF' ) ) { exit; }
+if ( ! defined( 'ABSPATH' ) ) {
+	// Outside WordPress this file is only loaded by the firewall bootstrap, which defines this constant first.
+	if ( ! defined( 'SIDCRAFT_BOTSHIELD_WAF' ) ) {
+		exit;
+	}
+}
 
 // phpcs:disable WordPress.Security.NonceVerification, WordPress.Security.ValidatedSanitizedInput, WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors, WordPress.PHP.DevelopmentFunctions -- a firewall has to read the raw request and run before WordPress is loaded.
 
@@ -154,7 +159,7 @@ class Sidcraft_BotShield_Waf {
 			);
 			$hit = self::inspect( $req, array( 'disabled' => $c['disabled'] ?? array(), 'allow' => $c['allow'] ?? array(), 'editor' => $editor, 'admin_fields' => self::admin_fields() ) );
 			if ( ! $hit ) { return; }
-			$line = wp_json_encode_compat( array( 't' => time(), 'ip' => $ip, 'rule' => $hit['rule'], 'param' => substr( $hit['param'], 0, 80 ), 'p' => substr( $path, 0, 120 ), 'ua' => substr( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ), 0, 160 ), 'm' => 'learning' === $c['mode'] ? 'monitor' : 'block' ) );
+			$line = sidcraft_botshield_json( array( 't' => time(), 'ip' => $ip, 'rule' => $hit['rule'], 'param' => substr( $hit['param'], 0, 80 ), 'p' => substr( $path, 0, 120 ), 'ua' => substr( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ), 0, 160 ), 'm' => 'learning' === $c['mode'] ? 'monitor' : 'block' ) );
 			$log = $dir . '/waf-log.jsonl';
 			if ( ! is_file( $log ) || filesize( $log ) < 262144 ) { @file_put_contents( $log, $line . "\n", FILE_APPEND | LOCK_EX ); }
 			if ( 'learning' === $c['mode'] ) { return; }
@@ -171,4 +176,4 @@ class Sidcraft_BotShield_Waf {
 }
 
 /** json_encode without needing WordPress. */
-function wp_json_encode_compat( $v ) { return json_encode( $v, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR ); }
+function sidcraft_botshield_json( $v ) { return json_encode( $v, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR ); }

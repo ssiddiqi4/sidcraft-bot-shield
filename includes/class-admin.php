@@ -64,7 +64,7 @@ class Sidcraft_BotShield_Admin {
 		echo '<p>' . esc_html__( 'Lets search engines and AI assistants in, and keeps scrapers, scripts, scanners and fake bots out. Visitors who look like normal browsers are never blocked, and neither are logged-in users.', 'sidcraft-bot-shield' ) . '</p>';
 		echo '<form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_group' );
 		echo '<table class="form-table" role="presentation"><tbody>';
-		echo '<tr><th><label for="sbs-ipallow">' . esc_html__( 'Never block these addresses', 'sidcraft-bot-shield' ) . '</label></th><td>' . self::allow_fields( $s['ip_allow'], esc_attr( $O ) . '[ip_allow]', 'sbs-ipallow' ) . '</td></tr>';
+		echo '<tr><th><label for="sbs-ipallow">' . esc_html__( 'Never block these addresses', 'sidcraft-bot-shield' ) . '</label></th><td>' . self::allow_fields( $s['ip_allow'], $O . '[ip_allow]', 'sbs-ipallow' ) . '</td></tr>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- allow_fields() escapes every part it builds.
 		echo '<tr><th>' . esc_html__( 'Mode', 'sidcraft-bot-shield' ) . '</th><td><label><input type="radio" name="' . esc_attr( $O ) . '[mode]" value="monitor" ' . checked( $s['mode'], 'monitor', false ) . '> ' . esc_html__( 'Monitor only: log what would be blocked (recommended for the first days)', 'sidcraft-bot-shield' ) . '</label><br><label><input type="radio" name="' . esc_attr( $O ) . '[mode]" value="block" ' . checked( $s['mode'], 'block', false ) . '> ' . esc_html__( 'Block: answer unwanted bots with “403 Access denied”', 'sidcraft-bot-shield' ) . '</label></td></tr>';
 		echo '<tr><th>' . esc_html__( 'Always allow', 'sidcraft-bot-shield' ) . '</th><td>';
 		foreach ( Sidcraft_BotShield_Catalog::allowed() as $gk => $g ) {
@@ -142,7 +142,7 @@ class Sidcraft_BotShield_Admin {
 		/** The never-block field: a text box, the visitor's own address, and a button that adds it. */
 	public static function allow_fields( $value, $name, $id ) {
 		$mine = Sidcraft_BotShield_Guard::client_ip();
-		$h = '<textarea id="' . esc_attr( $id ) . '" name="' . $name . '" rows="4" cols="50" placeholder="203.0.113.7&#10;198.51.100.0/24&#10;2001:db8::/32">' . esc_textarea( $value ) . '</textarea><br>';
+		$h = '<textarea id="' . esc_attr( $id ) . '" name="' . esc_attr( $name ) . '" rows="4" cols="50" placeholder="203.0.113.7&#10;198.51.100.0/24&#10;2001:db8::/32">' . esc_textarea( $value ) . '</textarea><br>';
 		$h .= '<span class="description">' . esc_html__( 'One per line: single addresses, ranges like 203.0.113.0/24, or IPv6. These addresses are never blocked by any rule (bots, countries, VPN, address list, firewall, login, 404). Put your own office, home and server addresses here.', 'sidcraft-bot-shield' ) . '</span><br>';
 		if ( '' !== $mine ) { $h .= '<span class="description">' . esc_html( sprintf( /* translators: %s: the visitor's IP address */ __( 'Your address right now: %s', 'sidcraft-bot-shield' ), $mine ) ) . '</span> <button type="button" class="button button-small" onclick="var t=document.getElementById(\'' . esc_js( $id ) . '\');if(t.value.split(/\\s+/).indexOf(\'' . esc_js( $mine ) . '\')<0){t.value=(t.value.trim()?t.value.trim()+\'\\n\':\'\')+\'' . esc_js( $mine ) . '\';}">' . esc_html__( 'Add my address', 'sidcraft-bot-shield' ) . '</button>'; }
 		return $h;

@@ -151,7 +151,9 @@ class Sidcraft_BotShield_SecureAdmin {
 	public static function unban_mail() {
 		if ( ! is_user_logged_in() ) { auth_redirect(); }
 		self::cap();
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- an emailed link: it carries an HMAC signature instead of a nonce, and an administrator must be logged in
 		$ip = isset( $_GET['ip'] ) ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['ip'] ) ) ) : ''; $sig = isset( $_GET['sig'] ) ? sanitize_text_field( wp_unslash( $_GET['sig'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 		if ( '' !== Sidcraft_BotShield_Ranges::pack( $ip ) && hash_equals( Sidcraft_BotShield_Notify::sign( 'unban|' . $ip ), $sig ) ) { self::lift( $ip ); set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: IP */ __( '%s is unblocked.', 'sidcraft-bot-shield' ), $ip ), 60 ); }
 		else { set_transient( 'sidcraft_botshield_notice', __( 'This unblock link is not valid.', 'sidcraft-bot-shield' ), 60 ); }
 		self::back( 'firewall' );
@@ -295,7 +297,7 @@ class Sidcraft_BotShield_SecureAdmin {
 		echo '<p class="description">' . esc_html__( 'The checks are only used with “Custom”. The other types set them for you.', 'sidcraft-bot-shield' ) . '</p>';
 		echo '<p style="margin-top:12px"><strong>' . esc_html__( 'Resource use', 'sidcraft-bot-shield' ) . '</strong></p>';
 		echo '<p>' . esc_html__( 'Skip files larger than', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="1" max="20" name="' . esc_attr( $N ) . '[max_mb]" value="' . (int) $o['max_mb'] . '"> MB. ' . esc_html__( 'Work in steps of', 'sidcraft-bot-shield' ) . ' <input type="number" class="small-text" min="4" max="30" name="' . esc_attr( $N ) . '[tick_sec]" value="' . (int) $o['tick_sec'] . '"> ' . esc_html__( 'seconds (lower it on slow, shared hosting).', 'sidcraft-bot-shield' ) . '</p>';
-		echo '<p><strong>' . esc_html__( 'Do not scan these paths', 'sidcraft-bot-shield' ) . '</strong><br><textarea name="' . esc_attr( $N ) . '[exclude]" rows="3" cols="60" placeholder="wp-content/cache/*&#10;wp-content/plugins/my-big-plugin/*">' . esc_textarea( $o['exclude'] ) . '</textarea><br><span class="description">' . esc_html__( 'One pattern per line, relative to the WordPress folder; * matches anything.', 'sidcraft-bot-shield' ) . '</span></p>';
+		echo '<p><strong>' . esc_html__( 'Do not scan these paths', 'sidcraft-bot-shield' ) . '</strong><br><textarea name="' . esc_attr( $N ) . '[skip_paths]" rows="3" cols="60" placeholder="wp-content/cache/*&#10;wp-content/plugins/my-big-plugin/*">' . esc_textarea( $o['exclude'] ) . '</textarea><br><span class="description">' . esc_html__( 'One pattern per line, relative to the WordPress folder; * matches anything.', 'sidcraft-bot-shield' ) . '</span></p>';
 		echo '<p style="margin-top:12px"><strong>' . esc_html__( 'Schedule', 'sidcraft-bot-shield' ) . '</strong></p><p><select name="' . esc_attr( $N ) . '[schedule]"><option value="off" ' . selected( $o['schedule'], 'off', false ) . '>' . esc_html__( 'Only when I start it', 'sidcraft-bot-shield' ) . '</option><option value="daily" ' . selected( $o['schedule'], 'daily', false ) . '>' . esc_html__( 'Every day', 'sidcraft-bot-shield' ) . '</option><option value="weekly" ' . selected( $o['schedule'], 'weekly', false ) . '>' . esc_html__( 'Every week on', 'sidcraft-bot-shield' ) . '</option></select> <select name="' . esc_attr( $N ) . '[weekday]">';
 		global $wp_locale;
 		foreach ( array( 1, 2, 3, 4, 5, 6, 0 ) as $d ) { $dl = $wp_locale->get_weekday( $d ); echo '<option value="' . (int) $d . '" ' . selected( (int) $o['weekday'], $d, false ) . '>' . esc_html( $dl ) . '</option>'; }

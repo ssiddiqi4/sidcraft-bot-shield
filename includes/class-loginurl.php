@@ -63,7 +63,7 @@ class Sidcraft_BotShield_LoginUrl {
 		if ( 'custom' === $s['url_redirect'] && '' !== $s['url_custom'] ) { wp_safe_redirect( $s['url_custom'] ); exit; }
 		global $wp_query; if ( ! $wp_query ) { status_header( 404 ); exit; }
 		$wp_query->set_404(); status_header( 404 ); nocache_headers();
-		if ( ! defined( 'WP_USE_THEMES' ) ) { define( 'WP_USE_THEMES', true ); }
+		if ( ! defined( 'WP_USE_THEMES' ) ) { define( 'WP_USE_THEMES', true ); } // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedConstantFound -- core constant the theme loader needs
 		add_filter( 'show_admin_bar', '__return_false' ); remove_action( 'wp_body_open', 'wp_admin_bar_render', 0 ); remove_action( 'wp_footer', 'wp_admin_bar_render', 1000 );
 		require ABSPATH . WPINC . '/template-loader.php';
 		exit;

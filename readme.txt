@@ -9,7 +9,7 @@ Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Lets search engines and AI assistants (Google, Bing, Apple, ChatGPT, Claude, Perplexity, Copilot and more) in. Blocks scrapers, scripts, scanners and fake bots. Block or allow countries, IP ranges, VPNs, proxies and Tor.
+Lets search engines and AI assistants in. Blocks scrapers and fake bots. Block countries, IP ranges, VPNs, proxies and Tor.
 
 == Description ==
 

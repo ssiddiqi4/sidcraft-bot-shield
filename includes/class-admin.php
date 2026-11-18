@@ -2,6 +2,9 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Sidcraft_BotShield_Admin {
+	/** Tags allowed in the row action links. */
+	private static $allowed = array( 'a' => array( 'href' => array() ), 'em' => array(), 'br' => array() );
+
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
@@ -176,7 +179,7 @@ class Sidcraft_BotShield_Admin {
 		$back = $base . '&tab=log' . ( '' !== $type ? '&type=' . $type : '' );
 		foreach ( $rows as $r ) {
 			$tk = Sidcraft_BotShield_Log::type_of( $r['r'] );
-			echo '<tr><td title="' . esc_attr( wp_date( 'Y-m-d H:i:s', $r['t'] ) ) . '">' . esc_html( human_time_diff( $r['t'] ) ) . '</td><td>' . esc_html( 'block' === $r['a'] ? __( 'Blocked', 'sidcraft-bot-shield' ) : __( 'Would block', 'sidcraft-bot-shield' ) ) . '</td><td><span style="color:' . esc_attr( $types[ $tk ][1] ) . '">●</span> ' . esc_html( $types[ $tk ][0] ) . '</td><td>' . esc_html( self::reason_label( $r['r'] ) ) . '</td><td>' . esc_html( $r['ip'] ) . '</td><td>' . esc_html( $r['c'] ?? '' ) . '</td><td style="word-break:break-all">' . esc_html( $r['p'] ) . '</td><td style="word-break:break-all">' . esc_html( $r['ua'] ) . '</td><td style="white-space:nowrap">' . self::row_actions( $r, $back ) . '</td></tr>';
+			echo '<tr><td title="' . esc_attr( wp_date( 'Y-m-d H:i:s', $r['t'] ) ) . '">' . esc_html( human_time_diff( $r['t'] ) ) . '</td><td>' . esc_html( 'block' === $r['a'] ? __( 'Blocked', 'sidcraft-bot-shield' ) : __( 'Would block', 'sidcraft-bot-shield' ) ) . '</td><td><span style="color:' . esc_attr( $types[ $tk ][1] ) . '">●</span> ' . esc_html( $types[ $tk ][0] ) . '</td><td>' . esc_html( self::reason_label( $r['r'] ) ) . '</td><td>' . esc_html( $r['ip'] ) . '</td><td>' . esc_html( $r['c'] ?? '' ) . '</td><td style="word-break:break-all">' . esc_html( $r['p'] ) . '</td><td style="word-break:break-all">' . esc_html( $r['ua'] ) . '</td><td style="white-space:nowrap">' . wp_kses( self::row_actions( $r, $back ), self::$allowed ) . '</td></tr>';
 		}
 		echo '</tbody></table><p style="margin-top:10px"><a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_csv&type=' . $type ), 'sidcraft_botshield_csv' ) ) . '">' . esc_html__( 'Download as CSV', 'sidcraft-bot-shield' ) . '</a> ';
 		echo '</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'; wp_nonce_field( 'sidcraft_botshield_clear' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_clear"><button class="button">' . esc_html__( 'Clear list and counters', 'sidcraft-bot-shield' ) . '</button></form>';
@@ -243,7 +246,7 @@ class Sidcraft_BotShield_Admin {
 		if ( ! $rows ) { echo '<p>' . esc_html__( 'Nothing blocked yet.', 'sidcraft-bot-shield' ) . '</p>'; }
 		else {
 			echo '<table class="widefat striped" style="margin-bottom:8px"><tbody>';
-			foreach ( $rows as $r ) { echo '<tr><td><code>' . esc_html( $r['ip'] ) . '</code><br><span class="description">' . esc_html( human_time_diff( $r['t'] ) . ' · ' . self::reason_label( $r['r'] ) ) . '</span></td><td style="text-align:right;font-size:12px">' . self::row_actions( $r, admin_url( 'index.php' ) ) . '</td></tr>'; } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- row_actions escapes.
+			foreach ( $rows as $r ) { echo '<tr><td><code>' . esc_html( $r['ip'] ) . '</code><br><span class="description">' . esc_html( human_time_diff( $r['t'] ) . ' · ' . self::reason_label( $r['r'] ) ) . '</span></td><td style="text-align:right;font-size:12px">' . wp_kses( self::row_actions( $r, admin_url( 'index.php' ) ), self::$allowed ) . '</td></tr>'; }
 			echo '</tbody></table>';
 		}
 		echo '<p><a href="' . esc_url( $base . '&tab=log' ) . '">' . esc_html__( 'Full blocked log', 'sidcraft-bot-shield' ) . '</a> · <a href="' . esc_url( $base ) . '">' . esc_html__( 'Settings', 'sidcraft-bot-shield' ) . '</a></p>';
@@ -295,11 +298,18 @@ class Sidcraft_BotShield_Admin {
 		check_admin_referer( 'sidcraft_botshield_geodb' );
 		$do = isset( $_POST['do'] ) ? sanitize_key( wp_unslash( $_POST['do'] ) ) : '';
 		if ( 'remove' === $do ) { if ( Sidcraft_BotShield_Lists::mmdb_exists() ) { wp_delete_file( Sidcraft_BotShield_Lists::mmdb_path() ); } }
-		elseif ( 'upload' === $do && ! empty( $_FILES['mmdb']['tmp_name'] ) && is_uploaded_file( $_FILES['mmdb']['tmp_name'] ) && Sidcraft_BotShield_Lists::ensure_dir() ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- temp path from PHP.
-			$name = isset( $_FILES['mmdb']['name'] ) ? sanitize_file_name( wp_unslash( $_FILES['mmdb']['name'] ) ) : '';
-			$tmp  = $_FILES['mmdb']['tmp_name']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			$test = Sidcraft_BotShield_Mmdb::open( $tmp );
-			if ( '.mmdb' === strtolower( substr( $name, -5 ) ) && $test && '' !== $test->country( '8.8.8.8' ) . 'x' ) { move_uploaded_file( $tmp, Sidcraft_BotShield_Lists::mmdb_path() ); } // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		elseif ( 'upload' === $do && ! empty( $_FILES['mmdb']['tmp_name'] ) && Sidcraft_BotShield_Lists::ensure_dir() ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			$d = Sidcraft_BotShield_Lists::dir(); // computed before the filter, which would otherwise call itself.
+			$to_dir = function ( $u ) use ( $d ) { $u['path'] = untrailingslashit( $d ); $u['subdir'] = ''; return $u; };
+			add_filter( 'upload_dir', $to_dir );
+			$res = wp_handle_upload( $_FILES['mmdb'], array( 'test_form' => false, 'test_type' => false, 'mimes' => array( 'mmdb' => 'application/octet-stream' ), 'unique_filename_callback' => function () { return 'upload-' . wp_generate_password( 8, false ) . '.mmdb'; } ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- handled by wp_handle_upload.
+			remove_filter( 'upload_dir', $to_dir );
+			if ( is_array( $res ) && ! empty( $res['file'] ) ) {
+				$ok = '.mmdb' === strtolower( substr( $res['file'], -5 ) ) && Sidcraft_BotShield_Mmdb::open( $res['file'] );
+				if ( $ok ) { WP_Filesystem(); global $wp_filesystem; $wp_filesystem->move( $res['file'], Sidcraft_BotShield_Lists::mmdb_path(), true ); Sidcraft_BotShield_Geo::reset(); }
+				else { wp_delete_file( $res['file'] ); }
+			}
 		}
 		wp_safe_redirect( admin_url( 'options-general.php?page=sidcraft-bot-shield' ) );
 		exit;

@@ -7,7 +7,7 @@ class Sidcraft_BotShield_Lists {
 	const CRON   = 'sidcraft_botshield_update_lists';
 
 	public static function sources() {
-		$raw = 'https://raw.githubusercontent.com/X4BNet/lists_vpn/main/output/';
+		$raw = 'https://raw.githubusercontent.com/X4BNet/lists_vpn/main/output/'; // phpcs:ignore PluginCheck.CodeAnalysis.Offloading.OffloadedContent -- plain-text address lists fetched by the server and disclosed in readme.txt; no scripts, styles or images are loaded on the site.
 		return array(
 			'tor'        => array( 'label' => 'Tor exit nodes', 'urls' => array( 'https://check.torproject.org/torbulkexitlist' ) ),
 			'vpn'        => array( 'label' => 'VPN services', 'urls' => array( $raw . 'vpn/ipv4.txt', $raw . 'vpn/ipv6.txt' ) ),
@@ -27,7 +27,7 @@ class Sidcraft_BotShield_Lists {
 			file_put_contents( $d . 'index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			file_put_contents( $d . '.htaccess', "Require all denied\n<IfModule !mod_authz_core.c>\nDeny from all\n</IfModule>\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		}
-		return is_dir( $d ) && is_writable( $d );
+		return is_dir( $d ) && wp_is_writable( $d );
 	}
 
 	public static function status() { $s = get_option( self::STATUS, array() ); return is_array( $s ) ? $s : array(); }
@@ -83,8 +83,16 @@ class Sidcraft_BotShield_Lists {
 	public static function mmdb_exists() { return is_readable( self::mmdb_path() ); }
 
 	public static function remove_all() {
-		$d = self::dir();
-		if ( is_dir( $d ) ) { foreach ( (array) glob( $d . '*' ) as $f ) { if ( is_file( $f ) ) { wp_delete_file( $f ); } } foreach ( array( '.htaccess' ) as $h ) { if ( is_file( $d . $h ) ) { wp_delete_file( $d . $h ); } } @rmdir( $d ); } // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rmdir_rmdir
+		self::delete_dir( self::dir() );
 		delete_option( self::STATUS );
+	}
+
+	/** Delete the data folder with the WordPress filesystem API. */
+	public static function delete_dir( $d ) {
+		if ( ! is_dir( $d ) ) { return; }
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		WP_Filesystem();
+		global $wp_filesystem;
+		if ( $wp_filesystem ) { $wp_filesystem->rmdir( $d, true ); }
 	}
 }

@@ -11,8 +11,8 @@ class Sidcraft_BotShield_Firewall {
 		add_action( 'init', array( __CLASS__, 'run' ), 1 );
 		add_action( 'template_redirect', array( __CLASS__, 'on_404' ), 1 );
 		$s = Sidcraft_BotShield_FwSettings::all();
+		if ( $s['bf_on'] || $s['user_on'] ) { add_action( 'wp_login_failed', array( __CLASS__, 'login_failed' ), 10, 2 ); }
 		if ( $s['bf_on'] ) {
-			add_action( 'wp_login_failed', array( __CLASS__, 'login_failed' ), 10, 2 );
 			add_action( 'lostpassword_post', array( __CLASS__, 'reset_request' ), 10, 1 );
 		}
 		if ( $s['bf_generic'] ) { add_filter( 'authenticate', array( __CLASS__, 'generic_error' ), 100, 1 ); }
@@ -56,6 +56,7 @@ class Sidcraft_BotShield_Firewall {
 		if ( 'cli' === PHP_SAPI || ( defined( 'WP_CLI' ) && WP_CLI ) || wp_doing_cron() ) { return; }
 		$s = Sidcraft_BotShield_FwSettings::all(); $ip = self::ip(); $ua = self::ua(); $path = self::path();
 		if ( '' !== $ip && self::trusted( $ip ) ) { return; }
+		self::probe();
 		$logged = is_user_logged_in(); $admin = $logged && current_user_can( 'manage_options' );
 		// Simple hardening checks that need no rules.
 		if ( ! $logged ) {
@@ -111,12 +112,63 @@ class Sidcraft_BotShield_Firewall {
 	public static function login_failed( $username ) {
 		$ip = self::ip(); if ( '' === $ip || self::trusted( $ip ) ) { return; }
 		$s = Sidcraft_BotShield_FwSettings::all();
-		$invalid = $s['bf_invalid_lock'] && '' !== (string) $username && ! username_exists( (string) $username ) && ! email_exists( (string) $username );
-		$n = self::count_fail( 'sbs_lf_', $ip, (int) $s['bf_window_min'] );
-		if ( $invalid || $n >= (int) $s['bf_max_login'] ) {
-			Sidcraft_BotShield_Bans::add( $ip, (int) $s['bf_lock_hours'] * HOUR_IN_SECONDS, $invalid ? 'Login with a user that does not exist' : 'Too many failed logins' );
-			Sidcraft_BotShield_Log::add( 'block', $invalid ? 'brute_invalid' : 'brute_login', $ip, self::ua(), self::path() );
+		if ( $s['user_on'] && '' !== (string) $username && ! username_exists( (string) $username ) && ! email_exists( (string) $username ) && self::window_hit( 'sbs_uu_', $ip, (int) $s['user_attempts'], (int) $s['user_minutes'] ) ) {
+			Sidcraft_BotShield_Bans::add( $ip, (int) $s['user_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d logins with user names that do not exist in %2$d minutes', 'sidcraft-bot-shield' ), (int) $s['user_attempts'], (int) $s['user_minutes'] ), 'url' );
+			Sidcraft_BotShield_Log::add( 'block', 'brute_invalid', $ip, self::ua(), self::path() );
+			return;
 		}
+		if ( ! $s['bf_on'] ) { return; }
+		$n = self::count_fail( 'sbs_lf_', $ip, (int) $s['bf_window_min'] );
+		if ( $n >= (int) $s['bf_max_login'] ) {
+			Sidcraft_BotShield_Bans::add( $ip, (int) $s['bf_lock_hours'] * HOUR_IN_SECONDS, 'Too many failed logins' );
+			Sidcraft_BotShield_Log::add( 'block', 'brute_login', $ip, self::ua(), self::path() );
+		}
+	}
+
+	/** Record one event for this address and say whether it has now happened $attempts times within $minutes. */
+	private static function window_hit( $prefix, $ip, $attempts, $minutes ) {
+		$k = $prefix . md5( $ip ); $now = time(); $win = $minutes * MINUTE_IN_SECONDS;
+		$hits = get_transient( $k ); $hits = is_array( $hits ) ? array_values( array_filter( $hits, function ( $t ) use ( $now, $win ) { return $t > $now - $win; } ) ) : array();
+		$hits[] = $now; $hits = array_slice( $hits, -$attempts ); set_transient( $k, $hits, $win );
+		if ( count( $hits ) < $attempts ) { return false; }
+		delete_transient( $k );
+		return true;
+	}
+
+	/**
+	 * Someone who is not logged in keeps opening the login, dashboard or register pages. Reading the login page and then
+	 * posting the form is a normal login and does not count; only repeated page requests do.
+	 */
+	public static function probe() {
+		$s = Sidcraft_BotShield_FwSettings::all(); if ( ! $s['probe_on'] || wp_doing_ajax() ) { return; }
+		$ip = self::ip(); if ( '' === $ip || self::trusted( $ip ) || Sidcraft_BotShield_Bans::is_banned( $ip ) ) { return; }
+		foreach ( array_keys( $_COOKIE ) as $c ) { if ( 0 === strpos( (string) $c, 'wordpress_logged_in_' ) ) { return; } }
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '';
+		$path = trim( rawurldecode( self::path() ), '/' ); $base = trim( (string) wp_parse_url( home_url(), PHP_URL_PATH ), '/' );
+		if ( '' !== $base && 0 === strpos( $path . '/', $base . '/' ) ) { $path = ltrim( substr( $path, strlen( $base ) ), '/' ); }
+		$file = basename( $path ); $custom = Sidcraft_BotShield_LoginSettings::get( 'url_on' ); // with a custom login address the "wrong address" option already counts these three.
+		$hit = false;
+		if ( ! $custom ) {
+			if ( 'wp-login.php' === $file && 'get' === $method ) { $act = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : ''; $hit = ( '' === $act || 'register' === $act ); } // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only reading which page was asked for.
+			elseif ( 0 === strpos( $path . '/', 'wp-admin/' ) && ! in_array( $file, array( 'admin-ajax.php', 'admin-post.php', 'load-styles.php', 'load-scripts.php', 'upgrade.php', 'install.php' ), true ) ) { $hit = true; }
+			elseif ( 'wp-register.php' === $file || 'wp-signup.php' === $file ) { $hit = true; }
+		}
+		if ( ! $hit && in_array( strtolower( $path ), array( 'register', 'signup', 'sign-up', 'registration' ), true ) ) { add_action( 'template_redirect', array( __CLASS__, 'probe_404' ), 2 ); }
+		if ( $hit ) { self::probe_count( $s, $ip ); }
+	}
+
+	/** /register and friends only count when the site has no such page. */
+	public static function probe_404() {
+		if ( ! is_404() ) { return; }
+		$s = Sidcraft_BotShield_FwSettings::all(); $ip = self::ip();
+		if ( '' !== $ip && ! is_user_logged_in() ) { self::probe_count( $s, $ip ); }
+	}
+
+	private static function probe_count( $s, $ip ) {
+		if ( ! self::window_hit( 'sbs_pr_', $ip, (int) $s['probe_attempts'], (int) $s['probe_minutes'] ) ) { return; }
+		Sidcraft_BotShield_Log::add( 'block', 'brute_probe', $ip, self::ua(), self::path() );
+		Sidcraft_BotShield_Bans::add( $ip, (int) $s['probe_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d visits to login or register pages in %2$d minutes', 'sidcraft-bot-shield' ), (int) $s['probe_attempts'], (int) $s['probe_minutes'] ), 'url' );
+		Sidcraft_BotShield_Guard::banned_page( $ip );
 	}
 
 	public static function reset_request() {

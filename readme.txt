@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.3.12
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -164,6 +164,10 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.4.0 =
+* New: block an address that logs in with user names that do not exist, after a number of tries within a number of minutes, for a number of days (replaces the "lock out at once" tick box; an existing tick is kept as 1 try).
+* New: block an address that keeps opening /wp-login.php, /wp-admin, /wp-register.php or /register without logging in, with the same three numbers. A normal login does not count; /register counts only when the site has no such page.
+
 = 1.3.12 =
 * New: the Quarantine list is always shown on the Scan tab (with a link at the top), so you can restore or delete quarantined files at any time.
 * Plugin Check: two remaining notes.
@@ -192,6 +196,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+Adds attempt limits for unknown user names and for repeated visits to login and register pages.
 
 = 1.3.12 =
 Quarantined files can now always be viewed, restored or deleted from the Scan tab.

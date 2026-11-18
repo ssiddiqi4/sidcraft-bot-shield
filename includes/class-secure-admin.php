@@ -228,6 +228,7 @@ class Sidcraft_BotShield_SecureAdmin {
 			foreach ( $f as $id => $x ) {
 				echo '<tr><td><span style="' . esc_attr( self::sev_style( $x['sev'] ) ) . '">' . esc_html( $x['sev'] ) . '</span></td><td><strong>' . esc_html( $x['title'] ) . '</strong>';
 				if ( '' !== $x['detail'] ) { echo '<br><span class="description">' . esc_html( $x['detail'] ) . '</span>'; }
+				if ( '' !== $x['rel'] && false === strpos( (string) $x['detail'], $x['rel'] ) ) { echo '<br><code style="font-size:12px;word-break:break-all">' . esc_html( $x['rel'] ) . '</code>'; }
 				if ( ! empty( $x['extra']['snippet'] ) ) { echo '<br><code style="font-size:11px;word-break:break-all">' . esc_html( $x['extra']['snippet'] ) . '</code>'; }
 				echo '</td><td>' . wp_kses( self::finding_links( $id, $x, $base ), array( 'a' => array( 'href' => array(), 'onclick' => array() ), 'em' => array() ) ) . '</td></tr>';
 			}

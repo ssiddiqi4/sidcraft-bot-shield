@@ -274,13 +274,17 @@ class Sidcraft_BotShield_Scanner {
 			$base = 'wp-content/plugins/' . $p['slug'] . '/';
 			if ( $j && ! empty( $j['files'] ) && is_array( $j['files'] ) ) {
 				$ver = array();
+				$missing = array();
 				foreach ( $j['files'] as $f => $h ) {
+					if ( preg_match( '#^(?:trunk|tags|branches)/#', (string) $f ) ) { continue; } // folders of the WordPress.org repository, not part of the plugin (a badly made release tag lists them).
 					$rel = $base . $f; $abs = rtrim( wp_normalize_path( ABSPATH ), '/' ) . '/' . $rel; $md5 = is_array( $h['md5'] ?? null ) ? $h['md5'][0] : ( $h['md5'] ?? '' );
-					if ( ! is_file( $abs ) ) { if ( preg_match( '/\.(php|js)$/', $f ) ) { self::add( 'plugin_missing', 'low', sprintf( /* translators: %s: plugin */ __( 'A file of the plugin “%s” is missing', 'sidcraft-bot-shield' ), $p['name'] ), $rel, $rel, array( 'repair' => 'plugin', 'slug' => $p['slug'], 'version' => $p['version'], 'file' => $f ) ); } continue; }
+					if ( ! is_file( $abs ) ) { if ( preg_match( '/\.(php|js)$/', $f ) ) { $missing[] = $f; } continue; }
 					if ( '' !== $md5 && md5_file( $abs ) === $md5 ) { $ver[] = $rel; }
 					elseif ( ! self::excluded( $rel ) ) { self::add( 'plugin_modified', 'high', sprintf( /* translators: %s: plugin */ __( 'A file of the plugin “%s” was modified', 'sidcraft-bot-shield' ), $p['name'] ), sprintf( /* translators: 1: file 2: version */ __( '%1$s is different from the official version %2$s on WordPress.org.', 'sidcraft-bot-shield' ), $rel, $p['version'] ), $rel, array( 'repair' => 'plugin', 'slug' => $p['slug'], 'version' => $p['version'], 'file' => $f ) ); }
 				}
 				self::verified_add( $ver );
+				if ( count( $missing ) > 5 ) { self::add( 'plugin_missing_many', 'low', sprintf( /* translators: 1: number 2: plugin */ __( '%1$d files of the plugin “%2$s” are missing', 'sidcraft-bot-shield' ), count( $missing ), $p['name'] ), sprintf( /* translators: %s: file names */ __( 'For example: %s. Reinstall the plugin to restore them.', 'sidcraft-bot-shield' ), implode( ', ', array_slice( $missing, 0, 4 ) ) ), '', array( 'key' => $p['slug'], 'link' => admin_url( 'plugins.php' ) ) ); }
+				else { foreach ( $missing as $f ) { self::add( 'plugin_missing', 'low', sprintf( /* translators: %s: plugin */ __( 'A file of the plugin “%s” is missing', 'sidcraft-bot-shield' ), $p['name'] ), $base . $f, $base . $f, array( 'repair' => 'plugin', 'slug' => $p['slug'], 'version' => $p['version'], 'file' => $f ) ); } }
 				foreach ( array_keys( $files ) as $rel ) { if ( 0 === strpos( $rel, $base ) && preg_match( '/\.(?:php\d?|phtml|pht|phar)$/i', $rel ) && ! isset( $j['files'][ substr( $rel, strlen( $base ) ) ] ) && ! self::excluded( $rel ) ) { self::add( 'plugin_unknown', 'medium', sprintf( /* translators: %s: plugin */ __( 'Unknown PHP file inside the plugin “%s”', 'sidcraft-bot-shield' ), $p['name'] ), sprintf( /* translators: %s: file */ __( '%s is not part of this version of the plugin.', 'sidcraft-bot-shield' ), $rel ), $rel ); } }
 			}
 			if ( microtime( true ) >= $deadline ) { $st['cursor'] = $i + 1; $st['frac'] = ( $i + 1 ) / max( 1, $n ); return false; }
@@ -304,7 +308,7 @@ class Sidcraft_BotShield_Scanner {
 			'chr_chain'     => array( 'high', 'Code hidden with chr() calls', '/(?:chr\s*\(\s*\d+\s*\)\s*\.\s*){10,}/i' ),
 			'var_func_input'=> array( 'high', 'Variable function fed by a visitor', '/\$\w+\s*=\s*\$_(?:GET|POST|REQUEST|COOKIE)\s*\[[^\]]+\]\s*;\s*\$\w+\s*\(/i' ),
 			'php_in_js'     => array( 'high', 'Hidden script writer', '/document\.write\s*\(\s*unescape\s*\(/i', 'js' ),
-			'htaccess_prepend' => array( 'high', 'Runs another script before every PHP file', '/^\s*(?:php_value\s+)?auto_(?:prepend|append)_file\b(?![^\n]*sidcraft-bot-shield)/im', 'ht' ),
+			'htaccess_prepend' => array( 'high', 'Runs another script before or after every PHP file', '/^[ \t]*(?:php_(?:admin_)?value[ \t]+)?auto_(?:prepend|append)_file[ \t]*[= \t][ \t]*["\']?(?![^\n]*(?:sidcraft-bot-shield|wordfence-waf\.php))[^\s"\';=]+/im', 'ht' ),
 			'htaccess_handler' => array( 'high', 'Makes images or text files run as PHP', '/AddHandler\s+(?:application\/x-httpd-php\d*|php\d*-script)\s+[^\n]*\.(?:jpe?g|png|gif|txt|ico)\b|SetHandler\s+application\/x-httpd-php/i', 'ht' ),
 			'htaccess_cloak'   => array( 'high', 'Redirects visitors who come from search engines', '/RewriteCond\s+%\{HTTP_(?:USER_AGENT|REFERER)\}[^\n]*(?:google|bing|yahoo|baidu|yandex)[^\n]*\s*\n\s*RewriteRule[^\n]*https?:\/\//i', 'ht' ),
 		);
@@ -436,7 +440,7 @@ class Sidcraft_BotShield_Scanner {
 		$pl = array_values( self::wporg_slugs() ); $n = count( $pl );
 		for ( $i = (int) $st['cursor']; $i < $n; $i++ ) {
 			$p = $pl[ $i ]; $info = plugins_api( 'plugin_information', array( 'slug' => $p['slug'], 'fields' => array( 'sections' => false, 'last_updated' => true, 'short_description' => false, 'banners' => false, 'icons' => false, 'versions' => false, 'reviews' => false, 'contributors' => false, 'donate_link' => false, 'tags' => false, 'ratings' => false, 'active_installs' => false ) ) );
-			if ( is_wp_error( $info ) ) { if ( 'plugins_api_failed' === $info->get_error_code() && false !== stripos( $info->get_error_message(), 'not found' ) || false !== stripos( $info->get_error_message(), 'closed' ) ) { self::add( 'plugin_removed', 'high', sprintf( /* translators: %s: plugin */ __( 'The plugin “%s” was removed from WordPress.org', 'sidcraft-bot-shield' ), $p['name'] ), __( 'Plugins are usually closed for security problems or abandonment. Look for a replacement.', 'sidcraft-bot-shield' ), '', array( 'key' => $p['slug'] ) ); } }
+			if ( is_wp_error( $info ) ) { if ( 'plugins_api_failed' === $info->get_error_code() && false !== stripos( $info->get_error_message(), 'not found' ) || false !== stripos( $info->get_error_message(), 'closed' ) ) { self::add( 'plugin_removed', 'medium', sprintf( /* translators: %s: plugin */ __( 'The plugin “%s” was removed from WordPress.org', 'sidcraft-bot-shield' ), $p['name'] ), __( 'Plugins are usually closed for security problems or abandonment. Look for a replacement.', 'sidcraft-bot-shield' ), '', array( 'key' => $p['slug'] ) ); } }
 			elseif ( ! empty( $info->last_updated ) && strtotime( $info->last_updated ) && strtotime( $info->last_updated ) < time() - 2 * YEAR_IN_SECONDS ) { self::add( 'plugin_abandoned', 'medium', sprintf( /* translators: %s: plugin */ __( 'The plugin “%s” has not been updated in over 2 years', 'sidcraft-bot-shield' ), $p['name'] ), sprintf( /* translators: %s: date */ __( 'Last update: %s. It may be abandoned and no longer receive security fixes.', 'sidcraft-bot-shield' ), gmdate( 'Y-m-d', strtotime( $info->last_updated ) ) ), '', array( 'key' => $p['slug'] ) ); }
 			if ( microtime( true ) >= $deadline ) { $st['cursor'] = $i + 1; $st['frac'] = ( $i + 1 ) / max( 1, $n ); return false; }
 		}

@@ -12,6 +12,7 @@ class Sidcraft_BotShield_Admin {
 		add_action( 'admin_post_sidcraft_botshield_test', array( __CLASS__, 'test' ) );
 		add_action( 'admin_post_sidcraft_botshield_act', array( __CLASS__, 'act' ) );
 		add_action( 'wp_dashboard_setup', array( __CLASS__, 'dash_setup' ) );
+		add_action( 'admin_post_sidcraft_botshield_allow', array( __CLASS__, 'allow_save' ) );
 		add_action( 'admin_post_sidcraft_botshield_csv', array( __CLASS__, 'csv' ) );
 		add_action( 'admin_post_sidcraft_botshield_clear', array( __CLASS__, 'clear' ) );
 		add_action( 'admin_post_sidcraft_botshield_lists', array( __CLASS__, 'lists_now' ) );
@@ -63,6 +64,7 @@ class Sidcraft_BotShield_Admin {
 		echo '<p>' . esc_html__( 'Lets search engines and AI assistants in, and keeps scrapers, scripts, scanners and fake bots out. Visitors who look like normal browsers are never blocked, and neither are logged-in users.', 'sidcraft-bot-shield' ) . '</p>';
 		echo '<form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_group' );
 		echo '<table class="form-table" role="presentation"><tbody>';
+		echo '<tr><th><label for="sbs-ipallow">' . esc_html__( 'Never block these addresses', 'sidcraft-bot-shield' ) . '</label></th><td>' . self::allow_fields( $s['ip_allow'], esc_attr( $O ) . '[ip_allow]', 'sbs-ipallow' ) . '</td></tr>';
 		echo '<tr><th>' . esc_html__( 'Mode', 'sidcraft-bot-shield' ) . '</th><td><label><input type="radio" name="' . esc_attr( $O ) . '[mode]" value="monitor" ' . checked( $s['mode'], 'monitor', false ) . '> ' . esc_html__( 'Monitor only: log what would be blocked (recommended for the first days)', 'sidcraft-bot-shield' ) . '</label><br><label><input type="radio" name="' . esc_attr( $O ) . '[mode]" value="block" ' . checked( $s['mode'], 'block', false ) . '> ' . esc_html__( 'Block: answer unwanted bots with “403 Access denied”', 'sidcraft-bot-shield' ) . '</label></td></tr>';
 		echo '<tr><th>' . esc_html__( 'Always allow', 'sidcraft-bot-shield' ) . '</th><td>';
 		foreach ( Sidcraft_BotShield_Catalog::allowed() as $gk => $g ) {
@@ -117,7 +119,6 @@ class Sidcraft_BotShield_Admin {
 		echo '<tr><th><label for="sbs-ca">' . esc_html__( 'Your own lists', 'sidcraft-bot-shield' ) . '</label></th><td>';
 		echo '<p><strong>' . esc_html__( 'Also allow (names, one per line)', 'sidcraft-bot-shield' ) . '</strong><br><textarea id="sbs-ca" name="' . esc_attr( $O ) . '[custom_allow]" rows="3" cols="50">' . esc_textarea( $s['custom_allow'] ) . '</textarea></p>';
 		echo '<p><strong>' . esc_html__( 'Also block (names, one per line; wins over the allow lists)', 'sidcraft-bot-shield' ) . '</strong><br><textarea name="' . esc_attr( $O ) . '[custom_block]" rows="3" cols="50">' . esc_textarea( $s['custom_block'] ) . '</textarea></p>';
-		echo '<p><strong>' . esc_html__( 'Never block these addresses (one per line, ranges like 203.0.113.0/24 allowed)', 'sidcraft-bot-shield' ) . '</strong><br><textarea name="' . esc_attr( $O ) . '[ip_allow]" rows="3" cols="50">' . esc_textarea( $s['ip_allow'] ) . '</textarea><br><span class="description">' . esc_html( sprintf( /* translators: %s: the visitor's IP address */ __( 'Your address right now: %s', 'sidcraft-bot-shield' ), Sidcraft_BotShield_Guard::client_ip() ) ) . '</span></p></td></tr>';
 		echo '<tr><th>' . esc_html__( 'Lock-out protection', 'sidcraft-bot-shield' ) . '</th><td><label><input type="checkbox" name="' . esc_attr( $O ) . '[remember_admin]" value="1" ' . checked( ! empty( $s['remember_admin'] ), true, false ) . '> ' . esc_html__( 'Never block an address that an administrator logged in from during the last 7 days (stops you locking yourself out)', 'sidcraft-bot-shield' ) . '</label></td></tr>';
 		echo '<tr><th>' . esc_html__( 'Data', 'sidcraft-bot-shield' ) . '</th><td><label><input type="checkbox" name="' . esc_attr( $O ) . '[keep_log]" value="1" ' . checked( ! empty( $s['keep_log'] ), true, false ) . '> ' . esc_html__( 'Keep a list of the last 500 blocked requests for 30 days (address, browser name, page) — see the Blocked log tab', 'sidcraft-bot-shield' ) . '</label><br><label><input type="checkbox" name="' . esc_attr( $O ) . '[remove_data]" value="1" ' . checked( ! empty( $s['remove_data'] ), true, false ) . '> ' . esc_html__( 'Delete all Bot Shield data when the plugin is deleted', 'sidcraft-bot-shield' ) . '</label></td></tr>';
 		echo '</tbody></table>'; submit_button(); echo '</form>';
@@ -137,6 +138,24 @@ class Sidcraft_BotShield_Admin {
 		echo '</div>';
 	}
 
+
+		/** The never-block field: a text box, the visitor's own address, and a button that adds it. */
+	public static function allow_fields( $value, $name, $id ) {
+		$mine = Sidcraft_BotShield_Guard::client_ip();
+		$h = '<textarea id="' . esc_attr( $id ) . '" name="' . $name . '" rows="4" cols="50" placeholder="203.0.113.7&#10;198.51.100.0/24&#10;2001:db8::/32">' . esc_textarea( $value ) . '</textarea><br>';
+		$h .= '<span class="description">' . esc_html__( 'One per line: single addresses, ranges like 203.0.113.0/24, or IPv6. These addresses are never blocked by any rule (bots, countries, VPN, address list, firewall, login, 404). Put your own office, home and server addresses here.', 'sidcraft-bot-shield' ) . '</span><br>';
+		if ( '' !== $mine ) { $h .= '<span class="description">' . esc_html( sprintf( /* translators: %s: the visitor's IP address */ __( 'Your address right now: %s', 'sidcraft-bot-shield' ), $mine ) ) . '</span> <button type="button" class="button button-small" onclick="var t=document.getElementById(\'' . esc_js( $id ) . '\');if(t.value.split(/\\s+/).indexOf(\'' . esc_js( $mine ) . '\')<0){t.value=(t.value.trim()?t.value.trim()+\'\\n\':\'\')+\'' . esc_js( $mine ) . '\';}">' . esc_html__( 'Add my address', 'sidcraft-bot-shield' ) . '</button>'; }
+		return $h;
+	}
+
+	public static function allow_save() {
+		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Not allowed.', 'sidcraft-bot-shield' ), 403 ); }
+		check_admin_referer( 'sidcraft_botshield_allow' );
+		Sidcraft_BotShield_Settings::set_allow( isset( $_POST['ip_allow'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ip_allow'] ) ) : '' );
+		set_transient( 'sidcraft_botshield_notice_ok', __( 'The never-block list was saved.', 'sidcraft-bot-shield' ), 60 );
+		wp_safe_redirect( admin_url( 'options-general.php?page=sidcraft-bot-shield&tab=firewall' ) );
+		exit;
+	}
 
 	/** Overview cards: how many were blocked, and what type. */
 	private static function cards() {

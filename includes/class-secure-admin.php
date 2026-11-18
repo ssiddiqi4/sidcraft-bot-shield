@@ -37,6 +37,11 @@ class Sidcraft_BotShield_SecureAdmin {
 		echo '<p><strong>' . esc_html__( 'Firewall status:', 'sidcraft-bot-shield' ) . '</strong> <span style="color:' . esc_attr( $col[ $mode ] ) . ';font-weight:600">' . esc_html( $labels[ $mode ] ) . '</span>';
 		if ( 'learning' === $mode && $s['waf_since'] ) { $left = max( 0, (int) $s['waf_since'] + 7 * DAY_IN_SECONDS - time() ); echo ' — ' . esc_html( sprintf( /* translators: %s: time */ __( 'turns on by itself in %s. Until then it only records what it would block and learns from what administrators do.', 'sidcraft-bot-shield' ), human_time_diff( time(), time() + $left ) ) ); }
 		echo '</p>';
+		self::box( __( 'Never block these addresses', 'sidcraft-bot-shield' ), function () {
+			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'; wp_nonce_field( 'sidcraft_botshield_allow' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_allow">';
+			echo Sidcraft_BotShield_Admin::allow_fields( Sidcraft_BotShield_Settings::get( 'ip_allow' ), 'ip_allow', 'sbs-ipallow-fw' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside.
+			echo '<p><button class="button button-primary">' . esc_html__( 'Save list', 'sidcraft-bot-shield' ) . '</button></p></form>';
+		} );
 		echo '<form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_fw_group' );
 		echo '<input type="hidden" name="' . esc_attr( $O ) . '[waf_rules_present]" value="1">';
 		self::box( __( 'Web application firewall', 'sidcraft-bot-shield' ), function () use ( $s, $O ) {

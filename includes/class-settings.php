@@ -83,11 +83,19 @@ class Sidcraft_BotShield_Settings {
 		return implode( "\n", array_unique( $lines ) );
 	}
 
-	/** Add a line to a list option (ip_allow, ip_block, custom_allow). */
+	/** Replace the never-block list with the lines of a text (validated). */
+	public static function set_allow( $text ) { $o = self::all(); $o['ip_allow'] = self::clean_lines( $text, true ); update_option( self::OPTION, $o ); }
+
+	/** Is this address on the never-block list? */
+	public static function is_allowed_ip( $ip ) { return '' !== $ip && Sidcraft_BotShield_Ranges::in_list( $ip, self::lines( 'ip_allow' ) ); }
+
+	/** Add a line to a list option (ip_allow, ip_block, custom_allow). An address on the never-block list cannot be added to the block list. */
 	public static function add_line( $key, $line ) {
+		if ( 'ip_block' === $key && self::is_allowed_ip( $line ) ) { return false; }
 		$o = self::all(); $lines = self::lines( $key );
 		if ( ! in_array( $line, $lines, true ) && count( $lines ) < 2000 ) { $lines[] = $line; }
 		$o[ $key ] = implode( "\n", $lines ); update_option( self::OPTION, $o );
+		return true;
 	}
 
 	public static function remove_line( $key, $line ) {

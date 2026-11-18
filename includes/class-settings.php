@@ -56,7 +56,7 @@ class Sidcraft_BotShield_Settings {
 		$out['block']  = array(); foreach ( $d['block'] as $k => $v ) { $out['block'][ $k ] = empty( $in['block'][ $k ] ) ? 0 : 1; }
 		foreach ( array( 'verify', 'block_empty', 'block_scanners', 'honeypot', 'rate_limit', 'keep_log', 'remove_data', 'geo_bots_exempt', 'block_tor', 'block_vpn', 'block_datacenter', 'block_proxy_headers' ) as $k ) { $out[ $k ] = empty( $in[ $k ] ) ? 0 : 1; }
 		$out['ban_hours']    = max( 1, min( 720, (int) ( $in['ban_hours'] ?? 24 ) ) );
-		$out['rate_per_min'] = max( 20, min( 5000, (int) ( $in['rate_per_min'] ?? 120 ) ) );
+		$out['rate_per_min'] = max( 5, min( 5000, (int) ( $in['rate_per_min'] ?? 120 ) ) );
 		$pr = $in['proxy'] ?? 'none'; $out['proxy'] = in_array( $pr, array( 'none', 'cloudflare', 'xff' ), true ) ? $pr : 'none';
 		foreach ( array( 'custom_allow', 'custom_block' ) as $k ) { $out[ $k ] = self::clean_lines( $in[ $k ] ?? '', false ); }
 		$out['ip_allow'] = self::clean_lines( $in['ip_allow'] ?? '', true );

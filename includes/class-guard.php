@@ -159,7 +159,7 @@ class Sidcraft_BotShield_Guard {
 	}
 
 	/** What a blocked address sees: a short message and a button that emails the site owner an unlock link. */
-	private static function banned_page( $ip ) {
+	public static function banned_page( $ip ) {
 		status_header( 403 ); nocache_headers(); header( 'X-Robots-Tag: noindex, nofollow' ); header( 'Content-Type: text/html; charset=UTF-8' );
 		$sent = isset( $_POST['sbs_unlock_request'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- display only.
 		echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html__( 'Access denied', 'sidcraft-bot-shield' ) . '</title></head><body style="font:16px/1.5 -apple-system,Segoe UI,sans-serif;max-width:520px;margin:12vh auto;padding:0 16px;color:#1d2327"><h1 style="font-size:22px">' . esc_html__( 'Access denied', 'sidcraft-bot-shield' ) . '</h1><p>' . esc_html__( 'Your address has been blocked because it sent too many suspicious requests.', 'sidcraft-bot-shield' ) . '</p>';

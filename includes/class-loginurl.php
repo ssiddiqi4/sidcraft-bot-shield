@@ -58,6 +58,7 @@ class Sidcraft_BotShield_LoginUrl {
 		}
 		if ( ! self::$block ) { return; }
 		$s = Sidcraft_BotShield_LoginSettings::all();
+		self::count_wrong_address( $s );
 		if ( 'home' === $s['url_redirect'] ) { wp_safe_redirect( home_url( '/' ) ); exit; }
 		if ( 'custom' === $s['url_redirect'] && '' !== $s['url_custom'] ) { wp_safe_redirect( $s['url_custom'] ); exit; }
 		global $wp_query; if ( ! $wp_query ) { status_header( 404 ); exit; }
@@ -66,6 +67,23 @@ class Sidcraft_BotShield_LoginUrl {
 		add_filter( 'show_admin_bar', '__return_false' ); remove_action( 'wp_body_open', 'wp_admin_bar_render', 0 ); remove_action( 'wp_footer', 'wp_admin_bar_render', 1000 );
 		require ABSPATH . WPINC . '/template-loader.php';
 		exit;
+	}
+
+	/** A visitor who keeps opening the old login addresses is blocked after the number of tries the admin chose. */
+	private static function count_wrong_address( $s ) {
+		if ( empty( $s['url_block'] ) || is_user_logged_in() ) { return; }
+		$ip = Sidcraft_BotShield_Guard::client_ip(); if ( '' === $ip ) { return; }
+		$trusted = Sidcraft_BotShield_Settings::lines( 'ip_allow' ); if ( apply_filters( 'sidcraft_botshield_trust_loopback', true ) ) { $trusted = array_merge( $trusted, array( '127.0.0.1', '::1' ) ); }
+		if ( Sidcraft_BotShield_Ranges::in_list( $ip, $trusted ) || Sidcraft_BotShield_Bans::is_banned( $ip ) ) { return; }
+		$k = 'sbs_wu_' . md5( $ip ); $now = time(); $win = (int) $s['url_minutes'] * MINUTE_IN_SECONDS;
+		$hits = get_transient( $k ); $hits = is_array( $hits ) ? array_values( array_filter( $hits, function ( $t ) use ( $now, $win ) { return $t > $now - $win; } ) ) : array();
+		$hits[] = $now; $hits = array_slice( $hits, -( (int) $s['url_attempts'] ) ); set_transient( $k, $hits, $win );
+		if ( count( $hits ) < (int) $s['url_attempts'] ) { return; }
+		delete_transient( $k );
+		$ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
+		Sidcraft_BotShield_Log::add( 'block', 'login_url', $ip, $ua, self::request_path() );
+		Sidcraft_BotShield_Bans::add( $ip, (int) $s['url_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d tries at a wrong login address in %2$d minutes', 'sidcraft-bot-shield' ), (int) $s['url_attempts'], (int) $s['url_minutes'] ), 'url' );
+		Sidcraft_BotShield_Guard::banned_page( $ip );
 	}
 
 	/** wp-login.php links become links to the secret address. */

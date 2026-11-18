@@ -14,7 +14,7 @@ class Sidcraft_BotShield_Notify {
 	/** Queue an email (the host name lookup can be slow, so it happens in the background). */
 	public static function schedule( $ip, $reason, $seconds, $kind ) {
 		$mode = Sidcraft_BotShield_FwSettings::get( 'notify_mode' );
-		if ( 'off' === $mode || ( 'nf' === $mode && 'nf' !== $kind ) ) { return; }
+		if ( 'off' === $mode || ( 'nf' === $mode && ! in_array( $kind, array( 'nf', 'url' ), true ) ) ) { return; }
 		$cap = (int) Sidcraft_BotShield_FwSettings::get( 'notify_cap' ); $k = 'sbs_mailcap_' . gmdate( 'YmdH' ); $n = (int) get_transient( $k );
 		if ( $cap > 0 && $n >= $cap ) { set_transient( 'sbs_mailskip', (int) get_transient( 'sbs_mailskip' ) + 1, DAY_IN_SECONDS ); return; }
 		set_transient( $k, $n + 1, HOUR_IN_SECONDS );

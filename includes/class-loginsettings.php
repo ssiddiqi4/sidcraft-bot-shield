@@ -11,6 +11,7 @@ class Sidcraft_BotShield_LoginSettings {
 			'tfa_email' => 1, 'tfa_totp' => 1, 'tfa_sms' => 0, 'tfa_passkey' => 1,
 			'twilio_sid' => '', 'twilio_token' => '', 'twilio_from' => '',
 			'url_on' => 0, 'url_slug' => '', 'url_redirect' => '404', 'url_custom' => '',
+			'url_block' => 1, 'url_attempts' => 3, 'url_minutes' => 10, 'url_days' => 1,
 		);
 	}
 
@@ -40,6 +41,10 @@ class Sidcraft_BotShield_LoginSettings {
 		$ur = $in['url_redirect'] ?? '404'; $o['url_redirect'] = in_array( $ur, array( '404', 'home', 'custom' ), true ) ? $ur : '404';
 		$o['url_custom'] = esc_url_raw( (string) ( $in['url_custom'] ?? '' ) );
 		if ( 'custom' === $o['url_redirect'] && '' === $o['url_custom'] ) { $o['url_redirect'] = '404'; }
+		$o['url_block']    = empty( $in['url_block'] ) ? 0 : 1;
+		$o['url_attempts'] = max( 1, min( 100, (int) ( $in['url_attempts'] ?? 3 ) ) );
+		$o['url_minutes']  = max( 1, min( 1440, (int) ( $in['url_minutes'] ?? 10 ) ) );
+		$o['url_days']     = max( 0, min( 3650, (int) ( $in['url_days'] ?? 1 ) ) );
 		return $o;
 	}
 }

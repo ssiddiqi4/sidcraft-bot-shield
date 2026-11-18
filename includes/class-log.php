@@ -40,7 +40,7 @@ class Sidcraft_BotShield_Log {
 		if ( 0 === strpos( $reason, 'bad_bot' ) || in_array( $reason, array( 'empty_ua', 'fake_bot', 'custom_block' ), true ) ) { return 'bots'; }
 		if ( in_array( $reason, array( 'scanner_path', 'trap', 'banned' ), true ) ) { return 'probes'; }
 		if ( 0 === strpos( $reason, 'waf_' ) || in_array( $reason, array( 'enum_author', 'blank_post' ), true ) ) { return 'waf'; }
-		if ( 0 === strpos( $reason, 'brute_' ) ) { return 'login'; }
+		if ( 0 === strpos( $reason, 'brute_' ) || 'login_url' === $reason ) { return 'login'; }
 		if ( 0 === strpos( $reason, 'geo_' ) ) { return 'country'; }
 		if ( 'ip_blocked' === $reason ) { return 'ip'; }
 		if ( in_array( $reason, array( 'tor', 'vpn', 'datacenter', 'proxy_header', 'vpn_api' ), true ) ) { return 'vpn'; }

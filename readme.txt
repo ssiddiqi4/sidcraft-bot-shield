@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -66,6 +66,7 @@ Most of the traffic that hits a small site is not people. Some of it you want: s
 = Custom login address =
 
 * Move the login page from /wp-login.php and /wp-admin to an address only you know, for example example.com/mysecret.
+* Visitors who keep opening the old addresses are blocked: you set the number of tries, the minutes and the days (or for good).
 * Visitors who open the old addresses see a "page not found" (or are sent to the home page or an address you choose). Logged-in users and admin-ajax.php are not affected.
 * The new address is emailed to the administrator, and a wp-config.php line switches the feature off if it is ever forgotten.
 
@@ -163,7 +164,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
-= 1.3.0 =
+= 1.3.1 =
 * New: two-factor login (email code, authenticator app, text message, passkey, recovery codes).
 * New: custom login address.
 * New: block bots that search for missing pages; email alerts with IP and host name; unblock links; permanent blocks.
@@ -185,7 +186,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Upgrade Notice ==
 
-= 1.3.0 =
+= 1.3.1 =
 Adds two-factor login, a custom login address and missing-page (404) blocking. Two-factor login and the custom address are off until you turn them on. The 404 rule is on by default (15 missing pages in 2 minutes block an address for 7 days).
 
 = 1.2.0 =

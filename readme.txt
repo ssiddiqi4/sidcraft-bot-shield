@@ -91,7 +91,7 @@ The checks happen early and take a fraction of a millisecond. Genuine search-eng
 
 == Privacy ==
 
-When a request is blocked or flagged, the plugin keeps the visitor's IP address, browser name and the page they asked for in a list of the last 100 entries. Entries are removed after 7 days, and you can turn the list off or clear it. Nothing is sent to anyone else, except as listed under External services.
+When a request is blocked or flagged, the plugin keeps the visitor's IP address, browser name and the page they asked for in a list of the last 500 entries. Entries are removed after 30 days, and you can turn the list off or clear it. Nothing is sent to anyone else, except as listed under External services.
 
 == External services ==
 
@@ -113,6 +113,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 == Changelog ==
 
 = 1.1.0 =
+* New: overview cards (blocked today / 7 / 30 days, by type) and a Blocked log tab with filter, top addresses and CSV download.
 * New: block countries, or allow only chosen countries.
 * New: block IPv4 / IPv6 addresses, CIDR ranges and from-to ranges.
 * New: block Tor, VPN services, hosting addresses, proxy headers; optional proxycheck.io check.

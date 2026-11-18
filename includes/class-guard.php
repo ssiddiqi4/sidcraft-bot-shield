@@ -127,7 +127,7 @@ class Sidcraft_BotShield_Guard {
 		$d = self::decide( array( 'ip' => $ip, 'ua' => $ua, 'path' => (string) $uri, 'method' => isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : 'GET', 'logged_in' => is_user_logged_in(), 'special' => $special, 'cron' => wp_doing_cron() ) );
 		if ( 'block' !== $d['action'] ) { return; }
 		$enforce = 'block' === Sidcraft_BotShield_Settings::get( 'mode' );
-		Sidcraft_BotShield_Log::add( $enforce ? 'block' : 'monitor', $d['reason'], $ip, $ua, (string) $uri );
+		Sidcraft_BotShield_Log::add( $enforce ? 'block' : 'monitor', $d['reason'], $ip, $ua, (string) $uri, 'off' !== Sidcraft_BotShield_Settings::get( 'geo_mode' ) ? Sidcraft_BotShield_Geo::country( $ip ) : '' );
 		if ( ! $enforce ) { return; }
 		if ( $d['ban'] && '' !== $ip ) { set_transient( 'sbs_ban_' . md5( $ip ), 1, (int) Sidcraft_BotShield_Settings::get( 'ban_hours' ) * HOUR_IN_SECONDS ); }
 		status_header( 'rate_limit' === $d['reason'] ? 429 : 403 );

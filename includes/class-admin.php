@@ -6,6 +6,7 @@ class Sidcraft_BotShield_Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
 		add_action( 'admin_post_sidcraft_botshield_test', array( __CLASS__, 'test' ) );
+		add_action( 'admin_post_sidcraft_botshield_csv', array( __CLASS__, 'csv' ) );
 		add_action( 'admin_post_sidcraft_botshield_clear', array( __CLASS__, 'clear' ) );
 		add_action( 'admin_post_sidcraft_botshield_lists', array( __CLASS__, 'lists_now' ) );
 		add_action( 'admin_post_sidcraft_botshield_geodb', array( __CLASS__, 'geodb' ) );
@@ -35,12 +36,13 @@ class Sidcraft_BotShield_Admin {
 	public static function page() {
 		if ( ! current_user_can( 'manage_options' ) ) { return; }
 		$s = Sidcraft_BotShield_Settings::all(); $O = Sidcraft_BotShield_Settings::OPTION;
+		$tab = ( isset( $_GET['tab'] ) && 'log' === sanitize_key( wp_unslash( $_GET['tab'] ) ) ) ? 'log' : 'settings'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab switch.
+		$base = admin_url( 'options-general.php?page=sidcraft-bot-shield' );
 		echo '<div class="wrap"><h1>Sidcraft Bot Shield</h1>';
+		self::cards();
+		echo '<h2 class="nav-tab-wrapper"><a class="nav-tab ' . ( 'settings' === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $base ) . '">' . esc_html__( 'Settings', 'sidcraft-bot-shield' ) . '</a><a class="nav-tab ' . ( 'log' === $tab ? 'nav-tab-active' : '' ) . '" href="' . esc_url( $base . '&tab=log' ) . '">' . esc_html__( 'Blocked log', 'sidcraft-bot-shield' ) . '</a></h2>';
+		if ( 'log' === $tab ) { self::log_tab( $base ); echo '</div>'; return; }
 		echo '<p>' . esc_html__( 'Lets search engines and AI assistants in, and keeps scrapers, scripts, scanners and fake bots out. Visitors who look like normal browsers are never blocked, and neither are logged-in users.', 'sidcraft-bot-shield' ) . '</p>';
-		// Stats.
-		$st = Sidcraft_BotShield_Log::stats(); $today = $st[ gmdate( 'Ymd' ) ] ?? array( 'blocked' => 0, 'monitored' => 0, 'reasons' => array() );
-		$tot_b = 0; $tot_m = 0; foreach ( $st as $d ) { $tot_b += $d['blocked']; $tot_m += $d['monitored']; }
-		echo '<p><strong>' . esc_html__( 'Today:', 'sidcraft-bot-shield' ) . '</strong> ' . (int) $today['blocked'] . ' ' . esc_html__( 'blocked', 'sidcraft-bot-shield' ) . ', ' . (int) $today['monitored'] . ' ' . esc_html__( 'would be blocked (monitor mode)', 'sidcraft-bot-shield' ) . ' &nbsp;|&nbsp; <strong>' . esc_html__( 'Last 14 days:', 'sidcraft-bot-shield' ) . '</strong> ' . (int) $tot_b . ' / ' . (int) $tot_m . '</p>';
 		echo '<form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_group' );
 		echo '<table class="form-table" role="presentation"><tbody>';
 		echo '<tr><th>' . esc_html__( 'Mode', 'sidcraft-bot-shield' ) . '</th><td><label><input type="radio" name="' . esc_attr( $O ) . '[mode]" value="monitor" ' . checked( $s['mode'], 'monitor', false ) . '> ' . esc_html__( 'Monitor only: log what would be blocked (recommended for the first days)', 'sidcraft-bot-shield' ) . '</label><br><label><input type="radio" name="' . esc_attr( $O ) . '[mode]" value="block" ' . checked( $s['mode'], 'block', false ) . '> ' . esc_html__( 'Block: answer unwanted bots with “403 Access denied”', 'sidcraft-bot-shield' ) . '</label></td></tr>';
@@ -98,7 +100,7 @@ class Sidcraft_BotShield_Admin {
 		echo '<p><strong>' . esc_html__( 'Also allow (names, one per line)', 'sidcraft-bot-shield' ) . '</strong><br><textarea id="sbs-ca" name="' . esc_attr( $O ) . '[custom_allow]" rows="3" cols="50">' . esc_textarea( $s['custom_allow'] ) . '</textarea></p>';
 		echo '<p><strong>' . esc_html__( 'Also block (names, one per line; wins over the allow lists)', 'sidcraft-bot-shield' ) . '</strong><br><textarea name="' . esc_attr( $O ) . '[custom_block]" rows="3" cols="50">' . esc_textarea( $s['custom_block'] ) . '</textarea></p>';
 		echo '<p><strong>' . esc_html__( 'Never block these addresses (one per line, ranges like 203.0.113.0/24 allowed)', 'sidcraft-bot-shield' ) . '</strong><br><textarea name="' . esc_attr( $O ) . '[ip_allow]" rows="3" cols="50">' . esc_textarea( $s['ip_allow'] ) . '</textarea><br><span class="description">' . esc_html( sprintf( /* translators: %s: the visitor's IP address */ __( 'Your address right now: %s', 'sidcraft-bot-shield' ), Sidcraft_BotShield_Guard::client_ip() ) ) . '</span></p></td></tr>';
-		echo '<tr><th>' . esc_html__( 'Data', 'sidcraft-bot-shield' ) . '</th><td><label><input type="checkbox" name="' . esc_attr( $O ) . '[keep_log]" value="1" ' . checked( ! empty( $s['keep_log'] ), true, false ) . '> ' . esc_html__( 'Keep a list of the last 100 blocked requests for 7 days (address, browser name, page)', 'sidcraft-bot-shield' ) . '</label><br><label><input type="checkbox" name="' . esc_attr( $O ) . '[remove_data]" value="1" ' . checked( ! empty( $s['remove_data'] ), true, false ) . '> ' . esc_html__( 'Delete all Bot Shield data when the plugin is deleted', 'sidcraft-bot-shield' ) . '</label></td></tr>';
+		echo '<tr><th>' . esc_html__( 'Data', 'sidcraft-bot-shield' ) . '</th><td><label><input type="checkbox" name="' . esc_attr( $O ) . '[keep_log]" value="1" ' . checked( ! empty( $s['keep_log'] ), true, false ) . '> ' . esc_html__( 'Keep a list of the last 500 blocked requests for 30 days (address, browser name, page) — see the Blocked log tab', 'sidcraft-bot-shield' ) . '</label><br><label><input type="checkbox" name="' . esc_attr( $O ) . '[remove_data]" value="1" ' . checked( ! empty( $s['remove_data'] ), true, false ) . '> ' . esc_html__( 'Delete all Bot Shield data when the plugin is deleted', 'sidcraft-bot-shield' ) . '</label></td></tr>';
 		echo '</tbody></table>'; submit_button(); echo '</form>';
 		// Lists + country database.
 		echo '<h2>' . esc_html__( 'Address lists and country database', 'sidcraft-bot-shield' ) . '</h2>';
@@ -113,16 +115,81 @@ class Sidcraft_BotShield_Admin {
 		wp_nonce_field( 'sidcraft_botshield_test' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_test">';
 		echo '<input type="text" name="ua" class="large-text" placeholder="GPTBot/1.2 (+https://openai.com/gptbot)" style="max-width:420px"> <input type="text" name="ip" placeholder="' . esc_attr__( 'IP address (optional)', 'sidcraft-bot-shield' ) . '" style="width:190px"> <button class="button">' . esc_html__( 'Check', 'sidcraft-bot-shield' ) . '</button></form>';
 		if ( is_array( $res ) ) { echo '<p><strong>' . esc_html( $res['ua'] ) . '</strong> → ' . esc_html( $res['text'] ) . '</p>'; delete_transient( 'sidcraft_botshield_test_' . get_current_user_id() ); }
-		// Log.
-		$log = Sidcraft_BotShield_Log::entries();
-		echo '<h2>' . esc_html__( 'Recent activity', 'sidcraft-bot-shield' ) . '</h2>';
-		if ( ! $log ) { echo '<p>' . esc_html__( 'Nothing yet.', 'sidcraft-bot-shield' ) . '</p>'; }
-		else {
-			echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'When', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'What', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Why', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Address', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Page', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Browser name', 'sidcraft-bot-shield' ) . '</th></tr></thead><tbody>';
-			foreach ( $log as $r ) { echo '<tr><td>' . esc_html( human_time_diff( $r['t'] ) ) . '</td><td>' . esc_html( 'block' === $r['a'] ? __( 'Blocked', 'sidcraft-bot-shield' ) : __( 'Would block', 'sidcraft-bot-shield' ) ) . '</td><td>' . esc_html( self::reason_label( $r['r'] ) ) . '</td><td>' . esc_html( $r['ip'] ) . '</td><td style="word-break:break-all">' . esc_html( $r['p'] ) . '</td><td style="word-break:break-all">' . esc_html( $r['ua'] ) . '</td></tr>'; }
-			echo '</tbody></table><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin-top:10px">'; wp_nonce_field( 'sidcraft_botshield_clear' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_clear"><button class="button">' . esc_html__( 'Clear list', 'sidcraft-bot-shield' ) . '</button></form>';
+		echo '</div>';
+	}
+
+
+	/** Overview cards: how many were blocked, and what type. */
+	private static function cards() {
+		$periods = array( array( __( 'Today', 'sidcraft-bot-shield' ), 1 ), array( __( 'Last 7 days', 'sidcraft-bot-shield' ), 7 ), array( __( 'Last 30 days', 'sidcraft-bot-shield' ), 30 ) );
+		$monitor = 'monitor' === Sidcraft_BotShield_Settings::get( 'mode' );
+		$types = Sidcraft_BotShield_Log::types();
+		echo '<div style="display:flex;flex-wrap:wrap;gap:14px;margin:14px 0">';
+		foreach ( $periods as $p ) {
+			$sm = Sidcraft_BotShield_Log::summary( $p[1] ); $n = $monitor ? $sm['blocked'] + $sm['monitored'] : $sm['blocked']; $tot = max( 1, array_sum( $sm['by_type'] ) );
+			echo '<div style="background:#fff;border:1px solid #c3c4c7;border-radius:6px;padding:14px 18px;min-width:240px;flex:1;max-width:380px">';
+			echo '<div style="color:#646970;font-size:12px;text-transform:uppercase;letter-spacing:.04em">' . esc_html( $p[0] ) . '</div>';
+			echo '<div style="font-size:34px;font-weight:600;line-height:1.2">' . esc_html( number_format_i18n( $n ) ) . '</div>';
+			echo '<div style="color:#646970;margin-bottom:8px">' . esc_html( $monitor ? __( 'would be blocked (monitor mode)', 'sidcraft-bot-shield' ) : __( 'blocked', 'sidcraft-bot-shield' ) );
+			if ( ! $monitor && $sm['monitored'] ) { echo ' · ' . esc_html( sprintf( /* translators: %s: number */ __( '%s more were only flagged in monitor mode', 'sidcraft-bot-shield' ), number_format_i18n( $sm['monitored'] ) ) ); }
+			echo '</div>';
+			if ( ! $sm['by_type'] ) { echo '<div class="description">' . esc_html__( 'Nothing yet.', 'sidcraft-bot-shield' ) . '</div>'; }
+			foreach ( $types as $k => $t ) {
+				$c = $sm['by_type'][ $k ] ?? 0; if ( ! $c ) { continue; }
+				echo '<div style="display:flex;align-items:center;gap:8px;margin:3px 0"><span style="width:140px;flex:none;color:#50575e;font-size:12px;white-space:nowrap">' . esc_html( $t[0] ) . '</span><span style="flex:1;background:#f0f0f1;border-radius:3px;height:10px"><span style="display:block;height:10px;border-radius:3px;background:' . esc_attr( $t[1] ) . ';width:' . (int) max( 3, round( 100 * $c / $tot ) ) . '%"></span></span><strong style="min-width:28px;text-align:right">' . esc_html( number_format_i18n( $c ) ) . '</strong></div>';
+			}
+			echo '</div>';
 		}
 		echo '</div>';
+	}
+
+	private static function log_rows( $type ) {
+		$rows = Sidcraft_BotShield_Log::entries();
+		if ( '' === $type ) { return $rows; }
+		return array_values( array_filter( $rows, function ( $r ) use ( $type ) { return Sidcraft_BotShield_Log::type_of( $r['r'] ) === $type; } ) );
+	}
+
+	private static function log_tab( $base ) {
+		$types = Sidcraft_BotShield_Log::types();
+		$type  = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only filter.
+		if ( ! isset( $types[ $type ] ) ) { $type = ''; }
+		$all  = Sidcraft_BotShield_Log::entries(); $rows = self::log_rows( $type );
+		echo '<p>' . esc_html__( 'Who was blocked: the last 500 events from the past 30 days (address, country when known, why, page, browser name).', 'sidcraft-bot-shield' ) . '</p>';
+		if ( ! Sidcraft_BotShield_Settings::get( 'keep_log' ) ) { echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'The list is switched off in Settings → Data. Only the counters above are kept.', 'sidcraft-bot-shield' ) . '</p></div>'; }
+		echo '<p><a href="' . esc_url( $base . '&tab=log' ) . '" class="button' . ( '' === $type ? ' button-primary' : '' ) . '">' . esc_html( sprintf( /* translators: %d: number */ __( 'All (%d)', 'sidcraft-bot-shield' ), count( $all ) ) ) . '</a> ';
+		foreach ( $types as $k => $t ) { $n = count( self::log_rows( $k ) ); echo '<a href="' . esc_url( $base . '&tab=log&type=' . $k ) . '" class="button' . ( $k === $type ? ' button-primary' : '' ) . '">' . esc_html( $t[0] . ' (' . $n . ')' ) . '</a> '; }
+		echo '</p>';
+		if ( ! $rows ) { echo '<p>' . esc_html__( 'Nothing to show.', 'sidcraft-bot-shield' ) . '</p>'; return; }
+		// Top addresses.
+		$by = array(); foreach ( $rows as $r ) { $by[ $r['ip'] ] = ( $by[ $r['ip'] ] ?? 0 ) + 1; } arsort( $by );
+		$top = array_slice( $by, 0, 8, true ); $parts = array();
+		foreach ( $top as $ip => $n ) { $parts[] = '<code>' . esc_html( '' === $ip ? '?' : $ip ) . '</code> × ' . (int) $n; }
+		echo '<p><strong>' . esc_html__( 'Most blocked addresses:', 'sidcraft-bot-shield' ) . '</strong> ' . wp_kses( implode( ' &nbsp; ', $parts ), array( 'code' => array() ) ) . '</p>';
+		echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'When', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'What', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Type', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Why', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Address', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Country', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Page', 'sidcraft-bot-shield' ) . '</th><th>' . esc_html__( 'Browser name', 'sidcraft-bot-shield' ) . '</th></tr></thead><tbody>';
+		foreach ( $rows as $r ) {
+			$tk = Sidcraft_BotShield_Log::type_of( $r['r'] );
+			echo '<tr><td title="' . esc_attr( wp_date( 'Y-m-d H:i:s', $r['t'] ) ) . '">' . esc_html( human_time_diff( $r['t'] ) ) . '</td><td>' . esc_html( 'block' === $r['a'] ? __( 'Blocked', 'sidcraft-bot-shield' ) : __( 'Would block', 'sidcraft-bot-shield' ) ) . '</td><td><span style="color:' . esc_attr( $types[ $tk ][1] ) . '">●</span> ' . esc_html( $types[ $tk ][0] ) . '</td><td>' . esc_html( self::reason_label( $r['r'] ) ) . '</td><td>' . esc_html( $r['ip'] ) . '</td><td>' . esc_html( $r['c'] ?? '' ) . '</td><td style="word-break:break-all">' . esc_html( $r['p'] ) . '</td><td style="word-break:break-all">' . esc_html( $r['ua'] ) . '</td></tr>';
+		}
+		echo '</tbody></table><p style="margin-top:10px"><a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_csv&type=' . $type ), 'sidcraft_botshield_csv' ) ) . '">' . esc_html__( 'Download as CSV', 'sidcraft-bot-shield' ) . '</a> ';
+		echo '</p><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'; wp_nonce_field( 'sidcraft_botshield_clear' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_clear"><button class="button">' . esc_html__( 'Clear list and counters', 'sidcraft-bot-shield' ) . '</button></form>';
+	}
+
+	public static function csv() {
+		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Not allowed.', 'sidcraft-bot-shield' ), 403 ); }
+		check_admin_referer( 'sidcraft_botshield_csv' );
+		$type = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : '';
+		$types = Sidcraft_BotShield_Log::types(); if ( ! isset( $types[ $type ] ) ) { $type = ''; }
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=UTF-8' );
+		header( 'Content-Disposition: attachment; filename="bot-shield-blocked-' . gmdate( 'Y-m-d' ) . '.csv"' );
+		$out = fopen( 'php://output', 'w' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		fputcsv( $out, array( 'time_utc', 'action', 'type', 'reason', 'ip', 'country', 'page', 'user_agent' ) );
+		foreach ( self::log_rows( $type ) as $r ) {
+			$cell = function ( $v ) { $v = (string) $v; return ( '' !== $v && in_array( $v[0], array( '=', '+', '-', '@' ), true ) ) ? "'" . $v : $v; }; // stop spreadsheet formula injection.
+			fputcsv( $out, array( gmdate( 'Y-m-d H:i:s', $r['t'] ), $r['a'], Sidcraft_BotShield_Log::type_of( $r['r'] ), $r['r'], $r['ip'], $r['c'] ?? '', $cell( $r['p'] ), $cell( $r['ua'] ) ) );
+		}
+		fclose( $out ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+		exit;
 	}
 
 	public static function reason_label( $r ) {
@@ -181,7 +248,7 @@ class Sidcraft_BotShield_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Not allowed.', 'sidcraft-bot-shield' ), 403 ); }
 		check_admin_referer( 'sidcraft_botshield_clear' );
 		Sidcraft_BotShield_Log::clear();
-		wp_safe_redirect( admin_url( 'options-general.php?page=sidcraft-bot-shield' ) );
+		wp_safe_redirect( admin_url( 'options-general.php?page=sidcraft-bot-shield&tab=log' ) );
 		exit;
 	}
 }

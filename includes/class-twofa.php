@@ -7,8 +7,22 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class Sidcraft_BotShield_TwoFa {
 	private static $done = false;
 
+	/**
+	 * Emergency switch for people locked out by a missing code. Two-factor login is off when the constant
+	 * SIDCRAFT_BOTSHIELD_DISABLE_2FA is true (wp-config.php, above the "stop editing" line), or when an empty file named
+	 * sidcraft-botshield-disable-2fa exists in the wp-content folder (upload it by FTP, delete it afterwards).
+	 */
+	public static function switched_off() {
+		if ( defined( 'SIDCRAFT_BOTSHIELD_DISABLE_2FA' ) && SIDCRAFT_BOTSHIELD_DISABLE_2FA ) { return true; }
+		return defined( 'WP_CONTENT_DIR' ) && file_exists( WP_CONTENT_DIR . '/sidcraft-botshield-disable-2fa' );
+	}
+
+	public static function off_notice() {
+		if ( current_user_can( 'manage_options' ) ) { echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Sidcraft Bot Shield: two-factor login is switched OFF by the emergency switch.', 'sidcraft-bot-shield' ) . '</strong> ' . esc_html__( 'Remove the SIDCRAFT_BOTSHIELD_DISABLE_2FA line from wp-config.php, or delete wp-content/sidcraft-botshield-disable-2fa, to turn it back on.', 'sidcraft-bot-shield' ) . '</p></div>'; }
+	}
+
 	public static function init() {
-		if ( defined( 'SIDCRAFT_BOTSHIELD_DISABLE_2FA' ) && SIDCRAFT_BOTSHIELD_DISABLE_2FA ) { return; }
+		if ( self::switched_off() ) { add_action( 'admin_notices', array( __CLASS__, 'off_notice' ) ); return; }
 		add_action( 'wp_login', array( __CLASS__, 'intercept' ), 1, 2 );
 		add_filter( 'authenticate', array( __CLASS__, 'xmlrpc_gate' ), 100, 1 );
 		add_action( 'login_form_sbs2fa', array( __CLASS__, 'challenge_request' ) );

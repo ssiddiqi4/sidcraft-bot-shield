@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -163,6 +163,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.4.1 =
+* Two-factor login: new emergency switch for people locked out by a missing code. Besides the SIDCRAFT_BOTSHIELD_DISABLE_2FA constant in wp-config.php, an empty file named sidcraft-botshield-disable-2fa in the wp-content folder (upload it by FTP) turns two-factor login off. A notice reminds you to remove it.
 
 = 1.4.0 =
 * New: block an address that logs in with user names that do not exist, after a number of tries within a number of minutes, for a number of days (replaces the "lock out at once" tick box; an existing tick is kept as 1 try).

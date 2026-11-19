@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.5.3
+Stable tag: 1.5.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -163,6 +163,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.5.4 =
+* SMTP password: a saved password is now shown as a masked field (••••••••••) with a Change password button, and is only replaced when you press that button. A blank field, or a browser auto-filling the field with your WordPress login password, can no longer overwrite it. An already-encrypted value is never encrypted twice.
 
 = 1.5.3 =
 * Two-factor login: when the email code cannot be sent, the second-step screen now says why (for example "SMTP Error: Could not authenticate") instead of pretending it was sent. Login > Email delivery shows the last email Bot Shield sent: when, to whom, through which server, and whether it was accepted or failed.

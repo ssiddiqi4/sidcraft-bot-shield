@@ -83,6 +83,13 @@ class Sidcraft_BotShield_Mailer {
 		return 0 === strpos( $v, 'b64:' ) ? (string) base64_decode( substr( $v, 4 ) ) : '';
 	}
 
+	/** Is this value an already-encrypted password (so it must not be encrypted a second time)? */
+	public static function is_protected( $v ) {
+		$v = (string) $v;
+		if ( 0 === strpos( $v, 'b64:' ) ) { return true; }
+		return 0 === strpos( $v, 'enc:' ) && '' !== self::password( array( 'smtp_pass' => $v ) );
+	}
+
 	public static function protect( $plain ) {
 		if ( function_exists( 'openssl_encrypt' ) ) {
 			$iv = random_bytes( 16 );

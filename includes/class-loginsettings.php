@@ -48,8 +48,11 @@ class Sidcraft_BotShield_LoginSettings {
 		$o['smtp_auth']   = empty( $in['smtp_auth'] ) ? 0 : 1;
 		$o['smtp_user']   = substr( sanitize_text_field( (string) ( $in['smtp_user'] ?? '' ) ), 0, 190 );
 		$pw = (string) ( $in['smtp_pass'] ?? '' );
+		// The saved password is only replaced when you press "Change password" (or none is saved yet). A blank field, or a browser that auto-fills
+		// the field with your WordPress login password, can never overwrite it.
+		$change = ! empty( $in['smtp_pass_change'] ) || '' === (string) $old['smtp_pass'];
 		if ( ! empty( $in['smtp_forget'] ) ) { $o['smtp_pass'] = ''; }
-		elseif ( '' === trim( $pw ) ) { $o['smtp_pass'] = (string) $old['smtp_pass']; }
+		elseif ( ! $change || '' === trim( $pw ) || Sidcraft_BotShield_Mailer::is_protected( $pw ) ) { $o['smtp_pass'] = Sidcraft_BotShield_Mailer::is_protected( $pw ) && $change ? $pw : (string) $old['smtp_pass']; }
 		else { $o['smtp_pass'] = Sidcraft_BotShield_Mailer::protect( substr( trim( $pw ), 0, 250 ) ); }
 		if ( 'smtp' === $o['mail_mode'] && '' === $o['smtp_host'] ) { $o['mail_mode'] = 'php'; }
 		$o['url_on'] = empty( $in['url_on'] ) ? 0 : 1;

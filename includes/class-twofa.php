@@ -64,9 +64,10 @@ class Sidcraft_BotShield_TwoFa {
 		$token = wp_generate_password( 32, false );
 		$redirect = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
 		set_transient( 'sbs2fa_' . $token, array( 'uid' => $user->ID, 'remember' => ! empty( $_POST['rememberme'] ), 'redirect' => $redirect, 'tries' => 0, 'ip' => Sidcraft_BotShield_Guard::client_ip() ), 10 * MINUTE_IN_SECONDS );
-		if ( 'email' === $methods[0] ) { self::send_email_code( $token, $user ); }
+		$err = '';
+		if ( 'email' === $methods[0] && ! self::send_email_code( $token, $user ) ) { $err = self::mail_problem(); }
 		if ( 'sms' === $methods[0] ) { self::send_sms_code( $token, $user ); }
-		self::render( $token, $user, '' );
+		self::render( $token, $user, $err );
 		exit;
 	}
 
@@ -83,7 +84,7 @@ class Sidcraft_BotShield_TwoFa {
 		if ( ! $s || ! $user ) { if ( 'pk_begin' === $op || 'pk_finish' === $op ) { wp_send_json_error( array( 'message' => __( 'This login expired. Please sign in again.', 'sidcraft-bot-shield' ) ) ); } wp_safe_redirect( add_query_arg( 'sbs2fa', 'expired', self::login_url() ) ); exit; }
 		if ( 'post' !== ( isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '' ) ) { self::render( $token, $user, '' ); exit; }
 		$methods = self::user_methods( $user->ID ); $msg = '';
-		if ( 'send_email' === $op && in_array( 'email', $methods, true ) ) { $msg = self::send_email_code( $token, $user ) ? __( 'We emailed you a code.', 'sidcraft-bot-shield' ) : __( 'Please wait a minute before asking for another code.', 'sidcraft-bot-shield' ); self::render( $token, $user, '', $msg, 'email' ); exit; }
+		if ( 'send_email' === $op && in_array( 'email', $methods, true ) ) { $msg = self::send_email_code( $token, $user ) ? __( 'We emailed you a code.', 'sidcraft-bot-shield' ) : ( '' !== Sidcraft_BotShield_Mailer::last_error() ? self::mail_problem() : __( 'Please wait a minute before asking for another code.', 'sidcraft-bot-shield' ) ); self::render( $token, $user, '', $msg, 'email' ); exit; }
 		if ( 'send_sms' === $op && in_array( 'sms', $methods, true ) ) { $r = self::send_sms_code( $token, $user ); self::render( $token, $user, is_wp_error( $r ) ? $r->get_error_message() : '', is_wp_error( $r ) ? '' : __( 'We sent you a text message.', 'sidcraft-bot-shield' ), 'sms' ); exit; }
 		if ( 'pk_begin' === $op && in_array( 'passkey', $methods, true ) ) {
 			$ch = random_bytes( 32 ); $s['pk'] = Sidcraft_BotShield_WebAuthn::b64u( $ch ); self::save( $token, $s );
@@ -161,6 +162,13 @@ class Sidcraft_BotShield_TwoFa {
 	public static function email_target( $user ) {
 		$to = (string) Sidcraft_BotShield_LoginSettings::get( 'tfa_email_to' );
 		return is_email( $to ) ? $to : (string) $user->user_email;
+	}
+
+	/** The reason the last code email failed, as a sentence for the second-step screen ('' when it was only throttled). */
+	public static function mail_problem() {
+		$e = Sidcraft_BotShield_Mailer::last_error();
+		/* translators: %s: error message */
+		return '' !== $e ? sprintf( __( 'The code could not be emailed: %s Ask an administrator to check Bot Shield → Login → Email delivery.', 'sidcraft-bot-shield' ), $e ) : __( 'The code could not be emailed. Ask an administrator to check Bot Shield → Login → Email delivery.', 'sidcraft-bot-shield' );
 	}
 
 	/** s*****@gmail.com */

@@ -22,11 +22,16 @@ class Sidcraft_BotShield_Mailer {
 
 	/** Send one of Bot Shield's emails. */
 	public static function send( $to, $subject, $body, $headers = '' ) {
-		self::$mine = true;
+		self::$mine = true; self::$error = '';
 		$ok = wp_mail( $to, $subject, $body, $headers );
 		self::$mine = false;
+		$s = Sidcraft_BotShield_LoginSettings::all();
+		update_option( 'sidcraft_botshield_mail_last', array( 'time' => time(), 'to' => (string) $to, 'subject' => (string) $subject, 'ok' => (bool) $ok, 'error' => self::$error, 'via' => self::smtp_on( $s ) ? 'smtp ' . $s['smtp_host'] . ':' . (int) $s['smtp_port'] : 'php' ), false );
 		return $ok;
 	}
+
+	/** Why the last email could not be sent ('' when it could). */
+	public static function last_error() { return self::$error; }
 
 	private static function settings( $override = null ) { return is_array( $override ) ? $override : Sidcraft_BotShield_LoginSettings::all(); }
 	private static $override = null;

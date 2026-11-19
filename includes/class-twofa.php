@@ -157,11 +157,23 @@ class Sidcraft_BotShield_TwoFa {
 		self::save( $token, $s ); return $code;
 	}
 
+	/** Where email codes go: the address set in Settings (if any), otherwise the user's own profile address. */
+	public static function email_target( $user ) {
+		$to = (string) Sidcraft_BotShield_LoginSettings::get( 'tfa_email_to' );
+		return is_email( $to ) ? $to : (string) $user->user_email;
+	}
+
+	/** s*****@gmail.com */
+	public static function mask( $email ) {
+		$p = explode( '@', (string) $email, 2 ); if ( 2 !== count( $p ) ) { return ''; }
+		return substr( $p[0], 0, 1 ) . str_repeat( '*', max( 2, min( 6, strlen( $p[0] ) - 1 ) ) ) . '@' . $p[1];
+	}
+
 	public static function send_email_code( $token, $user ) {
 		$s = self::session( $token ); if ( ! $s || ( ! empty( $s['email']['sent'] ) && time() - $s['email']['sent'] < 60 ) ) { return false; }
 		$code = self::new_code( $token, $s, 'email' ); $site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		/* translators: %s: site name */
-		return Sidcraft_BotShield_Mailer::send( $user->user_email, sprintf( __( '[%s] Your login code', 'sidcraft-bot-shield' ), $site ), sprintf( /* translators: 1: code 2: IP address */ __( "Your login code is %1\$s\n\nIt works for 10 minutes. It was asked for from the address %2\$s. If this was not you, change your password.", 'sidcraft-bot-shield' ), $code, Sidcraft_BotShield_Guard::client_ip() ) );
+		return Sidcraft_BotShield_Mailer::send( self::email_target( $user ), sprintf( __( '[%s] Your login code', 'sidcraft-bot-shield' ), $site ), sprintf( /* translators: 1: code 2: IP address */ __( "Your login code is %1\$s\n\nIt works for 10 minutes. It was asked for from the address %2\$s. If this was not you, change your password.", 'sidcraft-bot-shield' ), $code, Sidcraft_BotShield_Guard::client_ip() ) );
 	}
 
 	public static function send_sms_code( $token, $user ) {
@@ -196,7 +208,7 @@ class Sidcraft_BotShield_TwoFa {
 		if ( 'passkey' === $active ) {
 			echo '<p>' . esc_html__( 'Use your passkey or security key.', 'sidcraft-bot-shield' ) . '</p><button type="button" id="sbs-pk">' . esc_html__( 'Use passkey', 'sidcraft-bot-shield' ) . '</button><p id="sbs-pk-msg" class="e" style="display:none"></p>';
 		} else {
-			$hint = array( 'email' => __( 'Enter the 6-digit code we emailed you.', 'sidcraft-bot-shield' ), 'totp' => __( 'Enter the 6-digit code from your authenticator app.', 'sidcraft-bot-shield' ), 'sms' => __( 'Enter the 6-digit code from the text message.', 'sidcraft-bot-shield' ), 'recovery' => __( 'Enter one of your recovery codes. Each works once.', 'sidcraft-bot-shield' ) );
+			$hint = array( 'email' => sprintf( /* translators: %s: masked email address */ __( 'Enter the 6-digit code we emailed to %s.', 'sidcraft-bot-shield' ), self::mask( self::email_target( $user ) ) ), 'totp' => __( 'Enter the 6-digit code from your authenticator app.', 'sidcraft-bot-shield' ), 'sms' => __( 'Enter the 6-digit code from the text message.', 'sidcraft-bot-shield' ), 'recovery' => __( 'Enter one of your recovery codes. Each works once.', 'sidcraft-bot-shield' ) );
 			echo '<p>' . esc_html( $hint[ $active ] ) . '</p><input type="text" name="code" autocomplete="one-time-code" inputmode="' . ( 'recovery' === $active ? 'text' : 'numeric' ) . '" autofocus required><button type="submit">' . esc_html__( 'Log in', 'sidcraft-bot-shield' ) . '</button>';
 			if ( 'email' === $active || 'sms' === $active ) { echo ' <button type="submit" class="s" formnovalidate onclick="this.form.op.value=\'send_' . esc_attr( $active ) . '\'">' . esc_html__( 'Send a new code', 'sidcraft-bot-shield' ) . '</button>'; }
 		}

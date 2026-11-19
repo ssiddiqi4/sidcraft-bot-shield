@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -163,6 +163,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.5.2 =
+* Two-factor login: new setting "Send login codes to" (Login tab, Email delivery). Leave it empty to use each user's own profile address, or enter one address that receives every email code. The second-step screen now says where the code was sent (for example s*****@gmail.com), so a wrong profile address is easy to spot.
 
 = 1.5.1 =
 * The test email result no longer sounds like proof of delivery when the PHP mailer is used; it explains that the web server only accepted the message and suggests SMTP.

@@ -10,7 +10,7 @@ class Sidcraft_BotShield_LoginSettings {
 			'tfa_on' => 0, 'tfa_roles' => array( 'administrator' ), 'tfa_grace' => 7, 'tfa_since' => 0,
 			'tfa_email' => 1, 'tfa_totp' => 1, 'tfa_sms' => 0, 'tfa_passkey' => 1,
 			'twilio_sid' => '', 'twilio_token' => '', 'twilio_from' => '',
-			'mail_mode' => 'php', 'mail_scope' => 'botshield', 'mail_from' => '', 'mail_from_name' => '',
+			'tfa_email_to' => '', 'mail_mode' => 'php', 'mail_scope' => 'botshield', 'mail_from' => '', 'mail_from_name' => '',
 			'smtp_host' => '', 'smtp_port' => 587, 'smtp_secure' => 'tls', 'smtp_auth' => 1, 'smtp_user' => '', 'smtp_pass' => '',
 			'url_on' => 0, 'url_slug' => '', 'url_redirect' => '404', 'url_custom' => '',
 			'url_block' => 1, 'url_attempts' => 5, 'url_minutes' => 10, 'url_days' => 1,
@@ -37,6 +37,7 @@ class Sidcraft_BotShield_LoginSettings {
 		$o['twilio_sid']   = preg_replace( '/[^A-Za-z0-9]/', '', (string) ( $in['twilio_sid'] ?? '' ) );
 		$o['twilio_token'] = '' === trim( (string) ( $in['twilio_token'] ?? '' ) ) ? $old['twilio_token'] : preg_replace( '/[^A-Za-z0-9]/', '', (string) $in['twilio_token'] );
 		$o['twilio_from']  = preg_replace( '/[^0-9+]/', '', (string) ( $in['twilio_from'] ?? '' ) );
+		$to = sanitize_email( (string) ( $in['tfa_email_to'] ?? '' ) ); $o['tfa_email_to'] = is_email( $to ) ? $to : '';
 		$o['mail_mode']  = 'smtp' === ( $in['mail_mode'] ?? '' ) ? 'smtp' : 'php';
 		$o['mail_scope'] = 'all' === ( $in['mail_scope'] ?? '' ) ? 'all' : 'botshield';
 		$mf = sanitize_email( (string) ( $in['mail_from'] ?? '' ) ); $o['mail_from'] = is_email( $mf ) ? $mf : '';

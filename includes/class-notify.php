@@ -44,7 +44,7 @@ class Sidcraft_BotShield_Notify {
 			. __( 'Blocked by mistake? Unblock this address (you must be logged in as an administrator):', 'sidcraft-bot-shield' ) . "\n" . $unblock . "\n\n"
 			. __( 'All blocked addresses:', 'sidcraft-bot-shield' ) . "\n" . admin_url( 'options-general.php?page=sidcraft-bot-shield&tab=firewall' ) . "\n"
 			. ( $skip ? "\n" . sprintf( /* translators: %d: number */ __( '%d other block(s) were not emailed because of the hourly limit.', 'sidcraft-bot-shield' ), $skip ) . "\n" : '' );
-		wp_mail( self::to(), sprintf( /* translators: 1: site 2: IP */ __( '[%1$s] Blocked %2$s', 'sidcraft-bot-shield' ), $site, $ip ), $body );
+		Sidcraft_BotShield_Mailer::send( self::to(), sprintf( /* translators: 1: site 2: IP */ __( '[%1$s] Blocked %2$s', 'sidcraft-bot-shield' ), $site, $ip ), $body );
 	}
 
 	// ---------- unlock links ----------
@@ -65,6 +65,6 @@ class Sidcraft_BotShield_Notify {
 		$k = 'sbs_unlockreq_' . md5( $ip ); if ( get_transient( $k ) ) { return; }
 		set_transient( $k, 1, 10 * MINUTE_IN_SECONDS );
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
-		wp_mail( self::to(), sprintf( /* translators: %s: site */ __( '[%s] Someone asked to be unblocked', 'sidcraft-bot-shield' ), $site ), sprintf( /* translators: 1: IP 2: link */ __( "The address %1\$s is blocked on your site and asked for an unlock link.\n\nIf this is you or someone you trust, open this link within an hour to unblock the address and keep it unblocked for a week:\n%2\$s\n\nIf you do not know who this is, ignore this email.", 'sidcraft-bot-shield' ), $ip, self::unlock_link( $ip ) ) );
+		Sidcraft_BotShield_Mailer::send( self::to(), sprintf( /* translators: %s: site */ __( '[%s] Someone asked to be unblocked', 'sidcraft-bot-shield' ), $site ), sprintf( /* translators: 1: IP 2: link */ __( "The address %1\$s is blocked on your site and asked for an unlock link.\n\nIf this is you or someone you trust, open this link within an hour to unblock the address and keep it unblocked for a week:\n%2\$s\n\nIf you do not know who this is, ignore this email.", 'sidcraft-bot-shield' ), $ip, self::unlock_link( $ip ) ) );
 	}
 }

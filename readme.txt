@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.4.1
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -163,6 +163,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.5.0 =
+* New: Email delivery settings under Two-factor login (Login tab). Use the PHP mailer (WordPress default) or configure an SMTP server: host, encryption and port, user name and password (stored encrypted, or set SIDCRAFT_BOTSHIELD_SMTP_PASS in wp-config.php), From address and name, and whether it applies to Bot Shield emails only or every email on the site. "Send a test email to me" saves the values, sends a test and shows the server conversation if it fails. Login codes and alerts are sent through it.
 
 = 1.4.1 =
 * Two-factor login: new emergency switch for people locked out by a missing code. Besides the SIDCRAFT_BOTSHIELD_DISABLE_2FA constant in wp-config.php, an empty file named sidcraft-botshield-disable-2fa in the wp-content folder (upload it by FTP) turns two-factor login off. A notice reminds you to remove it.

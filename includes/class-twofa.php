@@ -161,7 +161,7 @@ class Sidcraft_BotShield_TwoFa {
 		$s = self::session( $token ); if ( ! $s || ( ! empty( $s['email']['sent'] ) && time() - $s['email']['sent'] < 60 ) ) { return false; }
 		$code = self::new_code( $token, $s, 'email' ); $site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		/* translators: %s: site name */
-		return wp_mail( $user->user_email, sprintf( __( '[%s] Your login code', 'sidcraft-bot-shield' ), $site ), sprintf( /* translators: 1: code 2: IP address */ __( "Your login code is %1\$s\n\nIt works for 10 minutes. It was asked for from the address %2\$s. If this was not you, change your password.", 'sidcraft-bot-shield' ), $code, Sidcraft_BotShield_Guard::client_ip() ) );
+		return Sidcraft_BotShield_Mailer::send( $user->user_email, sprintf( __( '[%s] Your login code', 'sidcraft-bot-shield' ), $site ), sprintf( /* translators: 1: code 2: IP address */ __( "Your login code is %1\$s\n\nIt works for 10 minutes. It was asked for from the address %2\$s. If this was not you, change your password.", 'sidcraft-bot-shield' ), $code, Sidcraft_BotShield_Guard::client_ip() ) );
 	}
 
 	public static function send_sms_code( $token, $user ) {

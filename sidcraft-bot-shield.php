@@ -3,7 +3,7 @@
  * Plugin Name:       Sidcraft Bot Shield
  * Plugin URI:        https://github.com/ssiddiqi4/sidcraft-bot-shield
  * Description:       Lets search engines and AI assistants (Google, Bing, Apple, ChatGPT, Claude, Perplexity, Copilot and more) in, and blocks scrapers, scripts, scanners and fake bots. Also blocks countries, IP ranges, VPNs and Tor, with a web application firewall, two-factor login, a custom login address and a malware scanner.
- * Version:           1.4.1
+ * Version:           1.5.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Suhaib Siddiqi
@@ -16,7 +16,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'SIDCRAFT_BOTSHIELD_VERSION', '1.4.1' );
+define( 'SIDCRAFT_BOTSHIELD_VERSION', '1.5.0' );
 define( 'SIDCRAFT_BOTSHIELD_FILE', __FILE__ );
 define( 'SIDCRAFT_BOTSHIELD_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -41,6 +41,7 @@ require_once __DIR__ . '/includes/class-guard.php';
 require_once __DIR__ . '/includes/class-firewall.php';
 require_once __DIR__ . '/includes/class-scansettings.php';
 require_once __DIR__ . '/includes/class-scanner.php';
+require_once __DIR__ . '/includes/class-mailer.php';
 require_once __DIR__ . '/includes/class-twofa.php';
 require_once __DIR__ . '/includes/class-loginurl.php';
 
@@ -50,6 +51,7 @@ if ( ! ( defined( 'SIDCRAFT_BOTSHIELD_OFF' ) && SIDCRAFT_BOTSHIELD_OFF ) ) {
 	Sidcraft_BotShield_Firewall::init();
 }
 Sidcraft_BotShield_Scanner::init();
+Sidcraft_BotShield_Mailer::init();
 Sidcraft_BotShield_TwoFa::init();
 if ( ! ( defined( 'SIDCRAFT_BOTSHIELD_OFF' ) && SIDCRAFT_BOTSHIELD_OFF ) ) { Sidcraft_BotShield_LoginUrl::init(); }
 add_action( Sidcraft_BotShield_Lists::CRON, array( 'Sidcraft_BotShield_Lists', 'update' ) );

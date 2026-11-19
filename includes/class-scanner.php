@@ -161,7 +161,7 @@ class Sidcraft_BotShield_Scanner {
 		if ( ! $rows ) { return; }
 		$to = '' !== $o['email_to'] ? $o['email_to'] : get_option( 'admin_email' );
 		/* translators: %s: site name */
-		wp_mail( $to, sprintf( __( '[%s] Bot Shield scan found new problems', 'sidcraft-bot-shield' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ), implode( "\n", array_slice( $rows, 0, 25 ) ) . ( count( $rows ) > 25 ? "\n…" : '' ) . "\n\n" . admin_url( 'options-general.php?page=sidcraft-bot-shield&tab=scan' ) );
+		Sidcraft_BotShield_Mailer::send( $to, sprintf( __( '[%s] Bot Shield scan found new problems', 'sidcraft-bot-shield' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ), implode( "\n", array_slice( $rows, 0, 25 ) ) . ( count( $rows ) > 25 ? "\n…" : '' ) . "\n\n" . admin_url( 'options-general.php?page=sidcraft-bot-shield&tab=scan' ) );
 	}
 
 	// ---------- helpers ----------

@@ -10,6 +10,8 @@ class Sidcraft_BotShield_LoginSettings {
 			'tfa_on' => 0, 'tfa_roles' => array( 'administrator' ), 'tfa_grace' => 7, 'tfa_since' => 0,
 			'tfa_email' => 1, 'tfa_totp' => 1, 'tfa_sms' => 0, 'tfa_passkey' => 1,
 			'twilio_sid' => '', 'twilio_token' => '', 'twilio_from' => '',
+			'mail_mode' => 'php', 'mail_scope' => 'botshield', 'mail_from' => '', 'mail_from_name' => '',
+			'smtp_host' => '', 'smtp_port' => 587, 'smtp_secure' => 'tls', 'smtp_auth' => 1, 'smtp_user' => '', 'smtp_pass' => '',
 			'url_on' => 0, 'url_slug' => '', 'url_redirect' => '404', 'url_custom' => '',
 			'url_block' => 1, 'url_attempts' => 5, 'url_minutes' => 10, 'url_days' => 1,
 		);
@@ -35,6 +37,20 @@ class Sidcraft_BotShield_LoginSettings {
 		$o['twilio_sid']   = preg_replace( '/[^A-Za-z0-9]/', '', (string) ( $in['twilio_sid'] ?? '' ) );
 		$o['twilio_token'] = '' === trim( (string) ( $in['twilio_token'] ?? '' ) ) ? $old['twilio_token'] : preg_replace( '/[^A-Za-z0-9]/', '', (string) $in['twilio_token'] );
 		$o['twilio_from']  = preg_replace( '/[^0-9+]/', '', (string) ( $in['twilio_from'] ?? '' ) );
+		$o['mail_mode']  = 'smtp' === ( $in['mail_mode'] ?? '' ) ? 'smtp' : 'php';
+		$o['mail_scope'] = 'all' === ( $in['mail_scope'] ?? '' ) ? 'all' : 'botshield';
+		$mf = sanitize_email( (string) ( $in['mail_from'] ?? '' ) ); $o['mail_from'] = is_email( $mf ) ? $mf : '';
+		$o['mail_from_name'] = substr( sanitize_text_field( (string) ( $in['mail_from_name'] ?? '' ) ), 0, 80 );
+		$o['smtp_host']   = preg_match( '/^[A-Za-z0-9._-]{1,190}$/', trim( (string) ( $in['smtp_host'] ?? '' ) ) ) ? trim( (string) $in['smtp_host'] ) : '';
+		$o['smtp_port']   = max( 1, min( 65535, (int) ( $in['smtp_port'] ?? 587 ) ) );
+		$sec = (string) ( $in['smtp_secure'] ?? 'tls' ); $o['smtp_secure'] = in_array( $sec, array( 'tls', 'ssl', 'none' ), true ) ? $sec : 'tls';
+		$o['smtp_auth']   = empty( $in['smtp_auth'] ) ? 0 : 1;
+		$o['smtp_user']   = substr( sanitize_text_field( (string) ( $in['smtp_user'] ?? '' ) ), 0, 190 );
+		$pw = (string) ( $in['smtp_pass'] ?? '' );
+		if ( ! empty( $in['smtp_forget'] ) ) { $o['smtp_pass'] = ''; }
+		elseif ( '' === trim( $pw ) ) { $o['smtp_pass'] = (string) $old['smtp_pass']; }
+		else { $o['smtp_pass'] = Sidcraft_BotShield_Mailer::protect( substr( trim( $pw ), 0, 250 ) ); }
+		if ( 'smtp' === $o['mail_mode'] && '' === $o['smtp_host'] ) { $o['mail_mode'] = 'php'; }
 		$o['url_on'] = empty( $in['url_on'] ) ? 0 : 1;
 		$o['url_slug'] = self::clean_slug( $in['url_slug'] ?? '' );
 		if ( '' === $o['url_slug'] ) { $o['url_on'] = 0; }

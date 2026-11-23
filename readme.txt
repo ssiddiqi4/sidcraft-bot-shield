@@ -149,6 +149,49 @@ If the emergency switch is not enough:
 
 Tip: before you change firewall or login settings, open BotVaguard > Dashboard and use the "Back up .htaccess" and "Back up wp-config.php" buttons. Each downloads a copy of the file (it ends in .txt). Keep the wp-config.php copy private: it contains your database password.
 
+= My site is under a DDoS attack and I cannot log in. What do I do? =
+
+A DDoS attack floods your site with so many requests that it slows down or stops, and your own login may time out. BotVaguard has an attack mode that makes every visitor pass a short browser check before WordPress does any real work. Attack tools almost never pass it. You can switch it on without the dashboard, over FTP or your host's file manager. Use either way:
+
+**Way 1: a line in `wp-config.php`**
+
+1. Open `wp-config.php` in your site's main folder.
+2. Add this line above the line that says `/* That's all, stop editing! Happy publishing. */`:
+
+`define( 'BOTVAGUARD_DDOS', true );`
+
+3. Save. Attack mode is on straight away.
+
+**Way 2: an empty file.** Upload an empty file named `botvaguard-ddos` (no extension) to the `wp-content` folder. Delete it to switch attack mode off again.
+
+Optional, stricter: limit how many requests a minute one address may make with `define( 'BOTVAGUARD_DDOS_RATE', 30 );` (the default in this emergency mode is 60).
+
+When the attack is over, remove the line or delete the file. Then log in and open BotVaguard > DDoS to see what happened.
+
+= What does attack mode do, exactly? =
+
+* Every visitor who is not logged in and not on your trusted list is shown a short "Checking your browser" page once. Their browser solves a small puzzle and the site opens. They are not asked again for 6 hours (you can change this).
+* Search engines and other bots that you allow in BotVaguard, and that prove who they are, are never asked. Logged-in users are never asked.
+* An address that passed the check but still sends too many requests a minute (120 by default) is blocked for 30 minutes.
+* Outside calls to `wp-cron.php`, a favourite target, are refused while it is on.
+* The check page is tiny and needs no database work, so your server can turn away a flood cheaply.
+
+= Can it switch on by itself? =
+
+Yes. In BotVaguard > DDoS the default is Automatic: if the whole site gets more than 600 requests in one minute, attack mode starts and stays on for 30 minutes. Change the numbers to fit your normal traffic. You can also start it by hand for 30 minutes up to 24 hours, or set it to Always on.
+
+= Will payments, forms and webhooks still work in attack mode? =
+
+Visitors' browsers pass the check once, so forms and checkouts keep working. Servers that call your site, such as payment webhooks, cannot pass a browser check. The "Never asked" list in BotVaguard > DDoS covers WooCommerce callbacks (`wc-api`) by default. Add the address of any other callback, for example `/wp-json/stripe/`.
+
+= Will attack mode hurt my search ranking? =
+
+Not for the search engines you allow in BotVaguard that prove who they are by reverse DNS (Google, Bing and others). They are not asked. Keep attack mode off when there is no attack, so that other crawlers and visitors are not slowed down. Visitors with JavaScript turned off cannot pass the check while it is on.
+
+= Is this enough to stop any DDoS attack? =
+
+No. BotVaguard protects your WordPress site from floods of web requests. It cannot stop an attack that fills your server's internet connection before the requests even reach your site. For serious attacks also put your site behind a CDN such as Cloudflare (turn on its "Under Attack" mode), or ask your host for DDoS protection. If you use Cloudflare, set "Proxy" to Cloudflare in BotVaguard > Bots so visitors' real addresses are seen.
+
 = Does it slow my site down? =
 
 The checks happen early and take a fraction of a millisecond. Genuine search-engine bots are checked once through DNS and the answer is remembered for a day.
@@ -187,6 +230,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * New: its own menu in the WordPress dashboard with a Dashboard (protection status and the latest blocks), Bots, Firewall, Login, Scan and Blocked log screens. It no longer sits under Settings.
 * New: Firewall > REST API (/wp-json/). Watch-only mode (logs what would be closed), or close the REST API to visitors who are not logged in with an allow list of routes (oEmbed, form sending, visitor counting, Contact Form 7, WooCommerce Store API and Jetpack are allowed by default), routes that are always closed, a requests-a-minute limit, and counting of failed REST logins (application passwords) as failed logins. Logged-in users and your trusted addresses are never affected.
 * Blocked requests to the REST API show in the Blocked log under REST API.
+* New: DDoS tab with an attack mode: every visitor passes a short browser check (with a small calculation) before WordPress does real work, per-address request limits, automatic start on a surge of requests, and two emergency switches that work without the dashboard: `define( 'BOTVAGUARD_DDOS', true );` in wp-config.php, or an empty file wp-content/botvaguard-ddos. Search engines you allow and logged-in users are never asked. See the FAQ.
 * New: Dashboard buttons "Back up .htaccess" and "Back up wp-config.php" download a copy of each file (administrators only).
 * Readme: step-by-step instructions for the emergency switches (SIDCRAFT_BOTSHIELD_OFF and SIDCRAFT_BOTSHIELD_DISABLE_2FA) in the FAQ.
 

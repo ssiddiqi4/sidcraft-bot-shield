@@ -59,6 +59,7 @@ require_once __DIR__ . '/includes/class-waf.php';
 require_once __DIR__ . '/includes/class-fwsettings.php';
 require_once __DIR__ . '/includes/class-guard.php';
 require_once __DIR__ . '/includes/class-firewall.php';
+require_once __DIR__ . '/includes/class-ddos.php';
 require_once __DIR__ . '/includes/class-scansettings.php';
 require_once __DIR__ . '/includes/class-scanner.php';
 require_once __DIR__ . '/includes/class-mailer.php';
@@ -69,6 +70,7 @@ require_once __DIR__ . '/includes/class-loginurl.php';
 if ( ! ( defined( 'SIDCRAFT_BOTSHIELD_OFF' ) && SIDCRAFT_BOTSHIELD_OFF ) ) {
 	Botvaguard_Guard::init();
 	Botvaguard_Firewall::init();
+	Botvaguard_Ddos::init();
 }
 Botvaguard_Scanner::init();
 Botvaguard_Mailer::init();

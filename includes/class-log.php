@@ -32,6 +32,7 @@ class Botvaguard_Log {
 			'vpn'     => array( __( 'VPN / proxy / Tor', 'botvaguard' ), '#007a5a' ),
 			'waf'     => array( __( 'Firewall rules', 'botvaguard' ), '#d63638' ),
 			'login'   => array( __( 'Login protection', 'botvaguard' ), '#996800' ),
+			'ddos'    => array( __( 'DDoS', 'botvaguard' ), '#7a1f1f' ),
 			'rest'    => array( __( 'REST API', 'botvaguard' ), '#0a7ea4' ),
 			'rate'    => array( __( 'Too many requests', 'botvaguard' ), '#646970' ),
 		);
@@ -42,6 +43,7 @@ class Botvaguard_Log {
 		if ( in_array( $reason, array( 'scanner_path', 'trap', 'banned' ), true ) ) { return 'probes'; }
 		if ( 0 === strpos( $reason, 'waf_' ) || in_array( $reason, array( 'enum_author', 'blank_post' ), true ) ) { return 'waf'; }
 		if ( 0 === strpos( $reason, 'rest_' ) ) { return 'rest'; }
+		if ( 0 === strpos( $reason, 'ddos_' ) ) { return 'ddos'; }
 		if ( 0 === strpos( $reason, 'brute_' ) || 'login_url' === $reason ) { return 'login'; }
 		if ( 0 === strpos( $reason, 'geo_' ) ) { return 'country'; }
 		if ( 'ip_blocked' === $reason ) { return 'ip'; }

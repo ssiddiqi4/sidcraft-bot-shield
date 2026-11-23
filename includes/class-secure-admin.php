@@ -84,6 +84,25 @@ class Sidcraft_BotShield_SecureAdmin {
 			foreach ( array( 'hide_version' => __( 'Hide the WordPress version', 'sidcraft-bot-shield' ), 'enum_block' => __( 'Block user name guessing through ?author=1 (not for logged-in users)', 'sidcraft-bot-shield' ), 'rest_users' => __( 'Hide the list of users in the REST API from visitors', 'sidcraft-bot-shield' ), 'blank_post' => __( 'Block POST requests that send no browser name and no referrer (can affect some webhooks)', 'sidcraft-bot-shield' ) ) as $k => $l ) { echo '<p style="margin:4px 0"><label><input type="checkbox" name="' . esc_attr( $O ) . '[' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $s[ $k ] ), true, false ) . '> ' . esc_html( $l ) . '</label></p>'; }
 			echo '<p>XML-RPC: <select name="' . esc_attr( $O ) . '[xmlrpc]"><option value="allow" ' . selected( $s['xmlrpc'], 'allow', false ) . '>' . esc_html__( 'allowed', 'sidcraft-bot-shield' ) . '</option><option value="multicall" ' . selected( $s['xmlrpc'], 'multicall', false ) . '>' . esc_html__( 'allowed, but block the multicall trick used for password guessing', 'sidcraft-bot-shield' ) . '</option><option value="all" ' . selected( $s['xmlrpc'], 'all', false ) . '>' . esc_html__( 'switched off completely', 'sidcraft-bot-shield' ) . '</option></select></p>';
 		} );
+		self::box( __( 'Block direct access to core files', 'sidcraft-bot-shield' ), function () use ( $s, $O ) {
+			echo '<p class="description">' . esc_html__( 'Visitors never need to open these files. Bots probe them all day, which fills your error log and uses PHP time. Blocked requests get a plain “Forbidden”.', 'sidcraft-bot-shield' ) . '</p>';
+			$rows = array(
+				'core_xmlrpc'   => array( 'xmlrpc.php', __( 'Switch on only if you do not use Jetpack, the WordPress mobile app, or any tool that connects through XML-RPC. Addresses on your trusted list are still let through.', 'sidcraft-bot-shield' ) ),
+				'core_settings' => array( 'wp-settings.php', __( 'Needs the server rule below. WordPress stops before any plugin loads when this file is opened directly, so a plugin alone cannot block it.', 'sidcraft-bot-shield' ) ),
+				'core_config'   => array( 'wp-config.php', __( 'It never shows your passwords, but opening it directly makes WordPress start for nothing.', 'sidcraft-bot-shield' ) ),
+			);
+			foreach ( $rows as $k => $r ) {
+				echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $s[ $k ] ), true, false ) . '> <code>' . esc_html( $r[0] ) . '</code></label><br><span class="description">' . esc_html( $r[1] ) . '</span></p>';
+			}
+			$files = Sidcraft_BotShield_Firewall::core_files(); $err = get_option( Sidcraft_BotShield_Firewall::CORE_ERR, '' );
+			if ( $files && 'nginx' === $err ) {
+				echo '<div class="notice notice-info inline"><p>' . esc_html__( 'This server runs nginx, which does not read .htaccess. Ask your host to add this to the site configuration (xmlrpc.php and wp-config.php are also blocked by the plugin itself; wp-settings.php only by this rule):', 'sidcraft-bot-shield' ) . '</p><pre style="user-select:all">' . esc_html( Sidcraft_BotShield_Firewall::core_nginx( $files ) ) . '</pre></div>';
+			} elseif ( $files && is_string( $err ) && '' !== $err ) {
+				echo '<div class="notice notice-warning inline"><p>' . esc_html( $err ) . ' ' . esc_html__( 'The server rule could not be written to .htaccess. Add these lines to the top of .htaccess by hand:', 'sidcraft-bot-shield' ) . '</p><pre style="user-select:all">' . esc_html( Sidcraft_BotShield_Firewall::core_htaccess( $files ) ) . '</pre></div>';
+			} elseif ( $files ) {
+				echo '<p class="description">' . esc_html__( 'The rule is in your .htaccess (between the Sidcraft Bot Shield Core Files lines). It is removed when you switch these off or deactivate the plugin.', 'sidcraft-bot-shield' ) . '</p>';
+			}
+		} );
 		submit_button( __( 'Save firewall options', 'sidcraft-bot-shield' ) ); echo '</form>';
 		self::extended_box();
 		self::bans_box();

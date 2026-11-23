@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.5.5
+Stable tag: 1.5.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -163,6 +163,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.5.6 =
+* New: Firewall tab > "Block direct access to core files". Tick xmlrpc.php, wp-settings.php and/or wp-config.php to refuse direct requests to them. The plugin writes a rule into .htaccess (Apache, LiteSpeed; removed when you untick the boxes or deactivate), shows the lines to add on nginx, and also refuses xmlrpc.php and wp-config.php itself as a second line of defence. wp-settings.php can only be blocked by the server rule, because WordPress stops before any plugin loads when it is opened directly. Addresses on your trusted list are still let through for xmlrpc.php.
 
 = 1.5.5 =
 * Plugin Check clean-up: the limit rows on the Firewall tab build their field names through one escaped helper.

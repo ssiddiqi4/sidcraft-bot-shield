@@ -29,6 +29,9 @@ class Sidcraft_BotShield_Firewall {
 		if ( 'multicall' === $s['xmlrpc'] ) { add_filter( 'xmlrpc_methods', array( __CLASS__, 'no_multicall' ) ); }
 		if ( $s['rest_users'] ) { add_filter( 'rest_endpoints', array( __CLASS__, 'hide_rest_users' ) ); }
 		add_action( 'admin_init', array( __CLASS__, 'import_waf_log' ) );
+		self::core_block_now( $s );
+		add_action( 'update_option_' . Sidcraft_BotShield_FwSettings::OPTION, array( __CLASS__, 'core_sync' ) );
+		add_action( 'add_option_' . Sidcraft_BotShield_FwSettings::OPTION, array( __CLASS__, 'core_sync' ) );
 		Sidcraft_BotShield_Notify::init();
 	}
 
@@ -326,8 +329,9 @@ class Sidcraft_BotShield_Firewall {
 		require_once ABSPATH . 'wp-admin/includes/file.php'; WP_Filesystem(); global $wp_filesystem; return $wp_filesystem;
 	}
 
-	private static function strip_block( $text, $c ) {
-		return trim( (string) preg_replace( '/\R?' . preg_quote( $c . ' BEGIN ' . self::MARK, '/' ) . '.*?' . preg_quote( $c . ' END ' . self::MARK, '/' ) . '\R?/s', "\n", $text ) );
+	private static function strip_block( $text, $c, $mark = null ) {
+		$mark = null === $mark ? self::MARK : $mark;
+		return trim( (string) preg_replace( '/\R?' . preg_quote( $c . ' BEGIN ' . $mark, '/' ) . '.*?' . preg_quote( $c . ' END ' . $mark, '/' ) . '\R?/s', "\n", $text ) );
 	}
 
 	/** First active auto_prepend_file setting in a config file: array( line, value ), or null. Comments and empty values are ignored. */
@@ -435,5 +439,69 @@ class Sidcraft_BotShield_Firewall {
 			if ( is_array( $r ) && ! empty( $r['rule'] ) ) { Sidcraft_BotShield_Log::add( 'block' === ( $r['m'] ?? 'block' ) ? 'block' : 'monitor', 'waf_' . sanitize_key( $r['rule'] ), sanitize_text_field( $r['ip'] ?? '' ), sanitize_text_field( $r['ua'] ?? '' ), sanitize_text_field( ( $r['p'] ?? '' ) . '  [' . ( $r['param'] ?? '' ) . ']' ), '', (int) ( $r['t'] ?? time() ) ); }
 		}
 		wp_delete_file( $tmp );
+	}
+
+	/* ---------- Block direct requests to core files (xmlrpc.php, wp-settings.php, wp-config.php) ---------- */
+
+	const CORE_MARK = 'Sidcraft Bot Shield Core Files';
+	const CORE_ERR  = 'sidcraft_botshield_core_error';
+
+	/** Names (without .php) the owner switched on. */
+	public static function core_files() {
+		$s = Sidcraft_BotShield_FwSettings::all(); $f = array();
+		if ( $s['core_xmlrpc'] ) { $f[] = 'xmlrpc'; }
+		if ( $s['core_settings'] ) { $f[] = 'wp-settings'; }
+		if ( $s['core_config'] ) { $f[] = 'wp-config'; }
+		return $f;
+	}
+
+	/** Second line of defence, used when the server rule is missing: refuse the request as soon as this plugin loads. wp-settings.php stops WordPress before any plugin loads, so only the server rule can block that file. */
+	private static function core_block_now( $s ) {
+		$script = isset( $_SERVER['SCRIPT_FILENAME'] ) ? basename( (string) wp_unslash( $_SERVER['SCRIPT_FILENAME'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only compared with fixed names.
+		$hit = ( $s['core_xmlrpc'] && ( ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) || 'xmlrpc.php' === $script ) && ! self::trusted( self::ip() ) )
+			|| ( $s['core_config'] && 'wp-config.php' === $script )
+			|| ( $s['core_settings'] && 'wp-settings.php' === $script );
+		if ( ! $hit ) { return; }
+		if ( ! headers_sent() ) { http_response_code( 403 ); header( 'Content-Type: text/plain; charset=utf-8' ); header( 'Cache-Control: no-store' ); }
+		echo 'Forbidden';
+		exit;
+	}
+
+	/** Write (or remove) the server rule in .htaccess. Safe to call at any time. */
+	public static function core_sync( $a = null, $b = null ) {
+		$files = self::core_files(); $ht = trailingslashit( ABSPATH ) . '.htaccess';
+		$soft  = isset( $_SERVER['SERVER_SOFTWARE'] ) ? strtolower( (string) wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only searched for a word.
+		$cur   = file_exists( $ht ) ? self::read_file( $ht ) : '';
+		$has   = false !== strpos( $cur, self::CORE_MARK );
+		if ( ! $files ) {
+			if ( $has ) { $e = self::write_file( $ht, self::strip_block( $cur, '#', self::CORE_MARK ) . "\n" ); if ( '' !== $e ) { update_option( self::CORE_ERR, $e, false ); return; } }
+			delete_option( self::CORE_ERR ); return;
+		}
+		if ( false !== strpos( $soft, 'nginx' ) && false === strpos( $soft, 'apache' ) && false === strpos( $soft, 'litespeed' ) ) {
+			update_option( self::CORE_ERR, 'nginx', false ); return; // .htaccess does nothing on nginx: the admin screen shows the lines to add by hand.
+		}
+		$rule  = "# BEGIN " . self::CORE_MARK . "\n" . self::core_htaccess( $files ) . "\n# END " . self::CORE_MARK . "\n";
+		$base  = '' !== $cur ? self::strip_block( $cur, '#', self::CORE_MARK ) : '';
+		$e = self::write_file( $ht, $rule . ( '' !== $base ? "\n" . $base . "\n" : '' ) );
+		if ( '' !== $e ) { update_option( self::CORE_ERR, $e, false ); } else { delete_option( self::CORE_ERR ); }
+	}
+
+	/** Called when the plugin is deactivated: take the server rule out (the settings stay). */
+	public static function core_remove() {
+		$ht = trailingslashit( ABSPATH ) . '.htaccess';
+		if ( ! file_exists( $ht ) ) { return; }
+		$cur = self::read_file( $ht );
+		if ( false !== strpos( $cur, self::CORE_MARK ) ) { self::write_file( $ht, self::strip_block( $cur, '#', self::CORE_MARK ) . "\n" ); }
+	}
+
+	/** Apache and LiteSpeed lines for .htaccess. */
+	public static function core_htaccess( $files ) {
+		$alt = implode( '|', array_map( 'preg_quote', $files ) );
+		return "<IfModule mod_rewrite.c>\nRewriteEngine On\nRewriteRule ^(?:" . $alt . ")\\.php$ - [F,L]\n</IfModule>";
+	}
+
+	/** nginx lines to add by hand. */
+	public static function core_nginx( $files ) {
+		return 'location ~* ^/(?:' . implode( '|', array_map( 'preg_quote', $files ) ) . ')\.php$ {' . "\n\tdeny all;\n}";
 	}
 }

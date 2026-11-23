@@ -44,6 +44,11 @@ class Sidcraft_BotShield_FwSettings {
 			'enum_block'      => 0,
 			'rest_users'      => 0,
 			'blank_post'      => 0,
+			'rest_mode'       => 'allow',    // allow | monitor (log only) | login (visitors who are not logged in may only use the allow list).
+			'rest_allow'      => "oembed/1.0\nsidcraft-vs/v1\nsidcraft-page-builder/v1/form\nsidcraft-page-builder/v1/mcp\nsidcraft-page-builder/v1/schema\ncontact-form-7/\nwc/store\njetpack/",
+			'rest_block'      => '',         // routes always closed to visitors who are not logged in.
+			'rest_rate'       => 0,          // requests a minute from one address for visitors who are not logged in (0 = off).
+			'rest_auth'       => 1,          // count failed REST logins (application passwords) as failed logins.
 			'core_xmlrpc'     => 0,          // refuse direct requests to xmlrpc.php.
 			'core_settings'   => 0,          // refuse direct requests to wp-settings.php.
 			'core_config'     => 0,          // refuse direct requests to wp-config.php.
@@ -76,7 +81,7 @@ class Sidcraft_BotShield_FwSettings {
 		$lines = array();
 		foreach ( preg_split( '/\R/', (string) ( $in['waf_allow'] ?? '' ) ) as $l ) { $l = trim( sanitize_text_field( $l ) ); if ( '' !== $l && preg_match( '#^(\*|/\S*)(\s+\S+){0,2}$#', $l ) && count( $lines ) < 300 ) { $lines[] = $l; } }
 		$o['waf_allow'] = implode( "\n", array_unique( $lines ) );
-		foreach ( array( 'waf_ban', 'bf_on', 'user_on', 'probe_on', 'bf_generic', 'breached_pw', 'hide_version', 'enum_block', 'rest_users', 'blank_post', 'core_xmlrpc', 'core_settings', 'core_config' ) as $k ) { $o[ $k ] = empty( $in[ $k ] ) ? 0 : 1; }
+		foreach ( array( 'waf_ban', 'bf_on', 'user_on', 'probe_on', 'bf_generic', 'breached_pw', 'hide_version', 'enum_block', 'rest_users', 'blank_post', 'core_xmlrpc', 'core_settings', 'core_config', 'rest_auth' ) as $k ) { $o[ $k ] = empty( $in[ $k ] ) ? 0 : 1; }
 		$o['bf_invalid_lock'] = 0;
 		foreach ( array( 'user', 'probe' ) as $p ) {
 			$o[ $p . '_attempts' ] = max( 1, min( 100, (int) ( $in[ $p . '_attempts' ] ?? 5 ) ) );
@@ -99,6 +104,12 @@ class Sidcraft_BotShield_FwSettings {
 		$o['notify_email'] = ( isset( $in['notify_email'] ) && is_email( $in['notify_email'] ) ) ? sanitize_email( $in['notify_email'] ) : '';
 		$o['notify_cap']  = max( 0, min( 500, (int) ( $in['notify_cap'] ?? 20 ) ) );
 		$o['rate_action'] = 'block' === ( $in['rate_action'] ?? '' ) ? 'block' : 'throttle';
+		$rm = $in['rest_mode'] ?? ''; $o['rest_mode'] = in_array( $rm, array( 'allow', 'monitor', 'login' ), true ) ? $rm : 'allow';
+		foreach ( array( 'rest_allow', 'rest_block' ) as $k ) {
+			$lines = array(); foreach ( preg_split( '/\R/', (string) ( $in[ $k ] ?? '' ) ) as $l ) { $l = trim( sanitize_text_field( $l ) ); if ( '' !== $l && preg_match( '#^/?[A-Za-z0-9_\-./]+$#', $l ) && count( $lines ) < 100 ) { $lines[] = $l; } }
+			$o[ $k ] = implode( "\n", array_unique( $lines ) );
+		}
+		$o['rest_rate'] = max( 0, min( 5000, (int) ( $in['rest_rate'] ?? 0 ) ) );
 		$xr = $in['xmlrpc'] ?? ''; $o['xmlrpc'] = in_array( $xr, array( 'allow', 'multicall', 'all' ), true ) ? $xr : 'allow';
 		return $o;
 	}

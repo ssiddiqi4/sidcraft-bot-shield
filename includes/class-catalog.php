@@ -12,7 +12,7 @@ class Sidcraft_BotShield_Catalog {
 	public static function allowed() {
 		return array(
 			'search' => array(
-				'label' => __( 'Search engines', 'sidcraft-bot-shield' ),
+				'label' => __( 'Search engines', 'botvaguard' ),
 				'bots'  => array(
 					'googlebot' => array( 'Google', array( '.googlebot.com', '.google.com' ) ), 'adsbot-google' => array( 'Google Ads', array( '.googlebot.com', '.google.com' ) ), 'mediapartners-google' => array( 'Google AdSense', array( '.googlebot.com', '.google.com' ) ),
 					'google-inspectiontool' => array( 'Google Search Console', array( '.googlebot.com', '.google.com' ) ), 'googleother' => array( 'Google (other)', array( '.googlebot.com', '.google.com' ) ), 'google-extended' => array( 'Google Gemini', array( '.googlebot.com', '.google.com' ) ),
@@ -24,7 +24,7 @@ class Sidcraft_BotShield_Catalog {
 				),
 			),
 			'ai' => array(
-				'label' => __( 'AI assistants and AI search', 'sidcraft-bot-shield' ),
+				'label' => __( 'AI assistants and AI search', 'botvaguard' ),
 				'bots'  => array(
 					'gptbot' => array( 'OpenAI GPTBot', null ), 'oai-searchbot' => array( 'OpenAI (ChatGPT search)', null ), 'chatgpt-user' => array( 'ChatGPT (visits for a user)', null ),
 					'claudebot' => array( 'Anthropic Claude', null ), 'claude-user' => array( 'Claude (visits for a user)', null ), 'claude-searchbot' => array( 'Claude search', null ), 'claude-web' => array( 'Claude (web)', null ), 'anthropic-ai' => array( 'Anthropic', null ),
@@ -37,7 +37,7 @@ class Sidcraft_BotShield_Catalog {
 				),
 			),
 			'social' => array(
-				'label' => __( 'Link previews (social and chat apps)', 'sidcraft-bot-shield' ),
+				'label' => __( 'Link previews (social and chat apps)', 'botvaguard' ),
 				'bots'  => array(
 					'facebookexternalhit' => array( 'Facebook', null ), 'facebot' => array( 'Facebook', null ), 'twitterbot' => array( 'X (Twitter)', null ), 'linkedinbot' => array( 'LinkedIn', null ),
 					'slackbot' => array( 'Slack', null ), 'discordbot' => array( 'Discord', null ), 'whatsapp' => array( 'WhatsApp', null ), 'telegrambot' => array( 'Telegram', null ),
@@ -45,14 +45,14 @@ class Sidcraft_BotShield_Catalog {
 				),
 			),
 			'monitor' => array(
-				'label' => __( 'Uptime and site monitoring', 'sidcraft-bot-shield' ),
+				'label' => __( 'Uptime and site monitoring', 'botvaguard' ),
 				'bots'  => array(
 					'uptimerobot' => array( 'UptimeRobot', null ), 'pingdom' => array( 'Pingdom', null ), 'statuscake' => array( 'StatusCake', null ), 'site24x7' => array( 'Site24x7', null ),
 					'betteruptime' => array( 'Better Stack', null ), 'newrelic' => array( 'New Relic', null ), 'gtmetrix' => array( 'GTmetrix', null ), 'lighthouse' => array( 'Google Lighthouse', null ), 'pagespeed' => array( 'PageSpeed Insights', null ),
 				),
 			),
 			'services' => array(
-				'label' => __( 'Services your site relies on (payments, WordPress, feed readers)', 'sidcraft-bot-shield' ),
+				'label' => __( 'Services your site relies on (payments, WordPress, feed readers)', 'botvaguard' ),
 				'bots'  => array(
 					'wordpress/' => array( 'WordPress itself', null ), 'jetpack' => array( 'Jetpack', null ), 'stripe' => array( 'Stripe', null ), 'paypal' => array( 'PayPal', null ), 'square' => array( 'Square', null ),
 					'github-hookshot' => array( 'GitHub', null ), 'mailchimp' => array( 'Mailchimp', null ), 'feedly' => array( 'Feedly', null ), 'feedbin' => array( 'Feedbin', null ), 'inoreader' => array( 'Inoreader', null ), 'newsblur' => array( 'NewsBlur', null ),
@@ -69,15 +69,15 @@ class Sidcraft_BotShield_Catalog {
 	public static function blocked() {
 		return array(
 			'seo' => array(
-				'label'  => __( 'SEO and data-mining crawlers', 'sidcraft-bot-shield' ),
+				'label'  => __( 'SEO and data-mining crawlers', 'botvaguard' ),
 				'tokens' => array( 'ahrefsbot', 'semrushbot', 'mj12bot', 'dotbot', 'blexbot', 'dataforseobot', 'serpstatbot', 'barkrowler', 'zoominfobot', 'seekportbot', 'megaindex', 'rogerbot', 'screaming frog', 'siteauditbot', 'linkpadbot', 'spbot', 'exabot', 'netpeaksite', 'sistrix', 'awariobot', 'scrapy', 'ia_archiver' ),
 			),
 			'tools' => array(
-				'label'  => __( 'Scripts and headless browsers', 'sidcraft-bot-shield' ),
+				'label'  => __( 'Scripts and headless browsers', 'botvaguard' ),
 				'tokens' => array( 'python-requests', 'python-urllib', 'python-httpx', 'aiohttp', 'curl/', 'wget/', 'libwww-perl', 'java/', 'apache-httpclient', 'okhttp', 'go-http-client', 'node-fetch', 'axios/', 'got (', 'headlesschrome', 'phantomjs', 'selenium', 'puppeteer', 'playwright', 'httpclient', 'mechanize', 'winhttp', 'http_request2', 'lwp-', 'guzzlehttp', 'php/', 'ruby', 'scrapy' ),
 			),
 			'attack' => array(
-				'label'  => __( 'Attack and scanner tools', 'sidcraft-bot-shield' ),
+				'label'  => __( 'Attack and scanner tools', 'botvaguard' ),
 				'tokens' => array( 'sqlmap', 'nikto', 'masscan', 'nmap', 'zgrab', 'dirbuster', 'gobuster', 'wpscan', 'acunetix', 'nessus', 'havij', 'netsparker', 'openvas', 'w3af', 'wfuzz', 'ffuf', 'nuclei', 'zmeu', 'morfeus', 'fhscan', 'hydra' ),
 			),
 		);

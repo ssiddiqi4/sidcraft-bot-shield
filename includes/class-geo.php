@@ -16,9 +16,9 @@ class Sidcraft_BotShield_Geo {
 	/** Two-letter code and where it came from, e.g. array( 'DE', 'Cloudflare' ). Empty code = unknown. */
 	public static function detect( $ip ) {
 		$proxy = Sidcraft_BotShield_Settings::get( 'proxy' );
-		$sources = array( array( 'GEOIP_COUNTRY_CODE', __( 'server', 'sidcraft-bot-shield' ) ) ); // set by the web server itself, never by the visitor.
+		$sources = array( array( 'GEOIP_COUNTRY_CODE', __( 'server', 'botvaguard' ) ) ); // set by the web server itself, never by the visitor.
 		if ( 'cloudflare' === $proxy ) { $sources[] = array( 'HTTP_CF_IPCOUNTRY', 'Cloudflare' ); }
-		if ( 'xff' === $proxy ) { $sources[] = array( 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'CloudFront' ); $sources[] = array( 'HTTP_GEOIP_COUNTRY_CODE', __( 'proxy', 'sidcraft-bot-shield' ) ); }
+		if ( 'xff' === $proxy ) { $sources[] = array( 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'CloudFront' ); $sources[] = array( 'HTTP_GEOIP_COUNTRY_CODE', __( 'proxy', 'botvaguard' ) ); }
 		foreach ( $sources as $s ) {
 			if ( ! empty( $_SERVER[ $s[0] ] ) ) {
 				$c = strtoupper( sanitize_text_field( wp_unslash( $_SERVER[ $s[0] ] ) ) );
@@ -26,7 +26,7 @@ class Sidcraft_BotShield_Geo {
 			}
 		}
 		$c = self::from_db( $ip );
-		return array( $c, '' === $c ? '' : __( 'country database', 'sidcraft-bot-shield' ) );
+		return array( $c, '' === $c ? '' : __( 'country database', 'botvaguard' ) );
 	}
 
 	/** Cloudflare marks Tor visitors with the pseudo country T1. */

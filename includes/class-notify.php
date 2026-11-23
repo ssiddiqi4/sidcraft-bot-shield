@@ -32,19 +32,19 @@ class Sidcraft_BotShield_Notify {
 	public static function send( $ip, $reason, $seconds, $time ) {
 		$host = self::host( $ip ); if ( '' !== $host ) { Sidcraft_BotShield_Bans::set_host( $ip, $host ); }
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
-		$until = $seconds > 0 ? sprintf( /* translators: %s: date */ __( 'until %s', 'sidcraft-bot-shield' ), wp_date( 'Y-m-d H:i', $time + $seconds ) ) : __( 'permanently', 'sidcraft-bot-shield' );
+		$until = $seconds > 0 ? sprintf( /* translators: %s: date */ __( 'until %s', 'botvaguard' ), wp_date( 'Y-m-d H:i', $time + $seconds ) ) : __( 'permanently', 'botvaguard' );
 		$unblock = add_query_arg( array( 'action' => 'sidcraft_botshield_unban_mail', 'ip' => rawurlencode( $ip ), 'sig' => self::sign( 'unban|' . $ip ) ), admin_url( 'admin-post.php' ) );
 		$skip = (int) get_transient( 'sbs_mailskip' ); if ( $skip ) { delete_transient( 'sbs_mailskip' ); }
-		$body = sprintf( /* translators: %s: site */ __( "Sidcraft Bot Shield blocked a visitor on %s.", 'sidcraft-bot-shield' ), $site ) . "\n\n"
-			. __( 'IP address:', 'sidcraft-bot-shield' ) . ' ' . $ip . "\n"
-			. __( 'Host name:', 'sidcraft-bot-shield' ) . ' ' . ( '' !== $host ? $host : __( '(none found)', 'sidcraft-bot-shield' ) ) . "\n"
-			. __( 'Reason:', 'sidcraft-bot-shield' ) . ' ' . $reason . "\n"
-			. __( 'Blocked:', 'sidcraft-bot-shield' ) . ' ' . $until . "\n"
-			. __( 'Time:', 'sidcraft-bot-shield' ) . ' ' . wp_date( 'Y-m-d H:i:s', $time ) . "\n\n"
-			. __( 'Blocked by mistake? Unblock this address (you must be logged in as an administrator):', 'sidcraft-bot-shield' ) . "\n" . $unblock . "\n\n"
-			. __( 'All blocked addresses:', 'sidcraft-bot-shield' ) . "\n" . admin_url( 'options-general.php?page=sidcraft-bot-shield&tab=firewall' ) . "\n"
-			. ( $skip ? "\n" . sprintf( /* translators: %d: number */ __( '%d other block(s) were not emailed because of the hourly limit.', 'sidcraft-bot-shield' ), $skip ) . "\n" : '' );
-		Sidcraft_BotShield_Mailer::send( self::to(), sprintf( /* translators: 1: site 2: IP */ __( '[%1$s] Blocked %2$s', 'sidcraft-bot-shield' ), $site, $ip ), $body );
+		$body = sprintf( /* translators: %s: site */ __( "BotVaguard blocked a visitor on %s.", 'botvaguard' ), $site ) . "\n\n"
+			. __( 'IP address:', 'botvaguard' ) . ' ' . $ip . "\n"
+			. __( 'Host name:', 'botvaguard' ) . ' ' . ( '' !== $host ? $host : __( '(none found)', 'botvaguard' ) ) . "\n"
+			. __( 'Reason:', 'botvaguard' ) . ' ' . $reason . "\n"
+			. __( 'Blocked:', 'botvaguard' ) . ' ' . $until . "\n"
+			. __( 'Time:', 'botvaguard' ) . ' ' . wp_date( 'Y-m-d H:i:s', $time ) . "\n\n"
+			. __( 'Blocked by mistake? Unblock this address (you must be logged in as an administrator):', 'botvaguard' ) . "\n" . $unblock . "\n\n"
+			. __( 'All blocked addresses:', 'botvaguard' ) . "\n" . admin_url( 'admin.php?page=botvaguard&tab=firewall' ) . "\n"
+			. ( $skip ? "\n" . sprintf( /* translators: %d: number */ __( '%d other block(s) were not emailed because of the hourly limit.', 'botvaguard' ), $skip ) . "\n" : '' );
+		Sidcraft_BotShield_Mailer::send( self::to(), sprintf( /* translators: 1: site 2: IP */ __( '[%1$s] Blocked %2$s', 'botvaguard' ), $site, $ip ), $body );
 	}
 
 	// ---------- unlock links ----------
@@ -65,6 +65,6 @@ class Sidcraft_BotShield_Notify {
 		$k = 'sbs_unlockreq_' . md5( $ip ); if ( get_transient( $k ) ) { return; }
 		set_transient( $k, 1, 10 * MINUTE_IN_SECONDS );
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
-		Sidcraft_BotShield_Mailer::send( self::to(), sprintf( /* translators: %s: site */ __( '[%s] Someone asked to be unblocked', 'sidcraft-bot-shield' ), $site ), sprintf( /* translators: 1: IP 2: link */ __( "The address %1\$s is blocked on your site and asked for an unlock link.\n\nIf this is you or someone you trust, open this link within an hour to unblock the address and keep it unblocked for a week:\n%2\$s\n\nIf you do not know who this is, ignore this email.", 'sidcraft-bot-shield' ), $ip, self::unlock_link( $ip ) ) );
+		Sidcraft_BotShield_Mailer::send( self::to(), sprintf( /* translators: %s: site */ __( '[%s] Someone asked to be unblocked', 'botvaguard' ), $site ), sprintf( /* translators: 1: IP 2: link */ __( "The address %1\$s is blocked on your site and asked for an unlock link.\n\nIf this is you or someone you trust, open this link within an hour to unblock the address and keep it unblocked for a week:\n%2\$s\n\nIf you do not know who this is, ignore this email.", 'botvaguard' ), $ip, self::unlock_link( $ip ) ) );
 	}
 }

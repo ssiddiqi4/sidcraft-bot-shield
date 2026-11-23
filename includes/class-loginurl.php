@@ -83,7 +83,7 @@ class Sidcraft_BotShield_LoginUrl {
 		delete_transient( $k );
 		$ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
 		Sidcraft_BotShield_Log::add( 'block', 'login_url', $ip, $ua, self::request_path() );
-		Sidcraft_BotShield_Bans::add( $ip, (int) $s['url_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d tries at a wrong login address in %2$d minutes', 'sidcraft-bot-shield' ), (int) $s['url_attempts'], (int) $s['url_minutes'] ), 'url' );
+		Sidcraft_BotShield_Bans::add( $ip, (int) $s['url_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d tries at a wrong login address in %2$d minutes', 'botvaguard' ), (int) $s['url_attempts'], (int) $s['url_minutes'] ), 'url' );
 		Sidcraft_BotShield_Guard::banned_page( $ip );
 	}
 

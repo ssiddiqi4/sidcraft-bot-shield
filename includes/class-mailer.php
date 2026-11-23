@@ -2,12 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
- * Where Bot Shield's emails (login codes, alerts) are sent from: WordPress's own PHP mailer, or an SMTP server you configure.
+ * Where BotVaguard's emails (login codes, alerts) are sent from: WordPress's own PHP mailer, or an SMTP server you configure.
  * Settings live in the Login tab under Two-factor login.
  */
 class Sidcraft_BotShield_Mailer {
 
-	/** True while one of Bot Shield's own emails is being sent. */
+	/** True while one of BotVaguard's own emails is being sent. */
 	private static $mine = false;
 	private static $log = '';
 	private static $error = '';
@@ -20,7 +20,7 @@ class Sidcraft_BotShield_Mailer {
 		add_action( 'admin_post_sidcraft_botshield_mail_test', array( __CLASS__, 'test_action' ) );
 	}
 
-	/** Send one of Bot Shield's emails. */
+	/** Send one of BotVaguard's emails. */
 	public static function send( $to, $subject, $body, $headers = '' ) {
 		self::$mine = true; self::$error = '';
 		$ok = wp_mail( $to, $subject, $body, $headers );
@@ -103,7 +103,7 @@ class Sidcraft_BotShield_Mailer {
 
 	/** Save the values on the screen, send a test email with them and keep the server conversation for the result box. */
 	public static function test_action() {
-		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'You do not have permission to do this.', 'sidcraft-bot-shield' ), 403 ); }
+		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'You do not have permission to do this.', 'botvaguard' ), 403 ); }
 		check_admin_referer( 'sidcraft_botshield_mail_test', 'sbs_mail_nonce' );
 		$O  = Sidcraft_BotShield_LoginSettings::OPTION;
 		$in = isset( $_POST[ $O ] ) && is_array( $_POST[ $O ] ) ? wp_unslash( $_POST[ $O ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- every key is cleaned in Sidcraft_BotShield_LoginSettings::sanitize().
@@ -113,10 +113,10 @@ class Sidcraft_BotShield_Mailer {
 		self::$override = $s; self::$log = ''; self::$error = '';
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		/* translators: %s: site name */
-		$ok = self::send( $to, sprintf( __( '[%s] Bot Shield test email', 'sidcraft-bot-shield' ), $site ), __( "This is a test email from Sidcraft Bot Shield.\n\nIf you can read it, login codes and alerts can reach you.", 'sidcraft-bot-shield' ) );
+		$ok = self::send( $to, sprintf( __( '[%s] BotVaguard test email', 'botvaguard' ), $site ), __( "This is a test email from BotVaguard.\n\nIf you can read it, login codes and alerts can reach you.", 'botvaguard' ) );
 		self::$override = null;
 		set_transient( 'sidcraft_botshield_mail_test_' . get_current_user_id(), array( 'ok' => (bool) $ok, 'to' => $to, 'error' => self::$error, 'log' => substr( self::$log, -3000 ), 'mode' => $s['mail_mode'] ), 300 );
-		wp_safe_redirect( admin_url( 'options-general.php?page=sidcraft-bot-shield&tab=login#sbs-mail' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=botvaguard&tab=login#sbs-mail' ) );
 		exit;
 	}
 

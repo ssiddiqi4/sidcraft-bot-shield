@@ -1,6 +1,6 @@
 <?php
 /**
- * Removes Bot Shield data when the plugin is deleted (only if the owner ticked "delete all data").
+ * Removes BotVaguard data when the plugin is deleted (only if the owner ticked "delete all data").
  *
  * @package Sidcraft_BotShield
  */

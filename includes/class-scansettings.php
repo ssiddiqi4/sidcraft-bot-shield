@@ -7,25 +7,25 @@ class Sidcraft_BotShield_ScanSettings {
 
 	public static function check_labels() {
 		return array(
-			'core'      => __( 'Compare WordPress core files with the official versions', 'sidcraft-bot-shield' ),
-			'plugins'   => __( 'Compare plugin files with the versions on WordPress.org', 'sidcraft-bot-shield' ),
-			'malware'   => __( 'Scan files for malware, backdoors and suspicious code', 'sidcraft-bot-shield' ),
-			'images'    => __( 'Look inside images and other non-code files in uploads for hidden PHP', 'sidcraft-bot-shield' ),
-			'content'   => __( 'Scan posts, pages and comments for injected scripts, hidden links and spam', 'sidcraft-bot-shield' ),
-			'config'    => __( 'Look for exposed backup, configuration, log and information files', 'sidcraft-bot-shield' ),
-			'updates'   => __( 'Check for out-of-date WordPress, plugins and themes', 'sidcraft-bot-shield' ),
-			'abandoned' => __( 'Check for plugins that were abandoned or removed from WordPress.org', 'sidcraft-bot-shield' ),
-			'users'     => __( 'Check administrators and editors for weak passwords', 'sidcraft-bot-shield' ),
-			'system'    => __( 'Check disk space and PHP version', 'sidcraft-bot-shield' ),
+			'core'      => __( 'Compare WordPress core files with the official versions', 'botvaguard' ),
+			'plugins'   => __( 'Compare plugin files with the versions on WordPress.org', 'botvaguard' ),
+			'malware'   => __( 'Scan files for malware, backdoors and suspicious code', 'botvaguard' ),
+			'images'    => __( 'Look inside images and other non-code files in uploads for hidden PHP', 'botvaguard' ),
+			'content'   => __( 'Scan posts, pages and comments for injected scripts, hidden links and spam', 'botvaguard' ),
+			'config'    => __( 'Look for exposed backup, configuration, log and information files', 'botvaguard' ),
+			'updates'   => __( 'Check for out-of-date WordPress, plugins and themes', 'botvaguard' ),
+			'abandoned' => __( 'Check for plugins that were abandoned or removed from WordPress.org', 'botvaguard' ),
+			'users'     => __( 'Check administrators and editors for weak passwords', 'botvaguard' ),
+			'system'    => __( 'Check disk space and PHP version', 'botvaguard' ),
 		);
 	}
 
 	public static function presets() {
 		$all = array_fill_keys( array_keys( self::check_labels() ), 1 );
 		return array(
-			'quick'    => array( 'label' => __( 'Quick scan', 'sidcraft-bot-shield' ), 'desc' => __( 'Core, plugins, exposed files, updates. A minute or two.', 'sidcraft-bot-shield' ), 'checks' => array( 'core' => 1, 'plugins' => 1, 'config' => 1, 'updates' => 1, 'system' => 1 ) ),
-			'standard' => array( 'label' => __( 'Standard scan', 'sidcraft-bot-shield' ), 'desc' => __( 'Everything except the image check. Recommended.', 'sidcraft-bot-shield' ), 'checks' => array_diff_key( $all, array( 'images' => 1 ) ) ),
-			'deep'     => array( 'label' => __( 'High sensitivity', 'sidcraft-bot-shield' ), 'desc' => __( 'Everything, including images, with a larger file size limit. Slower, may show more false alarms.', 'sidcraft-bot-shield' ), 'checks' => $all ),
+			'quick'    => array( 'label' => __( 'Quick scan', 'botvaguard' ), 'desc' => __( 'Core, plugins, exposed files, updates. A minute or two.', 'botvaguard' ), 'checks' => array( 'core' => 1, 'plugins' => 1, 'config' => 1, 'updates' => 1, 'system' => 1 ) ),
+			'standard' => array( 'label' => __( 'Standard scan', 'botvaguard' ), 'desc' => __( 'Everything except the image check. Recommended.', 'botvaguard' ), 'checks' => array_diff_key( $all, array( 'images' => 1 ) ) ),
+			'deep'     => array( 'label' => __( 'High sensitivity', 'botvaguard' ), 'desc' => __( 'Everything, including images, with a larger file size limit. Slower, may show more false alarms.', 'botvaguard' ), 'checks' => $all ),
 		);
 	}
 

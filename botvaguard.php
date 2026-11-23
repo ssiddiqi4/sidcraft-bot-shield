@@ -1,22 +1,29 @@
 <?php
 /**
- * Plugin Name:       Sidcraft Bot Shield
+ * Plugin Name:       BotVaguard
  * Plugin URI:        https://github.com/ssiddiqi4/sidcraft-bot-shield
  * Description:       Lets search engines and AI assistants (Google, Bing, Apple, ChatGPT, Claude, Perplexity, Copilot and more) in, and blocks scrapers, scripts, scanners and fake bots. Also blocks countries, IP ranges, VPNs and Tor, with a web application firewall, two-factor login, a custom login address and a malware scanner.
- * Version:           1.5.6
+ * Version:           1.6.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Suhaib Siddiqi
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       sidcraft-bot-shield
+ * Text Domain:       botvaguard
  *
  * @package Sidcraft_BotShield
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'SIDCRAFT_BOTSHIELD_VERSION', '1.5.6' );
+// Moving from the old "Sidcraft Bot Shield" plugin (folder sidcraft-bot-shield): BotVaguard keeps its settings. Activating BotVaguard switches the old one off.
+register_activation_hook( __FILE__, function () {
+	if ( ! function_exists( 'deactivate_plugins' ) ) { require_once ABSPATH . 'wp-admin/includes/plugin.php'; }
+	deactivate_plugins( 'sidcraft-bot-shield/sidcraft-bot-shield.php', true ); // silent: its protection lines in .htaccess stay for BotVaguard to use.
+} );
+if ( class_exists( 'Sidcraft_BotShield_Guard', false ) ) { return; } // the old plugin is still loaded in this request: do nothing until it is off.
+
+define( 'SIDCRAFT_BOTSHIELD_VERSION', '1.6.0' );
 define( 'SIDCRAFT_BOTSHIELD_FILE', __FILE__ );
 define( 'SIDCRAFT_BOTSHIELD_DIR', plugin_dir_path( __FILE__ ) );
 

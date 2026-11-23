@@ -1,11 +1,11 @@
-=== Sidcraft Bot Shield ===
+=== BotVaguard ===
 Contributors: ssiddiqi4
 Donate link: https://paypal.me/SSiddiqi275
 Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.5.6
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -15,7 +15,7 @@ Lets search engines and AI assistants in. Two-factor login (email, app, SMS, pas
 
 Most of the traffic that hits a small site is not people. Some of it you want: search engines send visitors, and AI assistants such as ChatGPT, Claude, Perplexity, Copilot, Gemini and Apple Intelligence can mention and link to your pages. A lot of it you do not want: scrapers that copy your content, scripts that hammer your pages, vulnerability scanners probing for `/shell` or `/.env`, and bots that pretend to be Googlebot.
 
-**Sidcraft Bot Shield sorts them for you.**
+**BotVaguard sorts them for you.**
 
 = Always welcome (you can switch each group off) =
 
@@ -107,7 +107,7 @@ VPN and country detection is never perfect: lists lag behind new VPN servers, an
 == Installation ==
 
 1. Upload the plugin and activate it.
-2. Open Settings > Bot Shield.
+2. Open BotVaguard in the WordPress menu (it has its own Dashboard).
 3. Leave it in Monitor mode for a few days and look at Recent activity.
 4. When the list looks right, choose Block and save.
 
@@ -164,6 +164,12 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.6.0 =
+* Renamed: the plugin is now BotVaguard (folder and slug botvaguard), so that it cannot be confused with other plugins named Bot Shield. Your settings, bans, logs and the firewall lines in .htaccess are kept. Activating BotVaguard switches the old Sidcraft Bot Shield plugin off; delete the old one afterwards.
+* New: its own menu in the WordPress dashboard with a Dashboard (protection status and the latest blocks), Bots, Firewall, Login, Scan and Blocked log screens. It no longer sits under Settings.
+* New: Firewall > REST API (/wp-json/). Watch-only mode (logs what would be closed), or close the REST API to visitors who are not logged in with an allow list of routes (oEmbed, form sending, visitor counting, Contact Form 7, WooCommerce Store API and Jetpack are allowed by default), routes that are always closed, a requests-a-minute limit, and counting of failed REST logins (application passwords) as failed logins. Logged-in users and your trusted addresses are never affected.
+* Blocked requests to the REST API show in the Blocked log under REST API.
+
 = 1.5.6 =
 * New: Firewall tab > "Block direct access to core files". Tick xmlrpc.php, wp-settings.php and/or wp-config.php to refuse direct requests to them. The plugin writes a rule into .htaccess (Apache, LiteSpeed; removed when you untick the boxes or deactivate), shows the lines to add on nginx, and also refuses xmlrpc.php and wp-config.php itself as a second line of defence. wp-settings.php can only be blocked by the server rule, because WordPress stops before any plugin loads when it is opened directly. Addresses on your trusted list are still let through for xmlrpc.php.
 
@@ -174,7 +180,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * SMTP password: a saved password is now shown as a masked field (••••••••••) with a Change password button, and is only replaced when you press that button. A blank field, or a browser auto-filling the field with your WordPress login password, can no longer overwrite it. An already-encrypted value is never encrypted twice.
 
 = 1.5.3 =
-* Two-factor login: when the email code cannot be sent, the second-step screen now says why (for example "SMTP Error: Could not authenticate") instead of pretending it was sent. Login > Email delivery shows the last email Bot Shield sent: when, to whom, through which server, and whether it was accepted or failed.
+* Two-factor login: when the email code cannot be sent, the second-step screen now says why (for example "SMTP Error: Could not authenticate") instead of pretending it was sent. Login > Email delivery shows the last email BotVaguard sent: when, to whom, through which server, and whether it was accepted or failed.
 
 = 1.5.2 =
 * Two-factor login: new setting "Send login codes to" (Login tab, Email delivery). Leave it empty to use each user's own profile address, or enter one address that receives every email code. The second-step screen now says where the code was sent (for example s*****@gmail.com), so a wrong profile address is easy to spot.
@@ -183,7 +189,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * The test email result no longer sounds like proof of delivery when the PHP mailer is used; it explains that the web server only accepted the message and suggests SMTP.
 
 = 1.5.0 =
-* New: Email delivery settings under Two-factor login (Login tab). Use the PHP mailer (WordPress default) or configure an SMTP server: host, encryption and port, user name and password (stored encrypted, or set SIDCRAFT_BOTSHIELD_SMTP_PASS in wp-config.php), From address and name, and whether it applies to Bot Shield emails only or every email on the site. "Send a test email to me" saves the values, sends a test and shows the server conversation if it fails. Login codes and alerts are sent through it.
+* New: Email delivery settings under Two-factor login (Login tab). Use the PHP mailer (WordPress default) or configure an SMTP server: host, encryption and port, user name and password (stored encrypted, or set SIDCRAFT_BOTSHIELD_SMTP_PASS in wp-config.php), From address and name, and whether it applies to BotVaguard emails only or every email on the site. "Send a test email to me" saves the values, sends a test and shows the server conversation if it fails. Login codes and alerts are sent through it.
 
 = 1.4.1 =
 * Two-factor login: new emergency switch for people locked out by a missing code. Besides the SIDCRAFT_BOTSHIELD_DISABLE_2FA constant in wp-config.php, an empty file named sidcraft-botshield-disable-2fa in the wp-content folder (upload it by FTP) turns two-factor login off. A notice reminds you to remove it.
@@ -220,6 +226,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.6.0 =
+Renamed to BotVaguard with its own menu and a new REST API protection. After updating by upload, activate BotVaguard and delete the old Sidcraft Bot Shield plugin; your settings are kept.
 
 = 1.4.0 =
 Adds attempt limits for unknown user names and for repeated visits to login and register pages.

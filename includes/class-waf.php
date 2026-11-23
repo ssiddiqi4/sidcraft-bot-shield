@@ -164,7 +164,7 @@ class Sidcraft_BotShield_Waf {
 			if ( ! is_file( $log ) || filesize( $log ) < 262144 ) { @file_put_contents( $log, $line . "\n", FILE_APPEND | LOCK_EX ); }
 			if ( 'learning' === $c['mode'] ) { return; }
 			if ( ! headers_sent() ) { header( 'HTTP/1.1 403 Forbidden' ); header( 'Content-Type: text/plain; charset=UTF-8' ); header( 'X-Robots-Tag: noindex' ); }
-			echo 'Blocked by the Sidcraft Bot Shield firewall.';
+			echo 'Blocked by the BotVaguard firewall.';
 			exit;
 		} catch ( \Throwable $e ) { return; }
 	}

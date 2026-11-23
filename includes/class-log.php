@@ -25,14 +25,15 @@ class Sidcraft_BotShield_Log {
 	/** Reason codes grouped into the types shown on the overview card. */
 	public static function types() {
 		return array(
-			'bots'    => array( __( 'Bad bots', 'sidcraft-bot-shield' ), '#b32d2e' ),
-			'probes'  => array( __( 'Attack probes & bans', 'sidcraft-bot-shield' ), '#8a2be2' ),
-			'country' => array( __( 'Country', 'sidcraft-bot-shield' ), '#2271b1' ),
-			'ip'      => array( __( 'Blocked addresses', 'sidcraft-bot-shield' ), '#bd5b00' ),
-			'vpn'     => array( __( 'VPN / proxy / Tor', 'sidcraft-bot-shield' ), '#007a5a' ),
-			'waf'     => array( __( 'Firewall rules', 'sidcraft-bot-shield' ), '#d63638' ),
-			'login'   => array( __( 'Login protection', 'sidcraft-bot-shield' ), '#996800' ),
-			'rate'    => array( __( 'Too many requests', 'sidcraft-bot-shield' ), '#646970' ),
+			'bots'    => array( __( 'Bad bots', 'botvaguard' ), '#b32d2e' ),
+			'probes'  => array( __( 'Attack probes & bans', 'botvaguard' ), '#8a2be2' ),
+			'country' => array( __( 'Country', 'botvaguard' ), '#2271b1' ),
+			'ip'      => array( __( 'Blocked addresses', 'botvaguard' ), '#bd5b00' ),
+			'vpn'     => array( __( 'VPN / proxy / Tor', 'botvaguard' ), '#007a5a' ),
+			'waf'     => array( __( 'Firewall rules', 'botvaguard' ), '#d63638' ),
+			'login'   => array( __( 'Login protection', 'botvaguard' ), '#996800' ),
+			'rest'    => array( __( 'REST API', 'botvaguard' ), '#0a7ea4' ),
+			'rate'    => array( __( 'Too many requests', 'botvaguard' ), '#646970' ),
 		);
 	}
 
@@ -40,6 +41,7 @@ class Sidcraft_BotShield_Log {
 		if ( 0 === strpos( $reason, 'bad_bot' ) || in_array( $reason, array( 'empty_ua', 'fake_bot', 'custom_block' ), true ) ) { return 'bots'; }
 		if ( in_array( $reason, array( 'scanner_path', 'trap', 'banned' ), true ) ) { return 'probes'; }
 		if ( 0 === strpos( $reason, 'waf_' ) || in_array( $reason, array( 'enum_author', 'blank_post' ), true ) ) { return 'waf'; }
+		if ( 0 === strpos( $reason, 'rest_' ) ) { return 'rest'; }
 		if ( 0 === strpos( $reason, 'brute_' ) || 'login_url' === $reason ) { return 'login'; }
 		if ( 0 === strpos( $reason, 'geo_' ) ) { return 'country'; }
 		if ( 'ip_blocked' === $reason ) { return 'ip'; }

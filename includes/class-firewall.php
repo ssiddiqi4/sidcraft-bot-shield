@@ -29,6 +29,8 @@ class Sidcraft_BotShield_Firewall {
 		if ( 'multicall' === $s['xmlrpc'] ) { add_filter( 'xmlrpc_methods', array( __CLASS__, 'no_multicall' ) ); }
 		if ( $s['rest_users'] ) { add_filter( 'rest_endpoints', array( __CLASS__, 'hide_rest_users' ) ); }
 		add_action( 'admin_init', array( __CLASS__, 'import_waf_log' ) );
+		if ( 'allow' !== $s['rest_mode'] || '' !== trim( (string) $s['rest_block'] ) || (int) $s['rest_rate'] > 0 ) { add_filter( 'rest_authentication_errors', array( __CLASS__, 'rest_guard' ), 99 ); }
+		if ( $s['rest_auth'] ) { add_action( 'application_password_failed_authentication', array( __CLASS__, 'rest_auth_failed' ) ); }
 		self::core_block_now( $s );
 		add_action( 'update_option_' . Sidcraft_BotShield_FwSettings::OPTION, array( __CLASS__, 'core_sync' ) );
 		add_action( 'add_option_' . Sidcraft_BotShield_FwSettings::OPTION, array( __CLASS__, 'core_sync' ) );
@@ -50,7 +52,7 @@ class Sidcraft_BotShield_Firewall {
 		status_header( $status ); nocache_headers(); header( 'X-Robots-Tag: noindex, nofollow' );
 		if ( $retry ) { header( 'Retry-After: ' . (int) $retry ); }
 		header( 'Content-Type: text/plain; charset=UTF-8' );
-		echo esc_html( 429 === $status ? __( 'Too many requests. Please slow down.', 'sidcraft-bot-shield' ) : __( 'Blocked by the Sidcraft Bot Shield firewall.', 'sidcraft-bot-shield' ) );
+		echo esc_html( 429 === $status ? __( 'Too many requests. Please slow down.', 'botvaguard' ) : __( 'Blocked by the BotVaguard firewall.', 'botvaguard' ) );
 		exit;
 	}
 
@@ -116,7 +118,7 @@ class Sidcraft_BotShield_Firewall {
 		$ip = self::ip(); if ( '' === $ip || self::trusted( $ip ) ) { return; }
 		$s = Sidcraft_BotShield_FwSettings::all();
 		if ( $s['user_on'] && '' !== (string) $username && ! username_exists( (string) $username ) && ! email_exists( (string) $username ) && self::window_hit( 'sbs_uu_', $ip, (int) $s['user_attempts'], (int) $s['user_minutes'] ) ) {
-			Sidcraft_BotShield_Bans::add( $ip, (int) $s['user_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d logins with user names that do not exist in %2$d minutes', 'sidcraft-bot-shield' ), (int) $s['user_attempts'], (int) $s['user_minutes'] ), 'url' );
+			Sidcraft_BotShield_Bans::add( $ip, (int) $s['user_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d logins with user names that do not exist in %2$d minutes', 'botvaguard' ), (int) $s['user_attempts'], (int) $s['user_minutes'] ), 'url' );
 			Sidcraft_BotShield_Log::add( 'block', 'brute_invalid', $ip, self::ua(), self::path() );
 			return;
 		}
@@ -170,7 +172,7 @@ class Sidcraft_BotShield_Firewall {
 	private static function probe_count( $s, $ip ) {
 		if ( ! self::window_hit( 'sbs_pr_', $ip, (int) $s['probe_attempts'], (int) $s['probe_minutes'] ) ) { return; }
 		Sidcraft_BotShield_Log::add( 'block', 'brute_probe', $ip, self::ua(), self::path() );
-		Sidcraft_BotShield_Bans::add( $ip, (int) $s['probe_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d visits to login or register pages in %2$d minutes', 'sidcraft-bot-shield' ), (int) $s['probe_attempts'], (int) $s['probe_minutes'] ), 'url' );
+		Sidcraft_BotShield_Bans::add( $ip, (int) $s['probe_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d visits to login or register pages in %2$d minutes', 'botvaguard' ), (int) $s['probe_attempts'], (int) $s['probe_minutes'] ), 'url' );
 		Sidcraft_BotShield_Guard::banned_page( $ip );
 	}
 
@@ -186,7 +188,7 @@ class Sidcraft_BotShield_Firewall {
 	/** Same message for a wrong user name and a wrong password, so that user names cannot be guessed. */
 	public static function generic_error( $user ) {
 		if ( is_wp_error( $user ) && array_intersect( array( 'invalid_username', 'invalid_email', 'incorrect_password' ), $user->get_error_codes() ) ) {
-			return new WP_Error( 'authentication_failed', __( '<strong>Error:</strong> the user name or password is not correct.', 'sidcraft-bot-shield' ) );
+			return new WP_Error( 'authentication_failed', __( '<strong>Error:</strong> the user name or password is not correct.', 'botvaguard' ) );
 		}
 		return $user;
 	}
@@ -198,15 +200,15 @@ class Sidcraft_BotShield_Firewall {
 
 	/** Why a password is too weak, or '' when it is fine. */
 	public static function weak_reason( $pw, $login = '', $email = '' ) {
-		if ( strlen( $pw ) < 12 ) { return __( 'use at least 12 characters', 'sidcraft-bot-shield' ); }
+		if ( strlen( $pw ) < 12 ) { return __( 'use at least 12 characters', 'botvaguard' ); }
 		$l = strtolower( $pw );
-		foreach ( self::common_passwords() as $c ) { if ( strlen( $c ) >= 4 && false !== strpos( $l, $c ) && strlen( $pw ) < strlen( $c ) + 8 ) { return __( 'do not use a common password', 'sidcraft-bot-shield' ); } }
-		if ( '' !== $login && false !== strpos( $l, strtolower( $login ) ) && strlen( $login ) >= 4 ) { return __( 'do not include your user name', 'sidcraft-bot-shield' ); }
+		foreach ( self::common_passwords() as $c ) { if ( strlen( $c ) >= 4 && false !== strpos( $l, $c ) && strlen( $pw ) < strlen( $c ) + 8 ) { return __( 'do not use a common password', 'botvaguard' ); } }
+		if ( '' !== $login && false !== strpos( $l, strtolower( $login ) ) && strlen( $login ) >= 4 ) { return __( 'do not include your user name', 'botvaguard' ); }
 		$local = '' !== $email ? strtolower( strstr( $email, '@', true ) ) : '';
-		if ( strlen( $local ) >= 4 && false !== strpos( $l, $local ) ) { return __( 'do not include your email name', 'sidcraft-bot-shield' ); }
+		if ( strlen( $local ) >= 4 && false !== strpos( $l, $local ) ) { return __( 'do not include your email name', 'botvaguard' ); }
 		$classes = (int) preg_match( '/[a-z]/', $pw ) + (int) preg_match( '/[A-Z]/', $pw ) + (int) preg_match( '/\d/', $pw ) + (int) preg_match( '/[^A-Za-z0-9]/', $pw );
-		if ( $classes < 3 ) { return __( 'mix upper and lower case letters, numbers and symbols', 'sidcraft-bot-shield' ); }
-		if ( preg_match( '/^(.)\1+$/', $pw ) ) { return __( 'do not repeat one character', 'sidcraft-bot-shield' ); }
+		if ( $classes < 3 ) { return __( 'mix upper and lower case letters, numbers and symbols', 'botvaguard' ); }
+		if ( preg_match( '/^(.)\1+$/', $pw ) ) { return __( 'do not repeat one character', 'botvaguard' ); }
 		return '';
 	}
 
@@ -220,16 +222,16 @@ class Sidcraft_BotShield_Firewall {
 		$roles = isset( $user->role ) && '' !== $user->role ? array( $user->role ) : ( ! empty( $user->ID ) ? (array) get_userdata( $user->ID )->roles : array() );
 		if ( ! self::needs_strong( $roles ) ) { return; }
 		$why = self::weak_reason( (string) $user->user_pass, (string) ( $user->user_login ?? '' ), (string) ( $user->user_email ?? '' ) );
-		if ( '' !== $why ) { $errors->add( 'sbs_weak_pw', sprintf( /* translators: %s: advice */ __( '<strong>Error:</strong> this password is too weak: %s.', 'sidcraft-bot-shield' ), $why ) ); }
-		elseif ( Sidcraft_BotShield_FwSettings::get( 'breached_pw' ) && self::breached( (string) $user->user_pass ) ) { $errors->add( 'sbs_breached_pw', __( '<strong>Error:</strong> this password appeared in a known data breach. Choose another one.', 'sidcraft-bot-shield' ) ); }
+		if ( '' !== $why ) { $errors->add( 'sbs_weak_pw', sprintf( /* translators: %s: advice */ __( '<strong>Error:</strong> this password is too weak: %s.', 'botvaguard' ), $why ) ); }
+		elseif ( Sidcraft_BotShield_FwSettings::get( 'breached_pw' ) && self::breached( (string) $user->user_pass ) ) { $errors->add( 'sbs_breached_pw', __( '<strong>Error:</strong> this password appeared in a known data breach. Choose another one.', 'botvaguard' ) ); }
 	}
 
 	public static function check_reset_pw( $errors, $user ) {
 		$pw = isset( $_POST['pass1'] ) ? (string) wp_unslash( $_POST['pass1'] ) : '';
 		if ( '' === $pw || ! $user || ! self::needs_strong( $user->roles ) ) { return; }
 		$why = self::weak_reason( $pw, $user->user_login, $user->user_email );
-		if ( '' !== $why ) { $errors->add( 'sbs_weak_pw', sprintf( /* translators: %s: advice */ __( '<strong>Error:</strong> this password is too weak: %s.', 'sidcraft-bot-shield' ), $why ) ); }
-		elseif ( Sidcraft_BotShield_FwSettings::get( 'breached_pw' ) && self::breached( $pw ) ) { $errors->add( 'sbs_breached_pw', __( '<strong>Error:</strong> this password appeared in a known data breach. Choose another one.', 'sidcraft-bot-shield' ) ); }
+		if ( '' !== $why ) { $errors->add( 'sbs_weak_pw', sprintf( /* translators: %s: advice */ __( '<strong>Error:</strong> this password is too weak: %s.', 'botvaguard' ), $why ) ); }
+		elseif ( Sidcraft_BotShield_FwSettings::get( 'breached_pw' ) && self::breached( $pw ) ) { $errors->add( 'sbs_breached_pw', __( '<strong>Error:</strong> this password appeared in a known data breach. Choose another one.', 'botvaguard' ) ); }
 	}
 
 	/** Has this password appeared in a breach? Only the first 5 characters of its SHA-1 hash leave the site. Fails open. */
@@ -249,7 +251,7 @@ class Sidcraft_BotShield_Firewall {
 	public static function breached_login( $user, $password ) {
 		if ( is_wp_error( $user ) || ! $user instanceof WP_User || ! user_can( $user, 'manage_options' ) || '' === (string) $password ) { return $user; }
 		if ( wp_check_password( $password, $user->user_pass, $user->ID ) && self::breached( (string) $password ) ) {
-			return new WP_Error( 'sbs_breached', sprintf( /* translators: %s: link */ __( '<strong>Error:</strong> your password appeared in a known data breach, so it cannot be used. Please %s.', 'sidcraft-bot-shield' ), '<a href="' . esc_url( wp_lostpassword_url() ) . '">' . esc_html__( 'reset it', 'sidcraft-bot-shield' ) . '</a>' ) );
+			return new WP_Error( 'sbs_breached', sprintf( /* translators: %s: link */ __( '<strong>Error:</strong> your password appeared in a known data breach, so it cannot be used. Please %s.', 'botvaguard' ), '<a href="' . esc_url( wp_lostpassword_url() ) . '">' . esc_html__( 'reset it', 'botvaguard' ) . '</a>' ) );
 		}
 		return $user;
 	}
@@ -295,7 +297,7 @@ class Sidcraft_BotShield_Firewall {
 		if ( count( $hits ) >= (int) $s['nf_count'] ) {
 			delete_transient( $k );
 			Sidcraft_BotShield_Log::add( 'block', 'rate_404', $ip, $ua, $path );
-			Sidcraft_BotShield_Bans::add( $ip, (int) $s['nf_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d missing pages in %2$d minutes', 'sidcraft-bot-shield' ), (int) $s['nf_count'], (int) $s['nf_minutes'] ), 'nf' );
+			Sidcraft_BotShield_Bans::add( $ip, (int) $s['nf_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d missing pages in %2$d minutes', 'botvaguard' ), (int) $s['nf_count'], (int) $s['nf_minutes'] ), 'nf' );
 			self::deny( 'rate' );
 		}
 	}
@@ -361,9 +363,9 @@ class Sidcraft_BotShield_Firewall {
 		$fs = self::fs();
 		if ( $fs && $fs->put_contents( $path, $content, 0644 ) && self::read_file( $path ) === $content ) { return ''; }
 		$ok = file_exists( $path ) ? is_writable( $path ) : is_writable( dirname( $path ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
-		if ( ! $ok ) { return sprintf( /* translators: %s: file name */ __( '%s cannot be written by WordPress (file permissions).', 'sidcraft-bot-shield' ), basename( $path ) ); }
-		if ( false === file_put_contents( $path, $content ) ) { return sprintf( /* translators: %s: file name */ __( '%s could not be written.', 'sidcraft-bot-shield' ), basename( $path ) ); }
-		return self::read_file( $path ) === $content ? '' : sprintf( /* translators: %s: file name */ __( '%s was written but the change did not stay (the host may manage this file).', 'sidcraft-bot-shield' ), basename( $path ) );
+		if ( ! $ok ) { return sprintf( /* translators: %s: file name */ __( '%s cannot be written by WordPress (file permissions).', 'botvaguard' ), basename( $path ) ); }
+		if ( false === file_put_contents( $path, $content ) ) { return sprintf( /* translators: %s: file name */ __( '%s could not be written.', 'botvaguard' ), basename( $path ) ); }
+		return self::read_file( $path ) === $content ? '' : sprintf( /* translators: %s: file name */ __( '%s was written but the change did not stay (the host may manage this file).', 'botvaguard' ), basename( $path ) );
 	}
 
 	/** The exact lines to add by hand: array( ini, htaccess ). */
@@ -384,22 +386,22 @@ class Sidcraft_BotShield_Firewall {
 	}
 
 	private static function ext_enable_run() {
-		if ( ! Sidcraft_BotShield_Lists::ensure_dir() ) { return __( 'The folder wp-content/uploads/sidcraft-bot-shield cannot be created or written.', 'sidcraft-bot-shield' ); }
+		if ( ! Sidcraft_BotShield_Lists::ensure_dir() ) { return __( 'The folder wp-content/uploads/sidcraft-bot-shield cannot be created or written.', 'botvaguard' ); }
 		$root = trailingslashit( ABSPATH ); $ini = $root . '.user.ini'; $ht = $root . '.htaccess';
 		foreach ( array( $ini, $ht ) as $f ) {
 			if ( ! file_exists( $f ) ) { continue; }
 			$found = self::find_prepend( self::strip_block( self::strip_block( self::read_file( $f ), '#' ), ';' ) );
 			if ( $found ) {
-				$who = false !== stripos( $found[1], 'wordfence' ) ? ' ' . __( 'It belongs to the Wordfence firewall: in Wordfence, open Firewall → All Firewall Options → Optimize the Wordfence Firewall → Remove Extended Protection, or deactivate Wordfence. Only one firewall can run before WordPress at a time.', 'sidcraft-bot-shield' ) : ' ' . __( 'Only one firewall can run before WordPress at a time: remove that line (or the other firewall plugin) first, or keep using the normal protection without extended mode.', 'sidcraft-bot-shield' );
-				return sprintf( /* translators: 1: file name 2: line number 3: value */ __( '%1$s already sets auto_prepend_file on line %2$d: %3$s.', 'sidcraft-bot-shield' ), basename( $f ), $found[0], $found[1] ) . $who;
+				$who = false !== stripos( $found[1], 'wordfence' ) ? ' ' . __( 'It belongs to the Wordfence firewall: in Wordfence, open Firewall → All Firewall Options → Optimize the Wordfence Firewall → Remove Extended Protection, or deactivate Wordfence. Only one firewall can run before WordPress at a time.', 'botvaguard' ) : ' ' . __( 'Only one firewall can run before WordPress at a time: remove that line (or the other firewall plugin) first, or keep using the normal protection without extended mode.', 'botvaguard' );
+				return sprintf( /* translators: 1: file name 2: line number 3: value */ __( '%1$s already sets auto_prepend_file on line %2$d: %3$s.', 'botvaguard' ), basename( $f ), $found[0], $found[1] ) . $who;
 			}
 		}
 		$dir = self::ext_dir(); $inc = wp_normalize_path( SIDCRAFT_BOTSHIELD_DIR . 'includes' );
-		$stub = "<?php\n// Generated by Sidcraft Bot Shield. Safe to delete: it does nothing if the plugin is missing.\nif ( defined( 'SIDCRAFT_BOTSHIELD_WAF_LOADED' ) ) { return; }\ndefine( 'SIDCRAFT_BOTSHIELD_WAF_LOADED', 1 );\ntry {\n\t\$r = '" . addslashes( $inc ) . "/class-ranges.php'; \$w = '" . addslashes( $inc ) . "/class-waf.php';\n\tif ( is_file( \$r ) && is_file( \$w ) && is_file( __DIR__ . '/waf-config.json' ) ) { define( 'SIDCRAFT_BOTSHIELD_WAF', 1 ); require_once \$r; require_once \$w; Sidcraft_BotShield_Waf::bootstrap( __DIR__ . '/waf-config.json', __DIR__ ); }\n} catch ( \\Throwable \$e ) { return; }\n";
-		if ( false === file_put_contents( $dir . '/prepend.php', $stub ) ) { return __( 'The firewall start file could not be written to wp-content/uploads/sidcraft-bot-shield.', 'sidcraft-bot-shield' ); } // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		$stub = "<?php\n// Generated by BotVaguard. Safe to delete: it does nothing if the plugin is missing.\nif ( defined( 'SIDCRAFT_BOTSHIELD_WAF_LOADED' ) ) { return; }\ndefine( 'SIDCRAFT_BOTSHIELD_WAF_LOADED', 1 );\ntry {\n\t\$r = '" . addslashes( $inc ) . "/class-ranges.php'; \$w = '" . addslashes( $inc ) . "/class-waf.php';\n\tif ( is_file( \$r ) && is_file( \$w ) && is_file( __DIR__ . '/waf-config.json' ) ) { define( 'SIDCRAFT_BOTSHIELD_WAF', 1 ); require_once \$r; require_once \$w; Sidcraft_BotShield_Waf::bootstrap( __DIR__ . '/waf-config.json', __DIR__ ); }\n} catch ( \\Throwable \$e ) { return; }\n";
+		if ( false === file_put_contents( $dir . '/prepend.php', $stub ) ) { return __( 'The firewall start file could not be written to wp-content/uploads/sidcraft-bot-shield.', 'botvaguard' ); } // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		update_option( self::FLAG, 1 );
 		self::ext_sync();
-		if ( ! is_file( $dir . '/waf-config.json' ) ) { return __( 'The firewall settings file could not be written to wp-content/uploads/sidcraft-bot-shield.', 'sidcraft-bot-shield' ); }
+		if ( ! is_file( $dir . '/waf-config.json' ) ) { return __( 'The firewall settings file could not be written to wp-content/uploads/sidcraft-bot-shield.', 'botvaguard' ); }
 		$m = self::manual_lines(); $p = wp_normalize_path( $dir . '/prepend.php' );
 		$ht_block = "# BEGIN " . self::MARK . "\n" . $m[1] . "\n# END " . self::MARK . "\n";
 		$ini_block = "; BEGIN " . self::MARK . "\n" . $m[0] . "\n; END " . self::MARK . "\n";
@@ -503,5 +505,45 @@ class Sidcraft_BotShield_Firewall {
 	/** nginx lines to add by hand. */
 	public static function core_nginx( $files ) {
 		return 'location ~* ^/(?:' . implode( '|', array_map( 'preg_quote', $files ) ) . ')\.php$ {' . "\n\tdeny all;\n}";
+	}
+
+	/* ---------- REST API (/wp-json/) protection ---------- */
+
+	/** A failed REST login (application password) counts like a failed login on the login page. */
+	public static function rest_auth_failed( $error = null ) { self::login_failed( '' ); }
+
+	/** The route being asked for, such as /wp/v2/posts. */
+	private static function rest_route() {
+		global $wp; $r = '';
+		if ( isset( $wp->query_vars['rest_route'] ) && is_string( $wp->query_vars['rest_route'] ) ) { $r = $wp->query_vars['rest_route']; }
+		if ( '' === $r && isset( $_GET['rest_route'] ) && is_string( $_GET['rest_route'] ) ) { $r = sanitize_text_field( wp_unslash( $_GET['rest_route'] ) ); } // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- plain-permalink form of the same address.
+		if ( '' === $r ) { $path = self::path(); $pre = '/' . rest_get_url_prefix() . '/'; $pos = strpos( $path, $pre ); if ( false !== $pos ) { $r = substr( $path, $pos + strlen( $pre ) - 1 ); } }
+		return '/' . trim( strtolower( $r ), '/' );
+	}
+
+	/** True when the route is one of the lines (a line matches itself and everything below it). */
+	private static function route_in( $route, $lines ) {
+		$route = trim( strtolower( $route ), '/' );
+		foreach ( preg_split( '/\R/', (string) $lines, -1, PREG_SPLIT_NO_EMPTY ) as $l ) {
+			$l = trim( strtolower( trim( $l ) ), '/' );
+			if ( '' === $l ) { continue; }
+			if ( $route === $l || 0 === strpos( $route, $l . '/' ) ) { return true; }
+		}
+		return false;
+	}
+
+	/** Filter on rest_authentication_errors: close the REST API to visitors who are not logged in, as the settings say. */
+	public static function rest_guard( $result ) {
+		if ( ! empty( $result ) || is_user_logged_in() ) { return $result; }
+		$ip = self::ip(); if ( '' !== $ip && self::trusted( $ip ) ) { return $result; }
+		$s = Sidcraft_BotShield_FwSettings::all(); $route = self::rest_route(); $why = '';
+		if ( (int) $s['rest_rate'] > 0 && '' !== $ip && self::count_fail( 'sbs_rr_', $ip, 1 ) > (int) $s['rest_rate'] ) { $why = 'rest_rate'; }
+		elseif ( '' !== trim( (string) $s['rest_block'] ) && self::route_in( $route, $s['rest_block'] ) ) { $why = 'rest_blocked'; }
+		elseif ( in_array( $s['rest_mode'], array( 'login', 'monitor' ), true ) && ! self::route_in( $route, $s['rest_allow'] ) ) { $why = 'rest_login'; }
+		if ( '' === $why ) { return $result; }
+		$watch = ( 'monitor' === $s['rest_mode'] && 'rest_login' === $why );
+		Sidcraft_BotShield_Log::add( $watch ? 'monitor' : 'block', $why, $ip, self::ua(), self::path() );
+		if ( $watch ) { return $result; }
+		return new WP_Error( 'rest_forbidden', 'rest_rate' === $why ? __( 'Too many requests. Please slow down.', 'botvaguard' ) : __( 'The REST API is not open to visitors who are not logged in.', 'botvaguard' ), array( 'status' => 'rest_rate' === $why ? 429 : rest_authorization_required_code() ) );
 	}
 }

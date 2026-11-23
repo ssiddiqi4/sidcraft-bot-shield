@@ -341,8 +341,8 @@ class Botvanguard_SecureAdmin {
 	/** One "block after N things in M minutes for D days" row. */
 	private static function limit_row( $O, $p, $s, $label, $what, $help ) {
 		echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[' . esc_attr( $p ) . '_on]" value="1" ' . checked( ! empty( $s[ $p . '_on' ] ), true, false ) . '> <strong>' . esc_html( $label ) . '</strong></label><br>';
-		$name = function ( $suffix ) use ( $O, $p ) { return esc_attr( sprintf( '%1$s[%2$s_%3$s]', $O, $p, $suffix ) ); };
-		echo esc_html__( 'Block after', 'botvanguard' ) . ' <input type="number" class="small-text" min="1" max="100" name="' . $name( 'attempts' ) . '" value="' . (int) $s[ $p . '_attempts' ] . '"> ' . esc_html( $what ) . ' ' . esc_html__( 'within', 'botvanguard' ) . ' <input type="number" class="small-text" min="1" max="1440" name="' . $name( 'minutes' ) . '" value="' . (int) $s[ $p . '_minutes' ] . '"> ' . esc_html__( 'minutes, for', 'botvanguard' ) . ' <input type="number" class="small-text" min="0" max="3650" name="' . $name( 'days' ) . '" value="' . (int) $s[ $p . '_days' ] . '"> ' . esc_html__( 'days (0 = for good).', 'botvanguard' ) . '<br><span class="description">' . esc_html( $help ) . '</span></p>';
+		$name = function ( $suffix ) use ( $O, $p ) { return sprintf( '%1$s[%2$s_%3$s]', $O, $p, $suffix ); };
+		echo esc_html__( 'Block after', 'botvanguard' ) . ' <input type="number" class="small-text" min="1" max="100" name="' . esc_attr( $name( 'attempts' ) ) . '" value="' . (int) $s[ $p . '_attempts' ] . '"> ' . esc_html( $what ) . ' ' . esc_html__( 'within', 'botvanguard' ) . ' <input type="number" class="small-text" min="1" max="1440" name="' . esc_attr( $name( 'minutes' ) ) . '" value="' . (int) $s[ $p . '_minutes' ] . '"> ' . esc_html__( 'minutes, for', 'botvanguard' ) . ' <input type="number" class="small-text" min="0" max="3650" name="' . esc_attr( $name( 'days' ) ) . '" value="' . (int) $s[ $p . '_days' ] . '"> ' . esc_html__( 'days (0 = for good).', 'botvanguard' ) . '<br><span class="description">' . esc_html( $help ) . '</span></p>';
 	}
 
 	private static function quarantine_box( $base ) {

@@ -41,7 +41,7 @@ class Botvanguard_Admin {
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only tab switch.
 		if ( in_array( $tab, self::TABS, true ) ) { return $tab; }
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only.
-		$tab  = 0 === strpos( $page, 'botvanguard-' ) ? substr( $page, 11 ) : 'dashboard';
+		$tab  = 0 === strpos( $page, 'botvanguard-' ) ? substr( $page, strlen( 'botvanguard-' ) ) : 'dashboard';
 		return in_array( $tab, self::TABS, true ) ? $tab : 'dashboard';
 	}
 

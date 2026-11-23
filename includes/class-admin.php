@@ -299,8 +299,8 @@ class Botvanguard_Admin {
 		foreach ( $rows as $r ) { echo '<tr><td style="width:240px"><strong>' . esc_html( $r[0] ) . '</strong></td><td>' . wp_kses( $r[1], array( 'span' => array( 'style' => array() ) ) ) . '</td><td style="text-align:right"><a href="' . esc_url( $r[2] ) . '">' . esc_html__( 'Change', 'botvanguard' ) . '</a></td></tr>'; }
 		echo '</tbody></table>';
 		echo '<h2>' . esc_html__( 'Back up before you change anything', 'botvanguard' ) . '</h2>';
-		echo '<p class="description" style="max-width:760px">' . esc_html__( 'Download a copy of these two files and keep it somewhere safe. If a change ever locks you out, you can upload the copy again over FTP. wp-config.php contains your database password and secret keys: keep the copy private and never send it to anyone.', 'botvanguard' ) . '</p><p>';
-		foreach ( array( 'htaccess' => __( 'Back up .htaccess', 'botvanguard' ), 'config' => __( 'Back up wp-config.php', 'botvanguard' ) ) as $k => $l ) {
+		echo '<p class="description" style="max-width:760px">' . esc_html__( 'Download a copy of these files and keep it somewhere safe. If a change ever locks you out, you can upload the copy again over FTP. wp-config.php contains your database password and secret keys: keep the copy private and never send it to anyone.', 'botvanguard' ) . '</p><p>';
+		foreach ( array( 'htaccess' => __( 'Back up .htaccess', 'botvanguard' ), 'config' => __( 'Back up wp-config.php', 'botvanguard' ), 'phpini' => __( 'Back up php.ini', 'botvanguard' ) ) as $k => $l ) {
 			echo '<a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_backup&file=' . $k ), 'sidcraft_botshield_backup' ) ) . '">' . esc_html( $l ) . '</a> ';
 		}
 		echo '</p>';
@@ -402,7 +402,7 @@ class Botvanguard_Admin {
 	}
 
 
-	/** Download a copy of .htaccess or wp-config.php (administrators only, with a nonce). */
+	/** Download a copy of .htaccess, wp-config.php or php.ini (administrators only, with a nonce). */
 	public static function backup() {
 		if ( ! current_user_can( 'manage_options' ) || ( is_multisite() && ! is_super_admin() ) ) { wp_die( esc_html__( 'Not allowed.', 'botvanguard' ), 403 ); }
 		check_admin_referer( 'sidcraft_botshield_backup' );
@@ -411,6 +411,11 @@ class Botvanguard_Admin {
 		if ( 'htaccess' === $which ) { $path = $root . '.htaccess'; $name = 'htaccess-backup'; }
 		elseif ( 'config' === $which ) {
 			$path = file_exists( $root . 'wp-config.php' ) ? $root . 'wp-config.php' : trailingslashit( dirname( untrailingslashit( $root ) ) ) . 'wp-config.php'; $name = 'wp-config-backup';
+		} elseif ( 'phpini' === $which ) {
+			// php.ini, or .user.ini on hosts that use that instead (both live in the site's main folder).
+			$path = $root . 'php.ini'; $name = 'php-ini-backup';
+			if ( ! is_file( $path ) && is_file( $root . '.user.ini' ) ) { $path = $root . '.user.ini'; $name = 'user-ini-backup'; }
+			if ( ! is_file( $path ) ) { wp_die( esc_html__( 'No php.ini or .user.ini was found in the main folder of this site. Some hosts keep it elsewhere or manage it for you; ask your host for a copy.', 'botvanguard' ), 404 ); }
 		} else { wp_die( esc_html__( 'Unknown file.', 'botvanguard' ), 400 ); }
 		if ( ! is_file( $path ) || ! is_readable( $path ) ) { wp_die( esc_html__( 'That file was not found or cannot be read on this server.', 'botvanguard' ), 404 ); }
 		// The copy ends in .txt, so it can never run as PHP if someone stores it on a web server by mistake.

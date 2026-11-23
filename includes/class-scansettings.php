@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Scan options (own tab, own option). */
-class Sidcraft_BotShield_ScanSettings {
+class Botvaguard_ScanSettings {
 	const OPTION = 'sidcraft_botshield_scan_opts';
 
 	public static function check_labels() {

@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Admin screens for the Firewall and Scan tabs. */
-class Sidcraft_BotShield_SecureAdmin {
+class Botvaguard_SecureAdmin {
 	public static function init() {
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
 		add_action( 'wp_ajax_sidcraft_botshield_scan', array( __CLASS__, 'ajax' ) );
@@ -10,17 +10,17 @@ class Sidcraft_BotShield_SecureAdmin {
 		add_action( 'admin_post_sidcraft_botshield_ext', array( __CLASS__, 'ext_action' ) );
 		add_action( 'admin_post_sidcraft_botshield_unban', array( __CLASS__, 'unban' ) );
 		add_action( 'admin_post_sidcraft_botshield_unban_mail', array( __CLASS__, 'unban_mail' ) );
-		add_action( 'update_option_' . Sidcraft_BotShield_LoginSettings::OPTION, array( __CLASS__, 'login_saved' ), 10, 2 );
-		add_action( 'add_option_' . Sidcraft_BotShield_LoginSettings::OPTION, function ( $o, $v ) { Sidcraft_BotShield_SecureAdmin::login_saved( Sidcraft_BotShield_LoginSettings::defaults(), $v ); }, 10, 2 );
-		add_action( 'update_option_' . Sidcraft_BotShield_FwSettings::OPTION, array( 'Sidcraft_BotShield_Firewall', 'ext_sync' ) );
-		add_action( 'update_option_' . Sidcraft_BotShield_ScanSettings::OPTION, function () { Sidcraft_BotShield_Scanner::schedule( true ); } );
-		add_action( 'add_option_' . Sidcraft_BotShield_ScanSettings::OPTION, function () { Sidcraft_BotShield_Scanner::schedule( true ); } );
+		add_action( 'update_option_' . Botvaguard_LoginSettings::OPTION, array( __CLASS__, 'login_saved' ), 10, 2 );
+		add_action( 'add_option_' . Botvaguard_LoginSettings::OPTION, function ( $o, $v ) { Botvaguard_SecureAdmin::login_saved( Botvaguard_LoginSettings::defaults(), $v ); }, 10, 2 );
+		add_action( 'update_option_' . Botvaguard_FwSettings::OPTION, array( 'Botvaguard_Firewall', 'ext_sync' ) );
+		add_action( 'update_option_' . Botvaguard_ScanSettings::OPTION, function () { Botvaguard_Scanner::schedule( true ); } );
+		add_action( 'add_option_' . Botvaguard_ScanSettings::OPTION, function () { Botvaguard_Scanner::schedule( true ); } );
 	}
 
 	public static function register() {
-		register_setting( 'sidcraft_botshield_fw_group', Sidcraft_BotShield_FwSettings::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( 'Sidcraft_BotShield_FwSettings', 'sanitize' ), 'default' => Sidcraft_BotShield_FwSettings::defaults() ) );
-		register_setting( 'sidcraft_botshield_login_group', Sidcraft_BotShield_LoginSettings::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( 'Sidcraft_BotShield_LoginSettings', 'sanitize' ), 'default' => Sidcraft_BotShield_LoginSettings::defaults() ) );
-		register_setting( 'sidcraft_botshield_scan_group', Sidcraft_BotShield_ScanSettings::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( 'Sidcraft_BotShield_ScanSettings', 'sanitize' ), 'default' => Sidcraft_BotShield_ScanSettings::defaults() ) );
+		register_setting( 'sidcraft_botshield_fw_group', Botvaguard_FwSettings::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( 'Botvaguard_FwSettings', 'sanitize' ), 'default' => Botvaguard_FwSettings::defaults() ) );
+		register_setting( 'sidcraft_botshield_login_group', Botvaguard_LoginSettings::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( 'Botvaguard_LoginSettings', 'sanitize' ), 'default' => Botvaguard_LoginSettings::defaults() ) );
+		register_setting( 'sidcraft_botshield_scan_group', Botvaguard_ScanSettings::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( 'Botvaguard_ScanSettings', 'sanitize' ), 'default' => Botvaguard_ScanSettings::defaults() ) );
 	}
 
 	private static function cap() { if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Not allowed.', 'botvaguard' ), 403 ); } }
@@ -30,7 +30,7 @@ class Sidcraft_BotShield_SecureAdmin {
 	// =========================================================== Firewall tab
 	public static function firewall_tab( $base ) {
 		self::notice();
-		$s = Sidcraft_BotShield_FwSettings::all(); $O = Sidcraft_BotShield_FwSettings::OPTION; $mode = Sidcraft_BotShield_FwSettings::effective_mode();
+		$s = Botvaguard_FwSettings::all(); $O = Botvaguard_FwSettings::OPTION; $mode = Botvaguard_FwSettings::effective_mode();
 		$labels = array( 'disabled' => __( 'Disabled', 'botvaguard' ), 'learning' => __( 'Learning mode', 'botvaguard' ), 'enabled' => __( 'Enabled and protecting', 'botvaguard' ) );
 		$col = array( 'disabled' => '#b32d2e', 'learning' => '#996800', 'enabled' => '#007a5a' );
 		echo '<p>' . esc_html__( 'The firewall looks at every request before WordPress answers it, and stops SQL injection, cross-site scripting, file inclusion, code execution and malicious uploads. It also protects logins and limits fast crawlers.', 'botvaguard' ) . '</p>';
@@ -39,7 +39,7 @@ class Sidcraft_BotShield_SecureAdmin {
 		echo '</p>';
 		self::box( __( 'Never block these addresses', 'botvaguard' ), function () {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'; wp_nonce_field( 'sidcraft_botshield_allow' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_allow">';
-			echo Sidcraft_BotShield_Admin::allow_fields( Sidcraft_BotShield_Settings::get( 'ip_allow' ), 'ip_allow', 'sbs-ipallow-fw' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside.
+			echo Botvaguard_Admin::allow_fields( Botvaguard_Settings::get( 'ip_allow' ), 'ip_allow', 'sbs-ipallow-fw' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped inside.
 			echo '<p><button class="button button-primary">' . esc_html__( 'Save list', 'botvaguard' ) . '</button></p></form>';
 		} );
 		echo '<form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_fw_group' );
@@ -47,10 +47,10 @@ class Sidcraft_BotShield_SecureAdmin {
 		self::box( __( 'Web application firewall', 'botvaguard' ), function () use ( $s, $O ) {
 			foreach ( array( 'enabled' => __( 'Enabled and protecting: block attacks', 'botvaguard' ), 'learning' => __( 'Learning mode: only record for 7 days, then switch on (recommended for a new install)', 'botvaguard' ), 'disabled' => __( 'Disabled', 'botvaguard' ) ) as $v => $l ) { echo '<p style="margin:4px 0"><label><input type="radio" name="' . esc_attr( $O ) . '[waf_mode]" value="' . esc_attr( $v ) . '" ' . checked( $s['waf_mode'], $v, false ) . '> ' . esc_html( $l ) . '</label></p>'; }
 			echo '<h4>' . esc_html__( 'Rules', 'botvaguard' ) . '</h4>';
-			$cats = Sidcraft_BotShield_Waf::categories();
+			$cats = Botvaguard_Waf::categories();
 			foreach ( $cats as $ck => $cl ) {
 				echo '<p style="margin:10px 0 2px"><strong>' . esc_html( $cl ) . '</strong></p>';
-				foreach ( Sidcraft_BotShield_Waf::rules() as $id => $r ) { if ( $r[0] !== $ck ) { continue; } echo '<label style="display:block;margin-left:12px"><input type="checkbox" name="' . esc_attr( $O ) . '[waf_rules][' . esc_attr( $id ) . ']" value="1" ' . checked( ! in_array( $id, $s['waf_disabled'], true ), true, false ) . '> ' . esc_html( $r[1] ) . '</label>'; }
+				foreach ( Botvaguard_Waf::rules() as $id => $r ) { if ( $r[0] !== $ck ) { continue; } echo '<label style="display:block;margin-left:12px"><input type="checkbox" name="' . esc_attr( $O ) . '[waf_rules][' . esc_attr( $id ) . ']" value="1" ' . checked( ! in_array( $id, $s['waf_disabled'], true ), true, false ) . '> ' . esc_html( $r[1] ) . '</label>'; }
 			}
 			echo '<h4>' . esc_html__( 'Allowed parameters', 'botvaguard' ) . '</h4><textarea name="' . esc_attr( $O ) . '[waf_allow]" rows="5" cols="60" placeholder="/contact/ message&#10;/shop/ note xss_script">' . esc_textarea( $s['waf_allow'] ) . '</textarea><br><span class="description">' . esc_html__( 'One per line: page address, field name, and optionally a rule id. Use * for any page. These requests are not checked. Learning mode adds lines here by itself when an administrator sends something the firewall would have blocked. Administrators are never blocked.', 'botvaguard' ) . '</span>';
 			echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[waf_ban]" value="1" ' . checked( ! empty( $s['waf_ban'] ), true, false ) . '> ' . esc_html__( 'Ban an address that is blocked 5 times in 10 minutes', 'botvaguard' ) . '</label></p>';
@@ -104,11 +104,11 @@ class Sidcraft_BotShield_SecureAdmin {
 			foreach ( $rows as $k => $r ) {
 				echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $s[ $k ] ), true, false ) . '> <code>' . esc_html( $r[0] ) . '</code></label><br><span class="description">' . esc_html( $r[1] ) . '</span></p>';
 			}
-			$files = Sidcraft_BotShield_Firewall::core_files(); $err = get_option( Sidcraft_BotShield_Firewall::CORE_ERR, '' );
+			$files = Botvaguard_Firewall::core_files(); $err = get_option( Botvaguard_Firewall::CORE_ERR, '' );
 			if ( $files && 'nginx' === $err ) {
-				echo '<div class="notice notice-info inline"><p>' . esc_html__( 'This server runs nginx, which does not read .htaccess. Ask your host to add this to the site configuration (xmlrpc.php and wp-config.php are also blocked by the plugin itself; wp-settings.php only by this rule):', 'botvaguard' ) . '</p><pre style="user-select:all">' . esc_html( Sidcraft_BotShield_Firewall::core_nginx( $files ) ) . '</pre></div>';
+				echo '<div class="notice notice-info inline"><p>' . esc_html__( 'This server runs nginx, which does not read .htaccess. Ask your host to add this to the site configuration (xmlrpc.php and wp-config.php are also blocked by the plugin itself; wp-settings.php only by this rule):', 'botvaguard' ) . '</p><pre style="user-select:all">' . esc_html( Botvaguard_Firewall::core_nginx( $files ) ) . '</pre></div>';
 			} elseif ( $files && is_string( $err ) && '' !== $err ) {
-				echo '<div class="notice notice-warning inline"><p>' . esc_html( $err ) . ' ' . esc_html__( 'The server rule could not be written to .htaccess. Add these lines to the top of .htaccess by hand:', 'botvaguard' ) . '</p><pre style="user-select:all">' . esc_html( Sidcraft_BotShield_Firewall::core_htaccess( $files ) ) . '</pre></div>';
+				echo '<div class="notice notice-warning inline"><p>' . esc_html( $err ) . ' ' . esc_html__( 'The server rule could not be written to .htaccess. Add these lines to the top of .htaccess by hand:', 'botvaguard' ) . '</p><pre style="user-select:all">' . esc_html( Botvaguard_Firewall::core_htaccess( $files ) ) . '</pre></div>';
 			} elseif ( $files ) {
 				echo '<p class="description">' . esc_html__( 'The rule is in your .htaccess (between the Sidcraft Bot Shield Core Files lines). It is removed when you switch these off or deactivate the plugin.', 'botvaguard' ) . '</p>';
 			}
@@ -119,7 +119,7 @@ class Sidcraft_BotShield_SecureAdmin {
 	}
 
 	private static function extended_box() {
-		list( $on, $seen ) = Sidcraft_BotShield_Firewall::ext_status(); $err = Sidcraft_BotShield_Firewall::ext_error();
+		list( $on, $seen ) = Botvaguard_Firewall::ext_status(); $err = Botvaguard_Firewall::ext_error();
 		self::box( __( 'Extended protection', 'botvaguard' ), function () use ( $on, $seen, $err ) {
 			echo '<p>' . esc_html__( 'Normally the firewall starts together with WordPress, so a request is checked after other plugins have loaded. Extended protection runs it first, before WordPress and every plugin, which also covers attacks on other plugins’ files.', 'botvaguard' ) . '</p>';
 			$active = $seen && time() - $seen < 15 * MINUTE_IN_SECONDS;
@@ -131,7 +131,7 @@ class Sidcraft_BotShield_SecureAdmin {
 			if ( $err ) {
 				echo '<div class="notice notice-error inline" style="margin:8px 0"><p><strong>' . esc_html__( 'The last attempt did not work:', 'botvaguard' ) . '</strong> ' . esc_html( $err['msg'] ) . '</p></div>';
 				if ( ! empty( $err['manual'] ) ) {
-					$m = Sidcraft_BotShield_Firewall::manual_lines();
+					$m = Botvaguard_Firewall::manual_lines();
 					echo '<p>' . esc_html__( 'You can add the lines yourself. Use the first block in .user.ini (PHP-FPM, CGI, most cPanel hosts; in cPanel: MultiPHP INI Editor, or File Manager) or the second in .htaccess (Apache with mod_php, LiteSpeed). One of them is enough. The firewall start file is already prepared.', 'botvaguard' ) . '</p>';
 					echo '<p><strong>.user.ini</strong><br><textarea readonly rows="2" style="width:100%;font-family:monospace" onclick="this.select()">' . esc_textarea( $m[0] ) . '</textarea></p>';
 					echo '<p><strong>.htaccess</strong><br><textarea readonly rows="8" style="width:100%;font-family:monospace" onclick="this.select()">' . esc_textarea( $m[1] ) . '</textarea></p>';
@@ -145,7 +145,7 @@ class Sidcraft_BotShield_SecureAdmin {
 	}
 
 	private static function bans_box() {
-		$bans = Sidcraft_BotShield_Bans::all();
+		$bans = Botvaguard_Bans::all();
 		self::box( sprintf( /* translators: %d: number */ __( 'Blocked addresses right now (%d)', 'botvaguard' ), count( $bans ) ), function () use ( $bans ) {
 			echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin-bottom:12px">'; wp_nonce_field( 'sidcraft_botshield_unban' ); echo '<input type="hidden" name="action" value="sidcraft_botshield_unban"><label>' . esc_html__( 'Unblock an address:', 'botvaguard' ) . ' <input type="text" name="ip" placeholder="203.0.113.7" style="width:180px"></label> <button class="button">' . esc_html__( 'Unblock', 'botvaguard' ) . '</button> <span class="description">' . esc_html__( 'Use this if a real visitor, or you, got blocked by mistake.', 'botvaguard' ) . '</span></form>';
 			if ( ! $bans ) { echo '<p>' . esc_html__( 'No address is blocked.', 'botvaguard' ) . '</p>'; return; }
@@ -158,22 +158,22 @@ class Sidcraft_BotShield_SecureAdmin {
 	public static function ext_action() {
 		self::cap(); check_admin_referer( 'sidcraft_botshield_ext' );
 		$do = isset( $_POST['do'] ) ? sanitize_key( wp_unslash( $_POST['do'] ) ) : '';
-		if ( 'enable' === $do ) { $err = Sidcraft_BotShield_Firewall::ext_enable(); if ( '' !== $err ) { set_transient( 'sidcraft_botshield_notice', $err, 60 ); } }
-		elseif ( 'disable' === $do ) { Sidcraft_BotShield_Firewall::ext_disable(); }
+		if ( 'enable' === $do ) { $err = Botvaguard_Firewall::ext_enable(); if ( '' !== $err ) { set_transient( 'sidcraft_botshield_notice', $err, 60 ); } }
+		elseif ( 'disable' === $do ) { Botvaguard_Firewall::ext_disable(); }
 		self::back( 'firewall' );
 	}
 
 	public static function unban() {
 		self::cap(); check_admin_referer( 'sidcraft_botshield_unban' );
 		$ip = isset( $_REQUEST['ip'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['ip'] ) ) : '';
-		if ( '' !== Sidcraft_BotShield_Ranges::pack( $ip ) ) { self::lift( $ip ); set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: IP */ __( '%s is unblocked.', 'botvaguard' ), $ip ), 60 ); }
+		if ( '' !== Botvaguard_Ranges::pack( $ip ) ) { self::lift( $ip ); set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: IP */ __( '%s is unblocked.', 'botvaguard' ), $ip ), 60 ); }
 		else { set_transient( 'sidcraft_botshield_notice', __( 'That is not a valid IP address.', 'botvaguard' ), 60 ); }
 		self::back( 'firewall' );
 	}
 
 	/** Remove every kind of block for one address. */
 	public static function lift( $ip ) {
-		Sidcraft_BotShield_Bans::remove( $ip );
+		Botvaguard_Bans::remove( $ip );
 		foreach ( array( 'sbs_lf_', 'sbs_fp_', 'sbs_wafn_', 'sbs_rc_', 'sbs_nf_', 'sbs_rate_' ) as $p ) { delete_transient( $p . md5( $ip ) ); }
 	}
 
@@ -184,7 +184,7 @@ class Sidcraft_BotShield_SecureAdmin {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- an emailed link: it carries an HMAC signature instead of a nonce, and an administrator must be logged in
 		$ip = isset( $_GET['ip'] ) ? rawurldecode( sanitize_text_field( wp_unslash( $_GET['ip'] ) ) ) : ''; $sig = isset( $_GET['sig'] ) ? sanitize_text_field( wp_unslash( $_GET['sig'] ) ) : '';
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
-		if ( '' !== Sidcraft_BotShield_Ranges::pack( $ip ) && hash_equals( Sidcraft_BotShield_Notify::sign( 'unban|' . $ip ), $sig ) ) { self::lift( $ip ); set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: IP */ __( '%s is unblocked.', 'botvaguard' ), $ip ), 60 ); }
+		if ( '' !== Botvaguard_Ranges::pack( $ip ) && hash_equals( Botvaguard_Notify::sign( 'unban|' . $ip ), $sig ) ) { self::lift( $ip ); set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: IP */ __( '%s is unblocked.', 'botvaguard' ), $ip ), 60 ); }
 		else { set_transient( 'sidcraft_botshield_notice', __( 'This unblock link is not valid.', 'botvaguard' ), 60 ); }
 		self::back( 'firewall' );
 	}
@@ -196,14 +196,14 @@ class Sidcraft_BotShield_SecureAdmin {
 		$old = is_array( $old ) ? $old : array(); $new = is_array( $new ) ? $new : array();
 		if ( ! empty( $new['url_on'] ) && ! empty( $new['url_slug'] ) && ( empty( $old['url_on'] ) || ( $old['url_slug'] ?? '' ) !== $new['url_slug'] ) ) {
 			$url = home_url( '/' . $new['url_slug'] . '/' );
-			Sidcraft_BotShield_Mailer::send( get_option( 'admin_email' ), sprintf( /* translators: %s: site */ __( '[%s] Your new login address', 'botvaguard' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ), sprintf( /* translators: %s: URL */ __( "Your WordPress login address is now:\n%s\n\nKeep this email. The old addresses (/wp-login.php and /wp-admin) no longer work for visitors.\n\nIf you ever forget it, add this line to wp-config.php to switch the custom address off:\ndefine( 'SIDCRAFT_BOTSHIELD_LOGIN_URL_OFF', true );", 'botvaguard' ), $url ) );
+			Botvaguard_Mailer::send( get_option( 'admin_email' ), sprintf( /* translators: %s: site */ __( '[%s] Your new login address', 'botvaguard' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ), sprintf( /* translators: %s: URL */ __( "Your WordPress login address is now:\n%s\n\nKeep this email. The old addresses (/wp-login.php and /wp-admin) no longer work for visitors.\n\nIf you ever forget it, add this line to wp-config.php to switch the custom address off:\ndefine( 'SIDCRAFT_BOTSHIELD_LOGIN_URL_OFF', true );", 'botvaguard' ), $url ) );
 			set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %s: URL */ __( 'Your login address is now %s. Bookmark it. It was also emailed to the site administrator.', 'botvaguard' ), $url ), 120 );
 		}
 	}
 
 	public static function login_tab( $base ) {
 		self::notice();
-		$s = Sidcraft_BotShield_LoginSettings::all(); $O = Sidcraft_BotShield_LoginSettings::OPTION;
+		$s = Botvaguard_LoginSettings::all(); $O = Botvaguard_LoginSettings::OPTION;
 		echo '<form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_login_group' );
 		self::box( __( 'Two-factor login', 'botvaguard' ), function () use ( $s, $O ) {
 			echo '<p>' . esc_html__( 'After the password, users must also prove it is them: with a code by email, a code from an authenticator app, a text message, or a passkey (fingerprint, face or security key).', 'botvaguard' ) . '</p>';
@@ -221,7 +221,7 @@ class Sidcraft_BotShield_SecureAdmin {
 		} );
 		self::box( __( 'Email delivery for login codes and alerts', 'botvaguard' ), function () use ( $s, $O ) {
 			echo '<span id="sbs-mail"></span>';
-			$t = Sidcraft_BotShield_Mailer::last_test();
+			$t = Botvaguard_Mailer::last_test();
 			if ( $t ) {
 				echo '<div class="notice notice-' . ( $t['ok'] ? 'success' : 'error' ) . ' inline" style="margin:0 0 12px"><p><strong>' . esc_html( $t['ok'] ? sprintf( /* translators: %s: email address */ __( 'Test email handed over to the mail system for %s. Check the inbox (and spam folder).', 'botvaguard' ), $t['to'] ) . ( 'php' === $t['mode'] ? ' ' . __( 'With the PHP mailer this only means the web server accepted the message, not that it was delivered. Gmail and other providers often drop or hide mail that comes straight from a web server. If it does not arrive, choose “Configure an SMTP server”.', 'botvaguard' ) : '' ) : __( 'The test email could not be sent.', 'botvaguard' ) ) . '</strong>' . ( $t['error'] ? '<br>' . esc_html( $t['error'] ) : '' ) . '</p>' . ( $t['log'] ? '<details><summary>' . esc_html__( 'Server conversation', 'botvaguard' ) . '</summary><pre style="white-space:pre-wrap;max-height:220px;overflow:auto">' . esc_html( $t['log'] ) . '</pre></details>' : '' ) . '</div>';
 			}
@@ -243,7 +243,7 @@ class Sidcraft_BotShield_SecureAdmin {
 				$pwh = '<span id="sbs-pw-saved"><input type="text" value="' . esc_attr( '••••••••••' ) . '" class="regular-text" readonly disabled> <button type="button" class="button" id="sbs-pw-change">' . esc_html__( 'Change password', 'botvaguard' ) . '</button> <label><input type="checkbox" name="' . esc_attr( $O ) . '[smtp_forget]" value="1"> ' . esc_html__( 'Forget it', 'botvaguard' ) . '</label><br><span class="description">' . esc_html__( 'A password is saved (encrypted). It stays until you change it.', 'botvaguard' ) . '</span></span>'
 					. '<span id="sbs-pw-new" hidden><input type="password" name="' . esc_attr( $O ) . '[smtp_pass]" value="" class="regular-text" autocomplete="new-password" disabled> <input type="hidden" name="' . esc_attr( $O ) . '[smtp_pass_change]" value="1" disabled></span>';
 			} else { $pwh = '<input type="password" name="' . esc_attr( $O ) . '[smtp_pass]" value="" class="regular-text" autocomplete="new-password" readonly id="sbs-pw-first">'; }
-			wp_register_script( 'sidcraft-botshield-mailpw', false, array(), SIDCRAFT_BOTSHIELD_VERSION, true ); wp_enqueue_script( 'sidcraft-botshield-mailpw' );
+			wp_register_script( 'sidcraft-botshield-mailpw', false, array(), BOTVAGUARD_VERSION, true ); wp_enqueue_script( 'sidcraft-botshield-mailpw' );
 			wp_add_inline_script( 'sidcraft-botshield-mailpw', "(function(){var b=document.getElementById('sbs-pw-change'),f=document.getElementById('sbs-pw-first');if(b){b.addEventListener('click',function(){document.getElementById('sbs-pw-saved').hidden=true;var n=document.getElementById('sbs-pw-new');n.hidden=false;n.querySelectorAll('input').forEach(function(i){i.disabled=false;});n.querySelector('input[type=password]').focus();});}if(f){f.addEventListener('focus',function(){f.removeAttribute('readonly');});}})();" );
 			$row( __( 'Password', 'botvaguard' ), $pwh . '<p class="description">' . esc_html__( 'Or put define( \'SIDCRAFT_BOTSHIELD_SMTP_PASS\', \'your-password\' ); in wp-config.php and keep it out of the database.', 'botvaguard' ) . '</p>' );
 			$row( __( 'From address and name', 'botvaguard' ), '<input type="text" name="' . esc_attr( $O ) . '[mail_from]" value="' . esc_attr( $s['mail_from'] ) . '" class="regular-text" placeholder="no-reply@yoursite.com"> <input type="text" name="' . esc_attr( $O ) . '[mail_from_name]" value="' . esc_attr( $s['mail_from_name'] ) . '" class="regular-text" placeholder="' . esc_attr( get_bloginfo( 'name' ) ) . '"><p class="description">' . esc_html__( 'Many SMTP servers only accept a From address on their own domain. Leave empty to keep WordPress’s default.', 'botvaguard' ) . '</p>' );
@@ -269,17 +269,17 @@ class Sidcraft_BotShield_SecureAdmin {
 	private static function sev_style( $s ) { $c = array( 'critical' => '#b32d2e', 'high' => '#d63638', 'medium' => '#bd5b00', 'low' => '#646970' ); return 'display:inline-block;min-width:62px;text-align:center;padding:2px 8px;border-radius:10px;color:#fff;font-size:12px;background:' . ( $c[ $s ] ?? '#646970' ); }
 
 	public static function scan_tab( $base ) {
-		$st = Sidcraft_BotShield_Scanner::state(); $running = 'running' === $st['status'];
-		$f = Sidcraft_BotShield_Scanner::findings();
+		$st = Botvaguard_Scanner::state(); $running = 'running' === $st['status'];
+		$f = Botvaguard_Scanner::findings();
 		$view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only.
 		if ( '' !== $view && isset( $f[ $view ] ) ) { self::file_view( $f[ $view ], $base ); return; }
 		self::notice();
 		echo '<p>' . esc_html__( 'Looks for hacked or changed WordPress files, malware and backdoors, injected content, exposed backup files, out-of-date software and weak passwords. The scan works in short steps and keeps going in the background if you close this page.', 'botvaguard' ) . '</p>';
-		echo '<p><a href="#sbs-quarantine">' . esc_html( sprintf( /* translators: %d: number of files */ __( 'Quarantined files (%d): restore or delete', 'botvaguard' ), count( Sidcraft_BotShield_Scanner::quarantined() ) ) ) . '</a></p>';
+		echo '<p><a href="#sbs-quarantine">' . esc_html( sprintf( /* translators: %d: number of files */ __( 'Quarantined files (%d): restore or delete', 'botvaguard' ), count( Botvaguard_Scanner::quarantined() ) ) ) . '</a></p>';
 		echo '<div style="background:#fff;border:1px solid #c3c4c7;border-radius:6px;padding:14px 18px;margin:14px 0">';
 		echo '<p style="margin-top:0"><button id="sbs-scan-btn" class="button button-primary button-hero" data-running="' . ( $running ? '1' : '0' ) . '">' . esc_html( $running ? __( 'Stop scan', 'botvaguard' ) : __( 'Start scan', 'botvaguard' ) ) . '</button> <span id="sbs-scan-label" style="margin-left:10px">';
 		if ( $running ) { echo esc_html__( 'Scanning…', 'botvaguard' ); } elseif ( $st['finished'] ) { echo esc_html( sprintf( /* translators: %s: time */ __( 'Last scan finished %s ago.', 'botvaguard' ), human_time_diff( $st['finished'] ) ) ); } else { echo esc_html__( 'No scan yet.', 'botvaguard' ); }
-		echo '</span></p><div style="background:#f0f0f1;border-radius:4px;height:14px;overflow:hidden;' . ( $running ? '' : 'display:none' ) . '" id="sbs-bar-wrap"><div id="sbs-bar" style="height:14px;background:#2271b1;width:' . (int) Sidcraft_BotShield_Scanner::progress( $st ) . '%;transition:width .4s"></div></div>';
+		echo '</span></p><div style="background:#f0f0f1;border-radius:4px;height:14px;overflow:hidden;' . ( $running ? '' : 'display:none' ) . '" id="sbs-bar-wrap"><div id="sbs-bar" style="height:14px;background:#2271b1;width:' . (int) Botvaguard_Scanner::progress( $st ) . '%;transition:width .4s"></div></div>';
 		echo '<ul id="sbs-scan-log" style="margin:10px 0 0;color:#50575e;font-size:12px">'; foreach ( array_slice( $st['log'], -6 ) as $l ) { echo '<li>' . esc_html( $l[1] ) . '</li>'; } echo '</ul></div>';
 		self::scan_script();
 		// Summary + results.
@@ -289,7 +289,7 @@ class Sidcraft_BotShield_SecureAdmin {
 		echo '</p>';
 		if ( ! $f ) { echo '<p>' . esc_html( $st['finished'] ? __( 'Nothing found. Your site looks clean.', 'botvaguard' ) : __( 'Run a scan to see results.', 'botvaguard' ) ) . '</p>'; }
 		else {
-			uasort( $f, function ( $a, $b ) { return Sidcraft_BotShield_Scanner::SEV[ $b['sev'] ] <=> Sidcraft_BotShield_Scanner::SEV[ $a['sev'] ]; } );
+			uasort( $f, function ( $a, $b ) { return Botvaguard_Scanner::SEV[ $b['sev'] ] <=> Botvaguard_Scanner::SEV[ $a['sev'] ]; } );
 			echo '<table class="widefat striped"><thead><tr><th style="width:80px">' . esc_html__( 'Severity', 'botvaguard' ) . '</th><th>' . esc_html__( 'Result', 'botvaguard' ) . '</th><th style="width:300px">' . esc_html__( 'What you can do', 'botvaguard' ) . '</th></tr></thead><tbody>';
 			foreach ( $f as $id => $x ) {
 				echo '<tr><td><span style="' . esc_attr( self::sev_style( $x['sev'] ) ) . '">' . esc_html( $x['sev'] ) . '</span></td><td><strong>' . esc_html( $x['title'] ) . '</strong>';
@@ -310,11 +310,11 @@ class Sidcraft_BotShield_SecureAdmin {
 	private static function finding_links( $id, $x, $base ) {
 		$act = function ( $a, $label, $confirm = '' ) use ( $id ) { $u = wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_finding&act=' . $a . '&id=' . rawurlencode( $id ) ), 'sidcraft_botshield_finding' ); return '<a href="' . esc_url( $u ) . '"' . ( '' !== $confirm ? ' onclick="return confirm(\'' . esc_js( $confirm ) . '\')"' : '' ) . '>' . esc_html( $label ) . '</a>'; };
 		$out = array();
-		if ( '' !== $x['rel'] && '' !== Sidcraft_BotShield_Scanner::safe_path( $x['rel'] ) ) { $out[] = '<a href="' . esc_url( add_query_arg( array( 'tab' => 'scan', 'view' => $id ), $base ) ) . '">' . esc_html__( 'View file', 'botvaguard' ) . '</a>'; }
+		if ( '' !== $x['rel'] && '' !== Botvaguard_Scanner::safe_path( $x['rel'] ) ) { $out[] = '<a href="' . esc_url( add_query_arg( array( 'tab' => 'scan', 'view' => $id ), $base ) ) . '">' . esc_html__( 'View file', 'botvaguard' ) . '</a>'; }
 		if ( ! empty( $x['extra']['repair'] ) ) { $out[] = $act( 'repair', __( 'Repair (restore the official file)', 'botvaguard' ), __( 'Replace this file with the official copy from WordPress.org?', 'botvaguard' ) ); }
 		if ( in_array( $x['type'], array( 'malware', 'upload_php', 'image_php', 'config_file', 'core_unknown', 'plugin_unknown' ), true ) && '' !== $x['rel'] ) {
-			if ( '' === Sidcraft_BotShield_Scanner::removal_block( $x ) ) { $out[] = $act( 'quarantine', __( 'Quarantine (can be undone)', 'botvaguard' ), __( 'Move this file out of the site into quarantine? You can put it back from the Quarantine list. If it is part of your theme or a plugin the site may stop working until you restore it.', 'botvaguard' ) ); }
-			elseif ( 'malware' === $x['type'] && Sidcraft_BotShield_Scanner::is_core_path( $x['rel'] ) ) { $out[] = '<em>' . esc_html__( 'Core file: use Repair on the matching “core file was modified” result', 'botvaguard' ) . '</em>'; }
+			if ( '' === Botvaguard_Scanner::removal_block( $x ) ) { $out[] = $act( 'quarantine', __( 'Quarantine (can be undone)', 'botvaguard' ), __( 'Move this file out of the site into quarantine? You can put it back from the Quarantine list. If it is part of your theme or a plugin the site may stop working until you restore it.', 'botvaguard' ) ); }
+			elseif ( 'malware' === $x['type'] && Botvaguard_Scanner::is_core_path( $x['rel'] ) ) { $out[] = '<em>' . esc_html__( 'Core file: use Repair on the matching “core file was modified” result', 'botvaguard' ) . '</em>'; }
 		}
 		if ( ! empty( $x['extra']['post'] ) ) { $out[] = '<a href="' . esc_url( get_edit_post_link( (int) $x['extra']['post'], 'raw' ) ) . '">' . esc_html__( 'Edit post', 'botvaguard' ) . '</a>'; }
 		if ( ! empty( $x['extra']['comment'] ) ) { $out[] = '<a href="' . esc_url( admin_url( 'comment.php?action=editcomment&c=' . (int) $x['extra']['comment'] ) ) . '">' . esc_html__( 'Edit comment', 'botvaguard' ) . '</a>'; }
@@ -326,7 +326,7 @@ class Sidcraft_BotShield_SecureAdmin {
 
 	private static function file_view( $x, $base ) {
 		echo '<p><a href="' . esc_url( add_query_arg( 'tab', 'scan', $base ) ) . '">&larr; ' . esc_html__( 'Back to results', 'botvaguard' ) . '</a></p>';
-		$abs = Sidcraft_BotShield_Scanner::safe_path( $x['rel'] );
+		$abs = Botvaguard_Scanner::safe_path( $x['rel'] );
 		echo '<h2>' . esc_html( $x['rel'] ) . '</h2><p><strong>' . esc_html( $x['title'] ) . '</strong><br><span class="description">' . esc_html( $x['detail'] ) . '</span></p>';
 		if ( '' === $abs ) { echo '<p>' . esc_html__( 'The file is not there any more.', 'botvaguard' ) . '</p>'; return; }
 		$size = filesize( $abs ); $txt = (string) file_get_contents( $abs, false, null, 0, 400000 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
@@ -346,7 +346,7 @@ class Sidcraft_BotShield_SecureAdmin {
 	}
 
 	private static function quarantine_box( $base ) {
-		$q = Sidcraft_BotShield_Scanner::quarantined();
+		$q = Botvaguard_Scanner::quarantined();
 		echo '<h2 id="sbs-quarantine" style="margin-top:30px">' . esc_html( sprintf( /* translators: %d: number of files */ __( 'Quarantine (%d)', 'botvaguard' ), count( $q ) ) ) . '</h2>';
 		if ( ! $q ) { echo '<p class="description">' . esc_html__( 'No files are in quarantine. When you quarantine a flagged file it appears here, and you can restore or delete it.', 'botvaguard' ) . '</p>'; return; }
 		echo '<p class="description">' . esc_html__( 'Files moved out of the site. They cannot run here. If the site broke after you quarantined one, restore it.', 'botvaguard' ) . '</p>';
@@ -359,14 +359,14 @@ class Sidcraft_BotShield_SecureAdmin {
 	}
 
 	private static function scan_options() {
-		$o = Sidcraft_BotShield_ScanSettings::all(); $N = Sidcraft_BotShield_ScanSettings::OPTION;
+		$o = Botvaguard_ScanSettings::all(); $N = Botvaguard_ScanSettings::OPTION;
 		echo '<h2 id="scan-options" style="margin-top:30px">' . esc_html__( 'Scan options', 'botvaguard' ) . '</h2><form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_scan_group' );
 		echo '<div style="background:#fff;border:1px solid #c3c4c7;border-radius:6px;padding:14px 18px">';
 		echo '<p><strong>' . esc_html__( 'Scan type', 'botvaguard' ) . '</strong></p>';
-		foreach ( Sidcraft_BotShield_ScanSettings::presets() as $k => $p ) { echo '<p style="margin:3px 0"><label><input type="radio" name="' . esc_attr( $N ) . '[preset]" value="' . esc_attr( $k ) . '" ' . checked( $o['preset'], $k, false ) . '> <strong>' . esc_html( $p['label'] ) . '</strong> — ' . esc_html( $p['desc'] ) . '</label></p>'; }
+		foreach ( Botvaguard_ScanSettings::presets() as $k => $p ) { echo '<p style="margin:3px 0"><label><input type="radio" name="' . esc_attr( $N ) . '[preset]" value="' . esc_attr( $k ) . '" ' . checked( $o['preset'], $k, false ) . '> <strong>' . esc_html( $p['label'] ) . '</strong> — ' . esc_html( $p['desc'] ) . '</label></p>'; }
 		echo '<p style="margin:3px 0"><label><input type="radio" name="' . esc_attr( $N ) . '[preset]" value="custom" ' . checked( $o['preset'], 'custom', false ) . '> <strong>' . esc_html__( 'Custom: choose the checks below', 'botvaguard' ) . '</strong></label></p>';
 		echo '<p style="margin-top:12px"><strong>' . esc_html__( 'Checks', 'botvaguard' ) . '</strong></p>';
-		foreach ( Sidcraft_BotShield_ScanSettings::check_labels() as $k => $l ) { echo '<label style="display:block;margin:3px 0"><input type="checkbox" name="' . esc_attr( $N ) . '[checks][' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $o['checks'][ $k ] ), true, false ) . '> ' . esc_html( $l ) . '</label>'; }
+		foreach ( Botvaguard_ScanSettings::check_labels() as $k => $l ) { echo '<label style="display:block;margin:3px 0"><input type="checkbox" name="' . esc_attr( $N ) . '[checks][' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $o['checks'][ $k ] ), true, false ) . '> ' . esc_html( $l ) . '</label>'; }
 		echo '<p class="description">' . esc_html__( 'The checks are only used with “Custom”. The other types set them for you.', 'botvaguard' ) . '</p>';
 		echo '<p style="margin-top:12px"><strong>' . esc_html__( 'Resource use', 'botvaguard' ) . '</strong></p>';
 		echo '<p>' . esc_html__( 'Skip files larger than', 'botvaguard' ) . ' <input type="number" class="small-text" min="1" max="20" name="' . esc_attr( $N ) . '[max_mb]" value="' . (int) $o['max_mb'] . '"> MB. ' . esc_html__( 'Work in steps of', 'botvaguard' ) . ' <input type="number" class="small-text" min="4" max="30" name="' . esc_attr( $N ) . '[tick_sec]" value="' . (int) $o['tick_sec'] . '"> ' . esc_html__( 'seconds (lower it on slow, shared hosting).', 'botvaguard' ) . '</p>';
@@ -382,8 +382,8 @@ class Sidcraft_BotShield_SecureAdmin {
 	}
 
 	private static function scan_script() {
-		wp_register_script( 'sidcraft-botshield-scan', false, array(), SIDCRAFT_BOTSHIELD_VERSION, true ); wp_enqueue_script( 'sidcraft-botshield-scan' );
-		$cfg = wp_json_encode( array( 'ajax' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'sidcraft_botshield_scan' ), 'running' => 'running' === Sidcraft_BotShield_Scanner::state()['status'], 'stop' => __( 'Stop scan', 'botvaguard' ), 'start' => __( 'Start scan', 'botvaguard' ) ) );
+		wp_register_script( 'sidcraft-botshield-scan', false, array(), BOTVAGUARD_VERSION, true ); wp_enqueue_script( 'sidcraft-botshield-scan' );
+		$cfg = wp_json_encode( array( 'ajax' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'sidcraft_botshield_scan' ), 'running' => 'running' === Botvaguard_Scanner::state()['status'], 'stop' => __( 'Stop scan', 'botvaguard' ), 'start' => __( 'Start scan', 'botvaguard' ) ) );
 		wp_add_inline_script( 'sidcraft-botshield-scan', '(function(){var C=' . $cfg . ',b=document.getElementById("sbs-scan-btn");if(!b)return;var l=document.getElementById("sbs-scan-label"),bar=document.getElementById("sbs-bar"),wrap=document.getElementById("sbs-bar-wrap"),log=document.getElementById("sbs-scan-log"),busy=false,stopped=false;' .
 			'function post(op){var d=new URLSearchParams();d.set("action","sidcraft_botshield_scan");d.set("op",op);d.set("_ajax_nonce",C.nonce);return fetch(C.ajax,{method:"POST",credentials:"same-origin",body:d}).then(function(r){return r.json()});}' .
 			'function show(s){if(!s||!s.data)return s;s=s.data;wrap.style.display="block";bar.style.width=s.progress+"%";l.textContent=s.label;log.innerHTML="";(s.log||[]).forEach(function(x){var li=document.createElement("li");li.textContent=x;log.appendChild(li);});return s;}' .
@@ -395,24 +395,24 @@ class Sidcraft_BotShield_SecureAdmin {
 	public static function ajax() {
 		self::cap(); check_ajax_referer( 'sidcraft_botshield_scan' );
 		$op = isset( $_POST['op'] ) ? sanitize_key( wp_unslash( $_POST['op'] ) ) : '';
-		if ( 'start' === $op ) { $st = Sidcraft_BotShield_Scanner::start(); }
-		elseif ( 'stop' === $op ) { $st = Sidcraft_BotShield_Scanner::stop(); }
-		elseif ( 'tick' === $op ) { $st = Sidcraft_BotShield_Scanner::tick(); }
-		else { $st = Sidcraft_BotShield_Scanner::state(); }
+		if ( 'start' === $op ) { $st = Botvaguard_Scanner::start(); }
+		elseif ( 'stop' === $op ) { $st = Botvaguard_Scanner::stop(); }
+		elseif ( 'tick' === $op ) { $st = Botvaguard_Scanner::tick(); }
+		else { $st = Botvaguard_Scanner::state(); }
 		$stage = $st['stages'][ $st['si'] ] ?? '';
-		wp_send_json_success( array( 'status' => $st['status'], 'progress' => Sidcraft_BotShield_Scanner::progress( $st ), 'label' => 'running' === $st['status'] ? Sidcraft_BotShield_Scanner::stage_label( $stage ) . '…' : ( 'done' === $st['status'] ? __( 'Scan finished.', 'botvaguard' ) : __( 'Not running.', 'botvaguard' ) ), 'log' => array_map( function ( $x ) { return $x[1]; }, array_slice( $st['log'], -6 ) ) ) );
+		wp_send_json_success( array( 'status' => $st['status'], 'progress' => Botvaguard_Scanner::progress( $st ), 'label' => 'running' === $st['status'] ? Botvaguard_Scanner::stage_label( $stage ) . '…' : ( 'done' === $st['status'] ? __( 'Scan finished.', 'botvaguard' ) : __( 'Not running.', 'botvaguard' ) ), 'log' => array_map( function ( $x ) { return $x[1]; }, array_slice( $st['log'], -6 ) ) ) );
 	}
 
 	public static function finding_action() {
 		self::cap(); check_admin_referer( 'sidcraft_botshield_finding' );
 		$act = isset( $_GET['act'] ) ? sanitize_key( wp_unslash( $_GET['act'] ) ) : ''; $id = isset( $_GET['id'] ) ? sanitize_key( wp_unslash( $_GET['id'] ) ) : '';
 		$err = '';
-		if ( 'ignore' === $act ) { Sidcraft_BotShield_Scanner::ignore( $id ); }
-		elseif ( 'dismiss' === $act ) { Sidcraft_BotShield_Scanner::remove_finding( $id ); }
-		elseif ( 'quarantine' === $act ) { $err = Sidcraft_BotShield_Scanner::quarantine_file( $id ); }
-		elseif ( 'restore' === $act ) { $err = Sidcraft_BotShield_Scanner::restore_file( $id ); }
-		elseif ( 'purge' === $act ) { $err = Sidcraft_BotShield_Scanner::purge_file( $id ); }
-		elseif ( 'repair' === $act ) { $err = Sidcraft_BotShield_Scanner::repair_file( $id ); }
+		if ( 'ignore' === $act ) { Botvaguard_Scanner::ignore( $id ); }
+		elseif ( 'dismiss' === $act ) { Botvaguard_Scanner::remove_finding( $id ); }
+		elseif ( 'quarantine' === $act ) { $err = Botvaguard_Scanner::quarantine_file( $id ); }
+		elseif ( 'restore' === $act ) { $err = Botvaguard_Scanner::restore_file( $id ); }
+		elseif ( 'purge' === $act ) { $err = Botvaguard_Scanner::purge_file( $id ); }
+		elseif ( 'repair' === $act ) { $err = Botvaguard_Scanner::repair_file( $id ); }
 		if ( '' !== $err ) { set_transient( 'sidcraft_botshield_notice', $err, 60 ); self::back( 'scan' ); }
 		self::back( 'scan', array( 'sbs_ok' => 1 ) );
 	}

@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Settings for the firewall tab (kept apart from the bot settings so that each tab saves on its own). */
-class Sidcraft_BotShield_FwSettings {
+class Botvaguard_FwSettings {
 	const OPTION = 'sidcraft_botshield_fw';
 
 	public static function defaults() {
@@ -76,7 +76,7 @@ class Sidcraft_BotShield_FwSettings {
 		$mode = in_array( $in['waf_mode'] ?? '', array( 'disabled', 'learning', 'enabled' ), true ) ? $in['waf_mode'] : 'learning';
 		$o['waf_mode']  = $mode;
 		$o['waf_since'] = ( 'learning' === $mode && 'learning' !== $old['waf_mode'] ) || ! $old['waf_since'] ? time() : $old['waf_since'];
-		$ids = array_keys( Sidcraft_BotShield_Waf::rules() ); $on = (array) ( $in['waf_rules'] ?? array() );
+		$ids = array_keys( Botvaguard_Waf::rules() ); $on = (array) ( $in['waf_rules'] ?? array() );
 		$o['waf_disabled'] = isset( $in['waf_rules_present'] ) ? array_values( array_diff( $ids, array_keys( array_filter( $on ) ) ) ) : $old['waf_disabled'];
 		$lines = array();
 		foreach ( preg_split( '/\R/', (string) ( $in['waf_allow'] ?? '' ) ) as $l ) { $l = trim( sanitize_text_field( $l ) ); if ( '' !== $l && preg_match( '#^(\*|/\S*)(\s+\S+){0,2}$#', $l ) && count( $lines ) < 300 ) { $lines[] = $l; } }

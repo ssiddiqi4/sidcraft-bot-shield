@@ -7,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Malware and integrity scanner. Runs in short steps ("ticks") so that it never hits a time limit, and continues in
  * the background through WP-Cron if the browser is closed.
  */
-class Sidcraft_BotShield_Scanner {
+class Botvaguard_Scanner {
 	const STATE = 'sidcraft_botshield_scan';
 	const FINDINGS = 'sidcraft_botshield_findings';
 	const IGNORED = 'sidcraft_botshield_ignored';
@@ -45,7 +45,7 @@ class Sidcraft_BotShield_Scanner {
 	public static function stages() {
 		$map = array( 'enumerate' => array( 'core', 'plugins', 'malware', 'images' ), 'core' => 'core', 'plugins' => 'plugins', 'malware' => 'malware', 'content' => 'content', 'config' => 'config', 'updates' => 'updates', 'abandoned' => 'abandoned', 'users' => 'users', 'system' => 'system' );
 		$out = array();
-		foreach ( $map as $stage => $need ) { foreach ( (array) $need as $n ) { if ( Sidcraft_BotShield_ScanSettings::enabled( $n ) ) { $out[] = $stage; break; } } }
+		foreach ( $map as $stage => $need ) { foreach ( (array) $need as $n ) { if ( Botvaguard_ScanSettings::enabled( $n ) ) { $out[] = $stage; break; } } }
 		return $out;
 	}
 
@@ -54,7 +54,7 @@ class Sidcraft_BotShield_Scanner {
 		if ( 'running' === $st['status'] && time() - $st['updated'] < 300 ) { return $st; }
 		$stages = self::stages();
 		if ( ! $stages ) { return $st; }
-		Sidcraft_BotShield_Lists::ensure_dir();
+		Botvaguard_Lists::ensure_dir();
 		foreach ( array( 'scan-dirs.json', 'scan-files.txt', 'scan-verified.txt' ) as $f ) { if ( is_file( self::dir() . $f ) ) { wp_delete_file( self::dir() . $f ); } }
 		delete_option( self::FINDINGS );
 		$st = array( 'status' => 'running', 'stages' => $stages, 'si' => 0, 'cursor' => 0, 'sub' => '', 'frac' => 0, 'log' => array(), 'files' => 0, 'skipped' => 0, 'started' => time(), 'finished' => 0, 'trigger' => $trigger, 'prev' => array_keys( get_option( 'sidcraft_botshield_prev_findings', array() ) ) );
@@ -70,7 +70,7 @@ class Sidcraft_BotShield_Scanner {
 		return $st;
 	}
 
-	public static function dir() { return Sidcraft_BotShield_Lists::dir(); }
+	public static function dir() { return Botvaguard_Lists::dir(); }
 
 	public static function cron_start() { self::start( 'schedule' ); self::cron_tick(); self::schedule( true ); }
 
@@ -80,7 +80,7 @@ class Sidcraft_BotShield_Scanner {
 	}
 
 	public static function schedule( $force = false ) {
-		$o = Sidcraft_BotShield_ScanSettings::all(); $next = wp_next_scheduled( self::HOOK_START );
+		$o = Botvaguard_ScanSettings::all(); $next = wp_next_scheduled( self::HOOK_START );
 		if ( 'off' === $o['schedule'] ) { if ( $next ) { wp_clear_scheduled_hook( self::HOOK_START ); } return; }
 		if ( $next && ! $force ) { return; }
 		if ( $force && $next ) { wp_clear_scheduled_hook( self::HOOK_START ); }
@@ -97,7 +97,7 @@ class Sidcraft_BotShield_Scanner {
 		if ( get_transient( 'sbs_scan_lock' ) ) { return $st; }
 		set_transient( 'sbs_scan_lock', 1, 90 );
 		if ( function_exists( 'set_time_limit' ) ) { @set_time_limit( 60 ); } // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.NoSilencedErrors.Discouraged -- each scan step is short and bounded by its own deadline
-		$deadline = microtime( true ) + (int) Sidcraft_BotShield_ScanSettings::get( 'tick_sec' );
+		$deadline = microtime( true ) + (int) Botvaguard_ScanSettings::get( 'tick_sec' );
 		try {
 			while ( $st['si'] < count( $st['stages'] ) ) {
 				$stage = $st['stages'][ $st['si'] ];
@@ -155,20 +155,20 @@ class Sidcraft_BotShield_Scanner {
 	}
 
 	private static function email( $f, $new ) {
-		$o = Sidcraft_BotShield_ScanSettings::all(); if ( ! $o['email_on'] ) { return; }
+		$o = Botvaguard_ScanSettings::all(); if ( ! $o['email_on'] ) { return; }
 		$min = self::SEV[ $o['email_level'] ]; $rows = array();
 		foreach ( $new as $id ) { if ( isset( $f[ $id ] ) && self::SEV[ $f[ $id ]['sev'] ] >= $min ) { $rows[] = '[' . strtoupper( $f[ $id ]['sev'] ) . '] ' . $f[ $id ]['title'] . ( '' !== $f[ $id ]['rel'] ? ' (' . $f[ $id ]['rel'] . ')' : '' ); } }
 		if ( ! $rows ) { return; }
 		$to = '' !== $o['email_to'] ? $o['email_to'] : get_option( 'admin_email' );
 		/* translators: %s: site name */
-		Sidcraft_BotShield_Mailer::send( $to, sprintf( __( '[%s] BotVaguard scan found new problems', 'botvaguard' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ), implode( "\n", array_slice( $rows, 0, 25 ) ) . ( count( $rows ) > 25 ? "\n…" : '' ) . "\n\n" . admin_url( 'admin.php?page=botvaguard&tab=scan' ) );
+		Botvaguard_Mailer::send( $to, sprintf( __( '[%s] BotVaguard scan found new problems', 'botvaguard' ), wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) ), implode( "\n", array_slice( $rows, 0, 25 ) ) . ( count( $rows ) > 25 ? "\n…" : '' ) . "\n\n" . admin_url( 'admin.php?page=botvaguard&tab=scan' ) );
 	}
 
 	// ---------- helpers ----------
 	private static function excluded( $rel ) {
-		$own = 'wp-content/plugins/' . basename( rtrim( SIDCRAFT_BOTSHIELD_DIR, '/' ) ) . '/';
+		$own = 'wp-content/plugins/' . basename( rtrim( BOTVAGUARD_DIR, '/' ) ) . '/';
 		if ( 0 === strpos( $rel, $own ) ) { return true; }
-		foreach ( preg_split( '/\R/', (string) Sidcraft_BotShield_ScanSettings::get( 'skip_paths' ), -1, PREG_SPLIT_NO_EMPTY ) as $p ) { if ( fnmatch( $p, $rel ) || fnmatch( $p . '*', $rel ) ) { return true; } }
+		foreach ( preg_split( '/\R/', (string) Botvaguard_ScanSettings::get( 'skip_paths' ), -1, PREG_SPLIT_NO_EMPTY ) as $p ) { if ( fnmatch( $p, $rel ) || fnmatch( $p . '*', $rel ) ) { return true; } }
 		return false;
 	}
 
@@ -190,8 +190,8 @@ class Sidcraft_BotShield_Scanner {
 		$stack = is_file( $dirf ) ? json_decode( (string) file_get_contents( $dirf ), true ) : array( $root );
 		if ( ! is_array( $stack ) ) { $stack = array( $root ); }
 		$code = array( 'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'pht', 'phar', 'inc', 'js' );
-		$images = Sidcraft_BotShield_ScanSettings::enabled( 'images' ); $img_ext = array( 'jpg', 'jpeg', 'png', 'gif', 'ico', 'webp', 'svg', 'pdf', 'bmp', 'txt' );
-		$max = (int) Sidcraft_BotShield_ScanSettings::get( 'max_mb' ) * MB_IN_BYTES; $buf = '';
+		$images = Botvaguard_ScanSettings::enabled( 'images' ); $img_ext = array( 'jpg', 'jpeg', 'png', 'gif', 'ico', 'webp', 'svg', 'pdf', 'bmp', 'txt' );
+		$max = (int) Botvaguard_ScanSettings::get( 'max_mb' ) * MB_IN_BYTES; $buf = '';
 		$skip_dirs = array( 'node_modules', '.git', '.svn', 'botvaguard' );
 		while ( $stack ) {
 			$dir = array_pop( $stack ); $rel_dir = self::rel( $dir . '/x' );
@@ -331,11 +331,11 @@ class Sidcraft_BotShield_Scanner {
 	}
 
 	private static function st_malware( &$st, $deadline ) {
-		if ( ! Sidcraft_BotShield_ScanSettings::enabled( 'malware' ) && ! Sidcraft_BotShield_ScanSettings::enabled( 'images' ) ) { return true; }
+		if ( ! Botvaguard_ScanSettings::enabled( 'malware' ) && ! Botvaguard_ScanSettings::enabled( 'images' ) ) { return true; }
 		$listf = self::dir() . 'scan-files.txt'; if ( ! is_file( $listf ) ) { return true; }
 		$total = max( 1, filesize( $listf ) ); $h = fopen( $listf, 'rb' ); fseek( $h, (int) $st['cursor'] );
-		$verified = self::verified_load(); $root = rtrim( wp_normalize_path( ABSPATH ), '/' ); $max = (int) Sidcraft_BotShield_ScanSettings::get( 'max_mb' ) * MB_IN_BYTES;
-		$do_mal = Sidcraft_BotShield_ScanSettings::enabled( 'malware' ); $do_img = Sidcraft_BotShield_ScanSettings::enabled( 'images' );
+		$verified = self::verified_load(); $root = rtrim( wp_normalize_path( ABSPATH ), '/' ); $max = (int) Botvaguard_ScanSettings::get( 'max_mb' ) * MB_IN_BYTES;
+		$do_mal = Botvaguard_ScanSettings::enabled( 'malware' ); $do_img = Botvaguard_ScanSettings::enabled( 'images' );
 		while ( false !== ( $line = fgets( $h ) ) ) {
 			$p = explode( "\t", rtrim( $line, "\n" ) ); $rel = $p[0]; $size = (int) ( $p[1] ?? 0 ); $abs = $root . '/' . $rel;
 			$ext = strtolower( pathinfo( $rel, PATHINFO_EXTENSION ) ); $base = basename( $rel );
@@ -453,7 +453,7 @@ class Sidcraft_BotShield_Scanner {
 		$host = (string) wp_parse_url( home_url(), PHP_URL_HOST ); $site = preg_replace( '/^www\./', '', $host ); $site1 = strtok( $site, '.' );
 		for ( $i = (int) $st['cursor']; $i < $n; $i++ ) {
 			$u = $users[ $i ]; $local = strstr( $u->user_email, '@', true );
-			$cand = array_unique( array_filter( array_merge( Sidcraft_BotShield_Firewall::common_passwords(), array( $u->user_login, strtolower( $u->user_login ), $u->user_login . '123', $u->user_login . '1', $u->user_login . '!', $local, $site, $site1, $site1 . '123', $site1 . '1', 'welcome123', 'Password1', 'Password123', 'Passw0rd!', 'Admin123!' ) ) ) );
+			$cand = array_unique( array_filter( array_merge( Botvaguard_Firewall::common_passwords(), array( $u->user_login, strtolower( $u->user_login ), $u->user_login . '123', $u->user_login . '1', $u->user_login . '!', $local, $site, $site1, $site1 . '123', $site1 . '1', 'welcome123', 'Password1', 'Password123', 'Passw0rd!', 'Admin123!' ) ) ) );
 			foreach ( $cand as $c ) { if ( wp_check_password( (string) $c, $u->user_pass, $u->ID ) ) { self::add( 'weak_password', 'critical', sprintf( /* translators: %s: user */ __( 'The user “%s” has a very weak password', 'botvaguard' ), $u->user_login ), __( 'This password is on the lists attackers try first. Change it now.', 'botvaguard' ), '', array( 'key' => 'user' . $u->ID, 'link' => admin_url( 'user-edit.php?user_id=' . $u->ID ) ) ); break; } }
 			if ( microtime( true ) >= $deadline ) { $st['cursor'] = $i + 1; $st['frac'] = ( $i + 1 ) / max( 1, $n ); return false; }
 		}
@@ -502,7 +502,7 @@ class Sidcraft_BotShield_Scanner {
 		$f = self::findings(); if ( ! isset( $f[ $id ] ) ) { return __( 'Unknown result.', 'botvaguard' ); }
 		$why = self::removal_block( $f[ $id ] ); if ( '' !== $why ) { return $why; }
 		$abs = self::safe_path( $f[ $id ]['rel'] ); if ( '' === $abs ) { return __( 'The file is not there any more.', 'botvaguard' ); }
-		if ( ! Sidcraft_BotShield_Lists::ensure_dir() ) { return __( 'The quarantine folder cannot be created (permissions).', 'botvaguard' ); }
+		if ( ! Botvaguard_Lists::ensure_dir() ) { return __( 'The quarantine folder cannot be created (permissions).', 'botvaguard' ); }
 		wp_mkdir_p( self::qdir() );
 		$qid = strtolower( wp_generate_password( 12, false ) ); $to = self::qdir() . $qid . '.q';
 		$ok = @rename( $abs, $to ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.rename_rename

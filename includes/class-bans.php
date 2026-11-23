@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Address bans. Temporary bans live in a transient; permanent ones in a small autoloaded option. The registry is the list shown to the admin. */
-class Sidcraft_BotShield_Bans {
+class Botvaguard_Bans {
 	const OPTION = 'sidcraft_botshield_bans';
 	const PERM   = 'sidcraft_botshield_perm';
 
@@ -16,7 +16,7 @@ class Sidcraft_BotShield_Bans {
 		update_option( self::OPTION, $all, false );
 		if ( $seconds > 0 ) { set_transient( 'sbs_ban_' . md5( $ip ), 1, max( 60, $seconds ) ); }
 		else { $p = self::perm(); $p[ $ip ] = 1; update_option( self::PERM, $p, true ); }
-		Sidcraft_BotShield_Notify::schedule( $ip, (string) $reason, $seconds, $kind );
+		Botvaguard_Notify::schedule( $ip, (string) $reason, $seconds, $kind );
 	}
 
 	public static function is_banned( $ip ) {

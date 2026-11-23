@@ -16,16 +16,29 @@
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-// Moving from the old "Sidcraft Bot Shield" plugin (folder sidcraft-bot-shield): BotVaguard keeps its settings. Activating BotVaguard switches the old one off.
+// Moving from the old "Sidcraft Bot Shield" plugin: BotVaguard keeps its settings. The old plugin can sit in any folder
+// (sidcraft-bot-shield, sidcraft-bot-shield-main, ...), so it is found by its file name. Activating BotVaguard switches it off.
+function botvaguard_old_plugins() {
+	$found = array();
+	foreach ( (array) get_option( 'active_plugins', array() ) as $f ) { if ( 'sidcraft-bot-shield.php' === basename( (string) $f ) ) { $found[ $f ] = false; } }
+	if ( is_multisite() ) { foreach ( array_keys( (array) get_site_option( 'active_sitewide_plugins', array() ) ) as $f ) { if ( 'sidcraft-bot-shield.php' === basename( (string) $f ) ) { $found[ $f ] = true; } } }
+	return $found; // plugin file => network wide.
+}
 register_activation_hook( __FILE__, function () {
 	if ( ! function_exists( 'deactivate_plugins' ) ) { require_once ABSPATH . 'wp-admin/includes/plugin.php'; }
-	deactivate_plugins( 'sidcraft-bot-shield/sidcraft-bot-shield.php', true ); // silent: its protection lines in .htaccess stay for BotVaguard to use.
+	foreach ( botvaguard_old_plugins() as $f => $network ) { deactivate_plugins( $f, true, $network ); } // silent: its protection lines in .htaccess stay for BotVaguard to use.
 } );
-if ( class_exists( 'Sidcraft_BotShield_Guard', false ) ) { return; } // the old plugin is still loaded in this request: do nothing until it is off.
+if ( botvaguard_old_plugins() ) {
+	// The old plugin is still on: stay dormant (nothing is loaded, so nothing can clash) and say so.
+	add_action( 'admin_notices', function () {
+		if ( current_user_can( 'activate_plugins' ) ) { echo '<div class="notice notice-warning"><p><strong>BotVaguard</strong> ' . esc_html__( 'is waiting: the old “Sidcraft Bot Shield” plugin is still active. Deactivate and delete it, then deactivate and activate BotVaguard once. Your settings are kept.', 'botvaguard' ) . '</p></div>'; }
+	} );
+	return;
+}
 
-define( 'SIDCRAFT_BOTSHIELD_VERSION', '1.6.0' );
-define( 'SIDCRAFT_BOTSHIELD_FILE', __FILE__ );
-define( 'SIDCRAFT_BOTSHIELD_DIR', plugin_dir_path( __FILE__ ) );
+define( 'BOTVAGUARD_VERSION', '1.6.0' );
+define( 'BOTVAGUARD_FILE', __FILE__ );
+define( 'BOTVAGUARD_DIR', plugin_dir_path( __FILE__ ) );
 
 require_once __DIR__ . '/includes/class-catalog.php';
 require_once __DIR__ . '/includes/class-countries.php';
@@ -54,19 +67,20 @@ require_once __DIR__ . '/includes/class-loginurl.php';
 
 // Emergency switch: add define( 'SIDCRAFT_BOTSHIELD_OFF', true ); to wp-config.php to stop all blocking if you are locked out.
 if ( ! ( defined( 'SIDCRAFT_BOTSHIELD_OFF' ) && SIDCRAFT_BOTSHIELD_OFF ) ) {
-	Sidcraft_BotShield_Guard::init();
-	Sidcraft_BotShield_Firewall::init();
+	Botvaguard_Guard::init();
+	Botvaguard_Firewall::init();
 }
-Sidcraft_BotShield_Scanner::init();
-Sidcraft_BotShield_Mailer::init();
-Sidcraft_BotShield_TwoFa::init();
-if ( ! ( defined( 'SIDCRAFT_BOTSHIELD_OFF' ) && SIDCRAFT_BOTSHIELD_OFF ) ) { Sidcraft_BotShield_LoginUrl::init(); }
-add_action( Sidcraft_BotShield_Lists::CRON, array( 'Sidcraft_BotShield_Lists', 'update' ) );
-add_action( 'init', array( 'Sidcraft_BotShield_Lists', 'schedule' ) );
-register_deactivation_hook( __FILE__, function () { wp_clear_scheduled_hook( Sidcraft_BotShield_Lists::CRON ); Sidcraft_BotShield_Firewall::ext_disable( true ); Sidcraft_BotShield_Firewall::core_remove(); } );
-register_activation_hook( __FILE__, function () { if ( Sidcraft_BotShield_Firewall::ext_on() ) { Sidcraft_BotShield_Firewall::ext_enable(); } if ( Sidcraft_BotShield_Firewall::core_files() ) { Sidcraft_BotShield_Firewall::core_sync(); } } );
+Botvaguard_Scanner::init();
+Botvaguard_Mailer::init();
+Botvaguard_TwoFa::init();
+if ( ! ( defined( 'SIDCRAFT_BOTSHIELD_OFF' ) && SIDCRAFT_BOTSHIELD_OFF ) ) { Botvaguard_LoginUrl::init(); }
+add_action( 'admin_init', array( 'Botvaguard_Firewall', 'ext_refresh' ) );
+add_action( Botvaguard_Lists::CRON, array( 'Botvaguard_Lists', 'update' ) );
+add_action( 'init', array( 'Botvaguard_Lists', 'schedule' ) );
+register_deactivation_hook( __FILE__, function () { wp_clear_scheduled_hook( Botvaguard_Lists::CRON ); Botvaguard_Firewall::ext_disable( true ); Botvaguard_Firewall::core_remove(); } );
+register_activation_hook( __FILE__, function () { if ( Botvaguard_Firewall::ext_on() ) { Botvaguard_Firewall::ext_enable(); } if ( Botvaguard_Firewall::core_files() ) { Botvaguard_Firewall::core_sync(); } } );
 if ( is_admin() ) {
 	require_once __DIR__ . '/includes/class-secure-admin.php';
 	require_once __DIR__ . '/includes/class-admin.php';
-	Sidcraft_BotShield_Admin::init();
+	Botvaguard_Admin::init();
 }

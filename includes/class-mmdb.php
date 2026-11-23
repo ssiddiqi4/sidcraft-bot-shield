@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Small read-only reader for MaxMind DB (.mmdb) files such as GeoLite2-Country or DB-IP Lite. No libraries needed. */
-class Sidcraft_BotShield_Mmdb {
+class Botvaguard_Mmdb {
 	private $f; private $meta; private $tree_size; private $data_start; private $v4_start = null;
 
 	public static function open( $path ) {
@@ -33,7 +33,7 @@ class Sidcraft_BotShield_Mmdb {
 
 	/** Look up an IP address; returns the record (array) or null. */
 	public function get( $ip ) {
-		$b = Sidcraft_BotShield_Ranges::pack( $ip );
+		$b = Botvaguard_Ranges::pack( $ip );
 		if ( '' === $b ) { return null; }
 		$v6 = 6 === (int) $this->meta['ip_version'];
 		if ( 4 === strlen( $b ) && $v6 ) { $b = str_repeat( "\0", 12 ) . $b; }

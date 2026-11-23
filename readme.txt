@@ -183,7 +183,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 == Changelog ==
 
 = 1.6.0 =
-* Renamed: the plugin is now BotVaguard (folder and slug botvaguard), so that it cannot be confused with other plugins named Bot Shield. Your settings, bans, logs and the firewall lines in .htaccess are kept. Activating BotVaguard switches the old Sidcraft Bot Shield plugin off; delete the old one afterwards.
+* Renamed: the plugin is now BotVaguard (folder and slug botvaguard), so that it cannot be confused with other plugins named Bot Shield. Your settings, bans, logs and the firewall lines in .htaccess are kept. Activating BotVaguard switches the old Sidcraft Bot Shield plugin off, whatever folder it is in; delete the old one afterwards. All class and function names are new, so the two plugins can never crash each other. If both are somehow active, BotVaguard stays idle and shows a notice.
 * New: its own menu in the WordPress dashboard with a Dashboard (protection status and the latest blocks), Bots, Firewall, Login, Scan and Blocked log screens. It no longer sits under Settings.
 * New: Firewall > REST API (/wp-json/). Watch-only mode (logs what would be closed), or close the REST API to visitors who are not logged in with an allow list of routes (oEmbed, form sending, visitor counting, Contact Form 7, WooCommerce Store API and Jetpack are allowed by default), routes that are always closed, a requests-a-minute limit, and counting of failed REST logins (application passwords) as failed logins. Logged-in users and your trusted addresses are never affected.
 * Blocked requests to the REST API show in the Blocked log under REST API.

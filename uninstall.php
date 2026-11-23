@@ -7,7 +7,7 @@
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) { exit; }
 
 /** Remove the pre-WordPress firewall lines from .htaccess and .user.ini. */
-function sidcraft_botshield_remove_prepend() {
+function botvaguard_remove_prepend() {
 	require_once ABSPATH . 'wp-admin/includes/file.php';
 	WP_Filesystem();
 	global $wp_filesystem;
@@ -23,8 +23,8 @@ function sidcraft_botshield_remove_prepend() {
 	}
 }
 
-function sidcraft_botshield_uninstall() {
-	sidcraft_botshield_remove_prepend();
+function botvaguard_uninstall() {
+	botvaguard_remove_prepend();
 	wp_clear_scheduled_hook( 'sidcraft_botshield_scan_start' );
 	wp_clear_scheduled_hook( 'sidcraft_botshield_scan_tick' );
 	$s = get_option( 'sidcraft_botshield_settings' );
@@ -41,4 +41,4 @@ function sidcraft_botshield_uninstall() {
 	}
 	wp_clear_scheduled_hook( 'sidcraft_botshield_update_lists' );
 }
-sidcraft_botshield_uninstall();
+botvaguard_uninstall();

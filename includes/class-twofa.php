@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 // phpcs:disable WordPress.Security.NonceVerification -- the login screens are verified by their own one-time token, not by a nonce.
 
 /** Two-factor login: email code, authenticator app, text message (Twilio), passkey, and recovery codes. */
-class Sidcraft_BotShield_TwoFa {
+class Botvaguard_TwoFa {
 	private static $done = false;
 
 	/**
@@ -37,17 +37,17 @@ class Sidcraft_BotShield_TwoFa {
 	// ---------- who needs it ----------
 	public static function user_methods( $uid ) {
 		$m = get_user_meta( $uid, 'sbs2fa_methods', true ); $m = is_array( $m ) ? $m : array();
-		return array_values( array_intersect( $m, Sidcraft_BotShield_LoginSettings::methods_enabled() ) );
+		return array_values( array_intersect( $m, Botvaguard_LoginSettings::methods_enabled() ) );
 	}
 
 	private static function required_for( $user ) {
-		$s = Sidcraft_BotShield_LoginSettings::all();
+		$s = Botvaguard_LoginSettings::all();
 		return $s['tfa_on'] && array_intersect( (array) $user->roles, (array) $s['tfa_roles'] );
 	}
 
 	/** XML-RPC has no second step, so users with two-factor login must use an application password there. */
 	public static function xmlrpc_gate( $user ) {
-		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST && $user instanceof WP_User && Sidcraft_BotShield_LoginSettings::get( 'tfa_on' ) && self::user_methods( $user->ID ) && ! did_action( 'application_password_did_authenticate' ) ) {
+		if ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST && $user instanceof WP_User && Botvaguard_LoginSettings::get( 'tfa_on' ) && self::user_methods( $user->ID ) && ! did_action( 'application_password_did_authenticate' ) ) {
 			return new WP_Error( 'sbs_2fa_xmlrpc', __( 'This account uses two-factor login. Use an application password for XML-RPC.', 'botvaguard' ) );
 		}
 		return $user;
@@ -56,14 +56,14 @@ class Sidcraft_BotShield_TwoFa {
 	// ---------- login ----------
 	/** Right after a correct password: take the login cookie back and ask for the second step. */
 	public static function intercept( $login, $user ) {
-		if ( self::$done || ! Sidcraft_BotShield_LoginSettings::get( 'tfa_on' ) || ! $user instanceof WP_User ) { return; }
+		if ( self::$done || ! Botvaguard_LoginSettings::get( 'tfa_on' ) || ! $user instanceof WP_User ) { return; }
 		if ( ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || wp_doing_cron() || 'cli' === PHP_SAPI ) { return; }
 		$methods = self::user_methods( $user->ID );
 		if ( ! $methods ) { return; }
 		wp_clear_auth_cookie();
 		$token = wp_generate_password( 32, false );
 		$redirect = isset( $_REQUEST['redirect_to'] ) ? esc_url_raw( wp_unslash( $_REQUEST['redirect_to'] ) ) : '';
-		set_transient( 'sbs2fa_' . $token, array( 'uid' => $user->ID, 'remember' => ! empty( $_POST['rememberme'] ), 'redirect' => $redirect, 'tries' => 0, 'ip' => Sidcraft_BotShield_Guard::client_ip() ), 10 * MINUTE_IN_SECONDS );
+		set_transient( 'sbs2fa_' . $token, array( 'uid' => $user->ID, 'remember' => ! empty( $_POST['rememberme'] ), 'redirect' => $redirect, 'tries' => 0, 'ip' => Botvaguard_Guard::client_ip() ), 10 * MINUTE_IN_SECONDS );
 		$err = '';
 		if ( 'email' === $methods[0] && ! self::send_email_code( $token, $user ) ) { $err = self::mail_problem(); }
 		if ( 'sms' === $methods[0] ) { self::send_sms_code( $token, $user ); }
@@ -84,16 +84,16 @@ class Sidcraft_BotShield_TwoFa {
 		if ( ! $s || ! $user ) { if ( 'pk_begin' === $op || 'pk_finish' === $op ) { wp_send_json_error( array( 'message' => __( 'This login expired. Please sign in again.', 'botvaguard' ) ) ); } wp_safe_redirect( add_query_arg( 'sbs2fa', 'expired', self::login_url() ) ); exit; }
 		if ( 'post' !== ( isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_key( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '' ) ) { self::render( $token, $user, '' ); exit; }
 		$methods = self::user_methods( $user->ID ); $msg = '';
-		if ( 'send_email' === $op && in_array( 'email', $methods, true ) ) { $msg = self::send_email_code( $token, $user ) ? __( 'We emailed you a code.', 'botvaguard' ) : ( '' !== Sidcraft_BotShield_Mailer::last_error() ? self::mail_problem() : __( 'Please wait a minute before asking for another code.', 'botvaguard' ) ); self::render( $token, $user, '', $msg, 'email' ); exit; }
+		if ( 'send_email' === $op && in_array( 'email', $methods, true ) ) { $msg = self::send_email_code( $token, $user ) ? __( 'We emailed you a code.', 'botvaguard' ) : ( '' !== Botvaguard_Mailer::last_error() ? self::mail_problem() : __( 'Please wait a minute before asking for another code.', 'botvaguard' ) ); self::render( $token, $user, '', $msg, 'email' ); exit; }
 		if ( 'send_sms' === $op && in_array( 'sms', $methods, true ) ) { $r = self::send_sms_code( $token, $user ); self::render( $token, $user, is_wp_error( $r ) ? $r->get_error_message() : '', is_wp_error( $r ) ? '' : __( 'We sent you a text message.', 'botvaguard' ), 'sms' ); exit; }
 		if ( 'pk_begin' === $op && in_array( 'passkey', $methods, true ) ) {
-			$ch = random_bytes( 32 ); $s['pk'] = Sidcraft_BotShield_WebAuthn::b64u( $ch ); self::save( $token, $s );
-			wp_send_json_success( Sidcraft_BotShield_WebAuthn::request_options( $ch, (array) get_user_meta( $user->ID, 'sbs2fa_passkeys', true ) ) );
+			$ch = random_bytes( 32 ); $s['pk'] = Botvaguard_WebAuthn::b64u( $ch ); self::save( $token, $s );
+			wp_send_json_success( Botvaguard_WebAuthn::request_options( $ch, (array) get_user_meta( $user->ID, 'sbs2fa_passkeys', true ) ) );
 		}
 		if ( 'pk_finish' === $op && in_array( 'passkey', $methods, true ) && ! empty( $s['pk'] ) ) {
 			$in = json_decode( isset( $_POST['assertion'] ) ? (string) wp_unslash( $_POST['assertion'] ) : '', true ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON from the browser; every field is verified cryptographically
 			 $creds = (array) get_user_meta( $user->ID, 'sbs2fa_passkeys', true );
-			$res = is_array( $in ) ? Sidcraft_BotShield_WebAuthn::verify_assertion( $in, Sidcraft_BotShield_WebAuthn::unb64u( $s['pk'] ), $creds ) : new WP_Error( 'sbs_pk', 'Bad response.' );
+			$res = is_array( $in ) ? Botvaguard_WebAuthn::verify_assertion( $in, Botvaguard_WebAuthn::unb64u( $s['pk'] ), $creds ) : new WP_Error( 'sbs_pk', 'Bad response.' );
 			unset( $s['pk'] ); self::save( $token, $s );
 			if ( is_wp_error( $res ) ) { self::fail( $token, $s, $user ); wp_send_json_error( array( 'message' => $res->get_error_message() ) ); }
 			update_user_meta( $user->ID, 'sbs2fa_passkeys', $res );
@@ -128,7 +128,7 @@ class Sidcraft_BotShield_TwoFa {
 		}
 		if ( ! in_array( $method, $methods, true ) ) { return false; }
 		if ( 'totp' === $method ) {
-			$secret = (string) get_user_meta( $user->ID, 'sbs2fa_totp', true ); $step = $secret ? Sidcraft_BotShield_Totp::verify( $secret, $code ) : 0;
+			$secret = (string) get_user_meta( $user->ID, 'sbs2fa_totp', true ); $step = $secret ? Botvaguard_Totp::verify( $secret, $code ) : 0;
 			if ( $step && $step > (int) get_user_meta( $user->ID, 'sbs2fa_totp_last', true ) ) { update_user_meta( $user->ID, 'sbs2fa_totp_last', $step ); return true; }
 			return false;
 		}
@@ -160,13 +160,13 @@ class Sidcraft_BotShield_TwoFa {
 
 	/** Where email codes go: the address set in Settings (if any), otherwise the user's own profile address. */
 	public static function email_target( $user ) {
-		$to = (string) Sidcraft_BotShield_LoginSettings::get( 'tfa_email_to' );
+		$to = (string) Botvaguard_LoginSettings::get( 'tfa_email_to' );
 		return is_email( $to ) ? $to : (string) $user->user_email;
 	}
 
 	/** The reason the last code email failed, as a sentence for the second-step screen ('' when it was only throttled). */
 	public static function mail_problem() {
-		$e = Sidcraft_BotShield_Mailer::last_error();
+		$e = Botvaguard_Mailer::last_error();
 		/* translators: %s: error message */
 		return '' !== $e ? sprintf( __( 'The code could not be emailed: %s Ask an administrator to check BotVaguard → Login → Email delivery.', 'botvaguard' ), $e ) : __( 'The code could not be emailed. Ask an administrator to check BotVaguard → Login → Email delivery.', 'botvaguard' );
 	}
@@ -181,7 +181,7 @@ class Sidcraft_BotShield_TwoFa {
 		$s = self::session( $token ); if ( ! $s || ( ! empty( $s['email']['sent'] ) && time() - $s['email']['sent'] < 60 ) ) { return false; }
 		$code = self::new_code( $token, $s, 'email' ); $site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		/* translators: %s: site name */
-		return Sidcraft_BotShield_Mailer::send( self::email_target( $user ), sprintf( __( '[%s] Your login code', 'botvaguard' ), $site ), sprintf( /* translators: 1: code 2: IP address */ __( "Your login code is %1\$s\n\nIt works for 10 minutes. It was asked for from the address %2\$s. If this was not you, change your password.", 'botvaguard' ), $code, Sidcraft_BotShield_Guard::client_ip() ) );
+		return Botvaguard_Mailer::send( self::email_target( $user ), sprintf( __( '[%s] Your login code', 'botvaguard' ), $site ), sprintf( /* translators: 1: code 2: IP address */ __( "Your login code is %1\$s\n\nIt works for 10 minutes. It was asked for from the address %2\$s. If this was not you, change your password.", 'botvaguard' ), $code, Botvaguard_Guard::client_ip() ) );
 	}
 
 	public static function send_sms_code( $token, $user ) {
@@ -193,7 +193,7 @@ class Sidcraft_BotShield_TwoFa {
 
 	/** Send a text message through Twilio. Returns true or WP_Error. */
 	public static function sms( $to, $body ) {
-		$o = Sidcraft_BotShield_LoginSettings::all();
+		$o = Botvaguard_LoginSettings::all();
 		if ( '' === $o['twilio_sid'] || '' === $o['twilio_token'] || '' === $o['twilio_from'] || ! preg_match( '/^\+[1-9]\d{6,14}$/', $to ) ) { return new WP_Error( 'sbs', __( 'Text messages are not set up.', 'botvaguard' ) ); }
 		$r = wp_safe_remote_post( 'https://api.twilio.com/2010-04-01/Accounts/' . rawurlencode( $o['twilio_sid'] ) . '/Messages.json', array( 'timeout' => 10, 'headers' => array( 'Authorization' => 'Basic ' . base64_encode( $o['twilio_sid'] . ':' . $o['twilio_token'] ) ), 'body' => array( 'To' => $to, 'From' => $o['twilio_from'], 'Body' => $body ) ) );
 		if ( is_wp_error( $r ) ) { return new WP_Error( 'sbs', __( 'The text message could not be sent.', 'botvaguard' ) ); }
@@ -239,8 +239,8 @@ class Sidcraft_BotShield_TwoFa {
 	// ---------- required roles ----------
 	public static function enforce() {
 		if ( wp_doing_ajax() || defined( 'DOING_CRON' ) || ! is_user_logged_in() ) { return; }
-		$u = wp_get_current_user(); $s = Sidcraft_BotShield_LoginSettings::all();
-		if ( ! self::required_for( $u ) || self::user_methods( $u->ID ) || ! Sidcraft_BotShield_LoginSettings::methods_enabled() ) { return; }
+		$u = wp_get_current_user(); $s = Botvaguard_LoginSettings::all();
+		if ( ! self::required_for( $u ) || self::user_methods( $u->ID ) || ! Botvaguard_LoginSettings::methods_enabled() ) { return; }
 		$deadline = (int) $s['tfa_since'] + (int) $s['tfa_grace'] * DAY_IN_SECONDS;
 		global $pagenow; if ( time() < $deadline || in_array( $pagenow, array( 'profile.php', 'admin-post.php', 'admin-ajax.php', 'async-upload.php' ), true ) ) { return; }
 		wp_safe_redirect( admin_url( 'profile.php#sbs2fa' ) ); exit;
@@ -249,8 +249,8 @@ class Sidcraft_BotShield_TwoFa {
 	public static function notice() {
 		if ( ! is_user_logged_in() ) { return; }
 		$u = wp_get_current_user();
-		if ( self::required_for( $u ) && ! self::user_methods( $u->ID ) && Sidcraft_BotShield_LoginSettings::methods_enabled() ) {
-			$left = (int) Sidcraft_BotShield_LoginSettings::get( 'tfa_since' ) + (int) Sidcraft_BotShield_LoginSettings::get( 'tfa_grace' ) * DAY_IN_SECONDS - time();
+		if ( self::required_for( $u ) && ! self::user_methods( $u->ID ) && Botvaguard_LoginSettings::methods_enabled() ) {
+			$left = (int) Botvaguard_LoginSettings::get( 'tfa_since' ) + (int) Botvaguard_LoginSettings::get( 'tfa_grace' ) * DAY_IN_SECONDS - time();
 			echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Set up two-factor login.', 'botvaguard' ) . '</strong> ' . esc_html( $left > 0 ? sprintf( /* translators: %s: time */ __( 'Your role must use a second login step. You have %s left.', 'botvaguard' ), human_time_diff( time(), time() + $left ) ) : __( 'Your role must use a second login step before you can continue.', 'botvaguard' ) ) . ' <a href="' . esc_url( admin_url( 'profile.php#sbs2fa' ) ) . '">' . esc_html__( 'Set it up now', 'botvaguard' ) . '</a></p></div>';
 		}
 		$codes = get_transient( 'sbs2fa_codes_' . $u->ID );
@@ -260,7 +260,7 @@ class Sidcraft_BotShield_TwoFa {
 
 	// ---------- profile ----------
 	public static function profile( $user ) {
-		$s = Sidcraft_BotShield_LoginSettings::all(); $all = Sidcraft_BotShield_LoginSettings::methods_enabled();
+		$s = Botvaguard_LoginSettings::all(); $all = Botvaguard_LoginSettings::methods_enabled();
 		if ( ! $s['tfa_on'] || ! $all ) { return; }
 		$own = get_current_user_id() === $user->ID; $admin = current_user_can( 'manage_options' );
 		if ( ! $own && ! $admin ) { return; }
@@ -277,7 +277,7 @@ class Sidcraft_BotShield_TwoFa {
 			if ( in_array( 'totp', $have, true ) ) { $h = '<strong>' . esc_html__( 'On', 'botvaguard' ) . '</strong><br>' . $act( 'totp_off', __( 'Remove', 'botvaguard' ) ); }
 			elseif ( $own ) {
 				$pending = get_user_meta( $user->ID, 'sbs2fa_totp_pending', true );
-				if ( $pending ) { $uri = Sidcraft_BotShield_Totp::uri( $pending, $user->user_email ); $h = Sidcraft_BotShield_Qr::svg( $uri, 4 ) . '<p>' . esc_html__( 'Scan the code with Google Authenticator, Microsoft Authenticator, Authy or 1Password. Or type this key:', 'botvaguard' ) . '<br><code>' . esc_html( trim( chunk_split( $pending, 4, ' ' ) ) ) . '</code></p>' . $act( 'totp_confirm', __( 'Turn on', 'botvaguard' ), '<input type="text" name="sbs_code" placeholder="123456" inputmode="numeric" autocomplete="one-time-code" style="width:110px"> ', 'button button-primary' ) . $act( 'totp_off', __( 'Cancel', 'botvaguard' ) ); }
+				if ( $pending ) { $uri = Botvaguard_Totp::uri( $pending, $user->user_email ); $h = Botvaguard_Qr::svg( $uri, 4 ) . '<p>' . esc_html__( 'Scan the code with Google Authenticator, Microsoft Authenticator, Authy or 1Password. Or type this key:', 'botvaguard' ) . '<br><code>' . esc_html( trim( chunk_split( $pending, 4, ' ' ) ) ) . '</code></p>' . $act( 'totp_confirm', __( 'Turn on', 'botvaguard' ), '<input type="text" name="sbs_code" placeholder="123456" inputmode="numeric" autocomplete="one-time-code" style="width:110px"> ', 'button button-primary' ) . $act( 'totp_off', __( 'Cancel', 'botvaguard' ) ); }
 				else { $h = esc_html__( 'Use an app that makes a new 6-digit code every 30 seconds.', 'botvaguard' ) . '<br>' . $act( 'totp_start', __( 'Set up', 'botvaguard' ), '', 'button button-primary' ); }
 			} else { $h = esc_html__( 'Not set up.', 'botvaguard' ); }
 			$row( __( 'Authenticator app', 'botvaguard' ), $h );
@@ -304,7 +304,7 @@ class Sidcraft_BotShield_TwoFa {
 	}
 
 	private static function profile_js() {
-		wp_register_script( 'sidcraft-botshield-2fa', false, array(), SIDCRAFT_BOTSHIELD_VERSION, true ); wp_enqueue_script( 'sidcraft-botshield-2fa' );
+		wp_register_script( 'sidcraft-botshield-2fa', false, array(), BOTVAGUARD_VERSION, true ); wp_enqueue_script( 'sidcraft-botshield-2fa' );
 		$cfg = wp_json_encode( array( 'ajax' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'sbs2fa_pk' ), 'ok' => __( 'Passkey added.', 'botvaguard' ) ) );
 		wp_add_inline_script( 'sidcraft-botshield-2fa', '(function(){var C=' . $cfg . ',b=document.getElementById("sbs-pk-add");if(!b)return;var st=document.getElementById("sbs-pk-status");function d(s){s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";var x=atob(s),a=new Uint8Array(x.length);for(var i=0;i<x.length;i++)a[i]=x.charCodeAt(i);return a.buffer}function e(b){var a=new Uint8Array(b),s="";for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}' .
 			'function post(step,x){var p=new URLSearchParams();p.set("action","sidcraft_botshield_pk_reg");p.set("step",step);p.set("_ajax_nonce",C.nonce);for(var k in x||{})p.set(k,x[k]);return fetch(C.ajax,{method:"POST",credentials:"same-origin",body:p}).then(function(r){return r.json()})}' .
@@ -313,13 +313,13 @@ class Sidcraft_BotShield_TwoFa {
 
 	public static function pk_register_ajax() {
 		check_ajax_referer( 'sbs2fa_pk' ); $uid = get_current_user_id(); $user = get_userdata( $uid );
-		if ( ! $user || ! in_array( 'passkey', Sidcraft_BotShield_LoginSettings::methods_enabled(), true ) ) { wp_send_json_error( array( 'message' => 'Not allowed.' ) ); }
+		if ( ! $user || ! in_array( 'passkey', Botvaguard_LoginSettings::methods_enabled(), true ) ) { wp_send_json_error( array( 'message' => 'Not allowed.' ) ); }
 		$step = isset( $_POST['step'] ) ? sanitize_key( wp_unslash( $_POST['step'] ) ) : '';
 		$keys = (array) get_user_meta( $uid, 'sbs2fa_passkeys', true ); $keys = array_filter( $keys );
-		if ( 'begin' === $step ) { $ch = random_bytes( 32 ); set_transient( 'sbs2fa_pkreg_' . $uid, Sidcraft_BotShield_WebAuthn::b64u( $ch ), 5 * MINUTE_IN_SECONDS ); wp_send_json_success( Sidcraft_BotShield_WebAuthn::creation_options( $user, $ch, $keys ) ); }
+		if ( 'begin' === $step ) { $ch = random_bytes( 32 ); set_transient( 'sbs2fa_pkreg_' . $uid, Botvaguard_WebAuthn::b64u( $ch ), 5 * MINUTE_IN_SECONDS ); wp_send_json_success( Botvaguard_WebAuthn::creation_options( $user, $ch, $keys ) ); }
 		$ch = get_transient( 'sbs2fa_pkreg_' . $uid ); if ( ! $ch ) { wp_send_json_error( array( 'message' => 'Expired. Try again.' ) ); }
 		delete_transient( 'sbs2fa_pkreg_' . $uid );
-		$cred = Sidcraft_BotShield_WebAuthn::verify_registration( isset( $_POST['clientDataJSON'] ) ? sanitize_text_field( wp_unslash( $_POST['clientDataJSON'] ) ) : '', isset( $_POST['attestationObject'] ) ? sanitize_text_field( wp_unslash( $_POST['attestationObject'] ) ) : '', Sidcraft_BotShield_WebAuthn::unb64u( $ch ) );
+		$cred = Botvaguard_WebAuthn::verify_registration( isset( $_POST['clientDataJSON'] ) ? sanitize_text_field( wp_unslash( $_POST['clientDataJSON'] ) ) : '', isset( $_POST['attestationObject'] ) ? sanitize_text_field( wp_unslash( $_POST['attestationObject'] ) ) : '', Botvaguard_WebAuthn::unb64u( $ch ) );
 		if ( is_wp_error( $cred ) ) { wp_send_json_error( array( 'message' => $cred->get_error_message() ) ); }
 		$cred['name'] = isset( $_POST['name'] ) ? substr( sanitize_text_field( wp_unslash( $_POST['name'] ) ), 0, 40 ) : ''; if ( '' === $cred['name'] ) { $cred['name'] = 'Passkey ' . ( count( $keys ) + 1 ); }
 		$keys[] = $cred; update_user_meta( $uid, 'sbs2fa_passkeys', array_values( $keys ) ); self::add_method( $uid, 'passkey' );
@@ -340,9 +340,9 @@ class Sidcraft_BotShield_TwoFa {
 		switch ( $op ) {
 			case 'email_on': if ( $own ) { self::add_method( $uid, 'email' ); } break;
 			case 'email_off': self::drop_method( $uid, 'email' ); break;
-			case 'totp_start': if ( $own ) { update_user_meta( $uid, 'sbs2fa_totp_pending', Sidcraft_BotShield_Totp::secret() ); } break;
+			case 'totp_start': if ( $own ) { update_user_meta( $uid, 'sbs2fa_totp_pending', Botvaguard_Totp::secret() ); } break;
 			case 'totp_confirm':
-				$p = (string) get_user_meta( $uid, 'sbs2fa_totp_pending', true ); $step = $own && $p ? Sidcraft_BotShield_Totp::verify( $p, isset( $_POST['sbs_code'] ) ? sanitize_text_field( wp_unslash( $_POST['sbs_code'] ) ) : '' ) : 0;
+				$p = (string) get_user_meta( $uid, 'sbs2fa_totp_pending', true ); $step = $own && $p ? Botvaguard_Totp::verify( $p, isset( $_POST['sbs_code'] ) ? sanitize_text_field( wp_unslash( $_POST['sbs_code'] ) ) : '' ) : 0;
 				if ( $step ) { update_user_meta( $uid, 'sbs2fa_totp', $p ); update_user_meta( $uid, 'sbs2fa_totp_last', $step ); delete_user_meta( $uid, 'sbs2fa_totp_pending' ); self::add_method( $uid, 'totp' ); } else { $msg = __( 'That code is not right. Try again.', 'botvaguard' ); }
 				break;
 			case 'totp_off': delete_user_meta( $uid, 'sbs2fa_totp' ); delete_user_meta( $uid, 'sbs2fa_totp_pending' ); self::drop_method( $uid, 'totp' ); break;

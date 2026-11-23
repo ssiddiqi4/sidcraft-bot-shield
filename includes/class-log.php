@@ -1,7 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-class Sidcraft_BotShield_Log {
+class Botvaguard_Log {
 	const LOG = 'sidcraft_botshield_log';
 	const STATS = 'sidcraft_botshield_stats';
 
@@ -14,7 +14,7 @@ class Sidcraft_BotShield_Log {
 		$st[ $day ]['reasons'][ $reason ] = ( $st[ $day ]['reasons'][ $reason ] ?? 0 ) + 1;
 		krsort( $st ); $st = array_slice( $st, 0, 30, true );
 		update_option( self::STATS, $st, false );
-		if ( ! Sidcraft_BotShield_Settings::get( 'keep_log' ) ) { return; }
+		if ( ! Botvaguard_Settings::get( 'keep_log' ) ) { return; }
 		$log = get_option( self::LOG, array() ); $log = is_array( $log ) ? $log : array();
 		array_unshift( $log, array( 't' => $time, 'a' => $action, 'r' => $reason, 'ip' => $ip, 'ua' => substr( $ua, 0, 160 ), 'p' => substr( $path, 0, 120 ), 'c' => (string) $country ) );
 		$cut = time() - 30 * DAY_IN_SECONDS;

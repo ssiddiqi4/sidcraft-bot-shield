@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** The lists of well-known bots. Tokens are matched case-insensitively inside the User-Agent header. */
-class Sidcraft_BotShield_Catalog {
+class Botvaguard_Catalog {
 
 	/**
 	 * Bots that are allowed. group => array( label, bots ). Each bot: token => array( name, rdns suffixes that prove it is genuine ).

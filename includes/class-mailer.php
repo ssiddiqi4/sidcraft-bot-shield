@@ -5,7 +5,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Where BotVaguard's emails (login codes, alerts) are sent from: WordPress's own PHP mailer, or an SMTP server you configure.
  * Settings live in the Login tab under Two-factor login.
  */
-class Sidcraft_BotShield_Mailer {
+class Botvaguard_Mailer {
 
 	/** True while one of BotVaguard's own emails is being sent. */
 	private static $mine = false;
@@ -25,7 +25,7 @@ class Sidcraft_BotShield_Mailer {
 		self::$mine = true; self::$error = '';
 		$ok = wp_mail( $to, $subject, $body, $headers );
 		self::$mine = false;
-		$s = Sidcraft_BotShield_LoginSettings::all();
+		$s = Botvaguard_LoginSettings::all();
 		update_option( 'sidcraft_botshield_mail_last', array( 'time' => time(), 'to' => (string) $to, 'subject' => (string) $subject, 'ok' => (bool) $ok, 'error' => self::$error, 'via' => self::smtp_on( $s ) ? 'smtp ' . $s['smtp_host'] . ':' . (int) $s['smtp_port'] : 'php' ), false );
 		return $ok;
 	}
@@ -33,7 +33,7 @@ class Sidcraft_BotShield_Mailer {
 	/** Why the last email could not be sent ('' when it could). */
 	public static function last_error() { return self::$error; }
 
-	private static function settings( $override = null ) { return is_array( $override ) ? $override : Sidcraft_BotShield_LoginSettings::all(); }
+	private static function settings( $override = null ) { return is_array( $override ) ? $override : Botvaguard_LoginSettings::all(); }
 	private static $override = null;
 
 	private static function applies() {
@@ -105,10 +105,10 @@ class Sidcraft_BotShield_Mailer {
 	public static function test_action() {
 		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'You do not have permission to do this.', 'botvaguard' ), 403 ); }
 		check_admin_referer( 'sidcraft_botshield_mail_test', 'sbs_mail_nonce' );
-		$O  = Sidcraft_BotShield_LoginSettings::OPTION;
-		$in = isset( $_POST[ $O ] ) && is_array( $_POST[ $O ] ) ? wp_unslash( $_POST[ $O ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- every key is cleaned in Sidcraft_BotShield_LoginSettings::sanitize().
-		$s  = Sidcraft_BotShield_LoginSettings::sanitize( $in );
-		update_option( Sidcraft_BotShield_LoginSettings::OPTION, array_merge( Sidcraft_BotShield_LoginSettings::all(), $s ) ); // the test saves what you typed, so nothing is lost when the page reloads.
+		$O  = Botvaguard_LoginSettings::OPTION;
+		$in = isset( $_POST[ $O ] ) && is_array( $_POST[ $O ] ) ? wp_unslash( $_POST[ $O ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- every key is cleaned in Botvaguard_LoginSettings::sanitize().
+		$s  = Botvaguard_LoginSettings::sanitize( $in );
+		update_option( Botvaguard_LoginSettings::OPTION, array_merge( Botvaguard_LoginSettings::all(), $s ) ); // the test saves what you typed, so nothing is lost when the page reloads.
 		$u  = wp_get_current_user(); $to = $u->user_email;
 		self::$override = $s; self::$log = ''; self::$error = '';
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );

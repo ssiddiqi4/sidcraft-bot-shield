@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Passkey (WebAuthn) support: just enough of CBOR and the WebAuthn checks to register and verify security keys and passkeys. */
-class Sidcraft_BotShield_WebAuthn {
+class Botvaguard_WebAuthn {
 	public static function b64u( $s ) { return rtrim( strtr( base64_encode( $s ), '+/', '-_' ), '=' ); }
 	public static function unb64u( $s ) { return (string) base64_decode( strtr( (string) $s, '-_', '+/' ) . str_repeat( '=', ( 4 - strlen( (string) $s ) % 4 ) % 4 ) ); }
 
@@ -99,7 +99,7 @@ class Sidcraft_BotShield_WebAuthn {
 }
 
 /** Authenticator-app codes (TOTP, RFC 6238). */
-class Sidcraft_BotShield_Totp {
+class Botvaguard_Totp {
 	const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 	/** A new 160-bit secret as 32 base32 characters. */

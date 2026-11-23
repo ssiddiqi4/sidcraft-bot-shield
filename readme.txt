@@ -141,13 +141,13 @@ Logged-in users are never blocked. If you were blocked while logged out, add you
 3. Save the file and reload your site. BotVaguard stops all of its blocking: bad-bot and country blocking, the firewall, login lockouts, the REST API rules, the blocked core files check and the custom login address, so `wp-login.php` works again. The plugin stays active and its settings are kept.
 4. Log in, fix the setting that locked you out (for example add your address to "Never block these addresses"), then delete the line from `wp-config.php` to switch the protection back on.
 
-Good to know: the switch does not remove the lines that BotVaguard wrote into `.htaccess` (the optional pre-WordPress firewall and the core files rule). If one of those is what blocks you, open `.htaccess` and delete the block between the lines `# BEGIN Sidcraft Bot Shield ...` and `# END Sidcraft Bot Shield ...`, or switch the option off in the Firewall tab once you can log in. Two-factor login has its own switch, see below.
+If the emergency switch is not enough:
 
-**Locked out by a missing two-factor code: `SIDCRAFT_BOTSHIELD_DISABLE_2FA`**
+* `.htaccess` lines: It does not remove the lines BotVaguard wrote into `.htaccess`: the optional pre-WordPress firewall and the core files rule. They run before WordPress loads, so the constant can't switch them off. If one of those is blocking you, delete the block between `# BEGIN Sidcraft Bot Shield …` and `# END Sidcraft Bot Shield …` in `.htaccess`.
+* Two-factor login: It has its own switch. Add `define( 'SIDCRAFT_BOTSHIELD_DISABLE_2FA', true );` to `wp-config.php`, or upload an empty file named `sidcraft-botshield-disable-2fa` (no extension) to the `wp-content` folder.
+* No FTP access: Rename the plugin folder `wp-content/plugins/botvaguard` to switch the whole plugin off, then rename it back.
 
-Add `define( 'SIDCRAFT_BOTSHIELD_DISABLE_2FA', true );` to `wp-config.php` in the same way, or upload an empty file named `sidcraft-botshield-disable-2fa` (no extension) to the `wp-content` folder. Two-factor login is then off until you remove the line or the file. A notice in the dashboard reminds you to remove it.
-
-**No FTP access at all?** Rename the plugin folder `botvaguard` in `wp-content/plugins` (host file manager) to switch the whole plugin off, then rename it back.
+Tip: before you change firewall or login settings, open BotVaguard > Dashboard and use the "Back up .htaccess" and "Back up wp-config.php" buttons. Each downloads a copy of the file (it ends in .txt). Keep the wp-config.php copy private: it contains your database password.
 
 = Does it slow my site down? =
 
@@ -187,6 +187,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * New: its own menu in the WordPress dashboard with a Dashboard (protection status and the latest blocks), Bots, Firewall, Login, Scan and Blocked log screens. It no longer sits under Settings.
 * New: Firewall > REST API (/wp-json/). Watch-only mode (logs what would be closed), or close the REST API to visitors who are not logged in with an allow list of routes (oEmbed, form sending, visitor counting, Contact Form 7, WooCommerce Store API and Jetpack are allowed by default), routes that are always closed, a requests-a-minute limit, and counting of failed REST logins (application passwords) as failed logins. Logged-in users and your trusted addresses are never affected.
 * Blocked requests to the REST API show in the Blocked log under REST API.
+* New: Dashboard buttons "Back up .htaccess" and "Back up wp-config.php" download a copy of each file (administrators only).
 * Readme: step-by-step instructions for the emergency switches (SIDCRAFT_BOTSHIELD_OFF and SIDCRAFT_BOTSHIELD_DISABLE_2FA) in the FAQ.
 
 = 1.5.6 =

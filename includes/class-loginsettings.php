@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Settings of the Login tab: two-factor login and the custom login address. */
-class Botvaguard_LoginSettings {
+class Botvanguard_LoginSettings {
 	const OPTION = 'sidcraft_botshield_login';
 
 	public static function defaults() {
@@ -52,8 +52,8 @@ class Botvaguard_LoginSettings {
 		// the field with your WordPress login password, can never overwrite it.
 		$change = ! empty( $in['smtp_pass_change'] ) || '' === (string) $old['smtp_pass'];
 		if ( ! empty( $in['smtp_forget'] ) ) { $o['smtp_pass'] = ''; }
-		elseif ( ! $change || '' === trim( $pw ) || Botvaguard_Mailer::is_protected( $pw ) ) { $o['smtp_pass'] = Botvaguard_Mailer::is_protected( $pw ) && $change ? $pw : (string) $old['smtp_pass']; }
-		else { $o['smtp_pass'] = Botvaguard_Mailer::protect( substr( trim( $pw ), 0, 250 ) ); }
+		elseif ( ! $change || '' === trim( $pw ) || Botvanguard_Mailer::is_protected( $pw ) ) { $o['smtp_pass'] = Botvanguard_Mailer::is_protected( $pw ) && $change ? $pw : (string) $old['smtp_pass']; }
+		else { $o['smtp_pass'] = Botvanguard_Mailer::protect( substr( trim( $pw ), 0, 250 ) ); }
 		if ( 'smtp' === $o['mail_mode'] && '' === $o['smtp_host'] ) { $o['mail_mode'] = 'php'; }
 		$o['url_on'] = empty( $in['url_on'] ) ? 0 : 1;
 		$o['url_slug'] = self::clean_slug( $in['url_slug'] ?? '' );

@@ -1,7 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-class Botvaguard_Settings {
+class Botvanguard_Settings {
 	const OPTION = 'sidcraft_botshield_settings';
 
 	public static function defaults() {
@@ -63,7 +63,7 @@ class Botvaguard_Settings {
 		$out['ip_allow'] = self::clean_lines( $in['ip_allow'] ?? '', true );
 		$out['ip_block'] = self::clean_lines( $in['ip_block'] ?? '', true );
 		$gm = $in['geo_mode'] ?? 'off'; $out['geo_mode'] = in_array( $gm, array( 'off', 'block', 'allow_only' ), true ) ? $gm : 'off';
-		$out['geo_countries'] = Botvaguard_Countries::clean( $in['geo_countries'] ?? array() );
+		$out['geo_countries'] = Botvanguard_Countries::clean( $in['geo_countries'] ?? array() );
 		$out['geo_unknown']   = 'block' === ( $in['geo_unknown'] ?? 'allow' ) ? 'block' : 'allow';
 		$out['vpn_api']       = 'proxycheck' === ( $in['vpn_api'] ?? 'none' ) ? 'proxycheck' : 'none';
 		$out['vpn_api_key']   = preg_replace( '/[^A-Za-z0-9\-_]/', '', (string) ( $in['vpn_api_key'] ?? '' ) );
@@ -77,7 +77,7 @@ class Botvaguard_Settings {
 		foreach ( preg_split( '/[\r\n,]+/', (string) $text ) as $l ) {
 			$l = trim( sanitize_text_field( $l ) );
 			if ( '' === $l ) { continue; }
-			if ( $ips ) { if ( Botvaguard_Ranges::parse( $l ) && count( $lines ) < 2000 ) { $lines[] = $l; } }
+			if ( $ips ) { if ( Botvanguard_Ranges::parse( $l ) && count( $lines ) < 2000 ) { $lines[] = $l; } }
 			else { $lines[] = strtolower( substr( $l, 0, 80 ) ); }
 		}
 		return implode( "\n", array_unique( $lines ) );
@@ -87,7 +87,7 @@ class Botvaguard_Settings {
 	public static function set_allow( $text ) { $o = self::all(); $o['ip_allow'] = self::clean_lines( $text, true ); update_option( self::OPTION, $o ); }
 
 	/** Is this address on the never-block list? */
-	public static function is_allowed_ip( $ip ) { return '' !== $ip && Botvaguard_Ranges::in_list( $ip, self::lines( 'ip_allow' ) ); }
+	public static function is_allowed_ip( $ip ) { return '' !== $ip && Botvanguard_Ranges::in_list( $ip, self::lines( 'ip_allow' ) ); }
 
 	/** Add a line to a list option (ip_allow, ip_block, custom_allow). An address on the never-block list cannot be added to the block list. */
 	public static function add_line( $key, $line ) {

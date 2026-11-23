@@ -1,4 +1,4 @@
-=== BotVaguard ===
+=== Sidcraft BotVanguard ===
 Contributors: ssiddiqi4
 Donate link: https://paypal.me/SSiddiqi275
 Tags: two-factor, 2fa, passkey, firewall, security
@@ -15,7 +15,7 @@ Lets search engines and AI assistants in. Two-factor login (email, app, SMS, pas
 
 Most of the traffic that hits a small site is not people. Some of it you want: search engines send visitors, and AI assistants such as ChatGPT, Claude, Perplexity, Copilot, Gemini and Apple Intelligence can mention and link to your pages. A lot of it you do not want: scrapers that copy your content, scripts that hammer your pages, vulnerability scanners probing for `/shell` or `/.env`, and bots that pretend to be Googlebot.
 
-**BotVaguard sorts them for you.**
+**Sidcraft BotVanguard sorts them for you.**
 
 = Always welcome (you can switch each group off) =
 
@@ -107,7 +107,7 @@ VPN and country detection is never perfect: lists lag behind new VPN servers, an
 == Installation ==
 
 1. Upload the plugin and activate it.
-2. Open BotVaguard in the WordPress menu (it has its own Dashboard).
+2. Open Sidcraft BotVanguard in the WordPress menu (it has its own Dashboard).
 3. Leave it in Monitor mode for a few days and look at Recent activity.
 4. When the list looks right, choose Block and save.
 
@@ -129,7 +129,7 @@ No. It lets them in or keeps them out by name. Use robots.txt rules for that as 
 
 = I locked myself out. What is the emergency switch? =
 
-Logged-in users are never blocked. If you were blocked while logged out, add your address to "Never block these addresses" (BotVaguard > Bots). If you cannot open the settings, use one of the emergency switches below. They work even when you cannot log in.
+Logged-in users are never blocked. If you were blocked while logged out, add your address to "Never block these addresses" (Sidcraft BotVanguard > Bots). If you cannot open the settings, use one of the emergency switches below. They work even when you cannot log in.
 
 **Switch off all blocking: `SIDCRAFT_BOTSHIELD_OFF`**
 
@@ -138,59 +138,59 @@ Logged-in users are never blocked. If you were blocked while logged out, add you
 
 `define( 'SIDCRAFT_BOTSHIELD_OFF', true );`
 
-3. Save the file and reload your site. BotVaguard stops all of its blocking: bad-bot and country blocking, the firewall, login lockouts, the REST API rules, the blocked core files check and the custom login address, so `wp-login.php` works again. The plugin stays active and its settings are kept.
+3. Save the file and reload your site. Sidcraft BotVanguard stops all of its blocking: bad-bot and country blocking, the firewall, login lockouts, the REST API rules, the blocked core files check and the custom login address, so `wp-login.php` works again. The plugin stays active and its settings are kept.
 4. Log in, fix the setting that locked you out (for example add your address to "Never block these addresses"), then delete the line from `wp-config.php` to switch the protection back on.
 
 If the emergency switch is not enough:
 
-* `.htaccess` lines: It does not remove the lines BotVaguard wrote into `.htaccess`: the optional pre-WordPress firewall and the core files rule. They run before WordPress loads, so the constant can't switch them off. If one of those is blocking you, delete the block between `# BEGIN Sidcraft Bot Shield …` and `# END Sidcraft Bot Shield …` in `.htaccess`.
+* `.htaccess` lines: It does not remove the lines Sidcraft BotVanguard wrote into `.htaccess`: the optional pre-WordPress firewall and the core files rule. They run before WordPress loads, so the constant can't switch them off. If one of those is blocking you, delete the block between `# BEGIN Sidcraft Bot Shield …` and `# END Sidcraft Bot Shield …` in `.htaccess`.
 * Two-factor login: It has its own switch. Add `define( 'SIDCRAFT_BOTSHIELD_DISABLE_2FA', true );` to `wp-config.php`, or upload an empty file named `sidcraft-botshield-disable-2fa` (no extension) to the `wp-content` folder.
-* No FTP access: Rename the plugin folder `wp-content/plugins/botvaguard` to switch the whole plugin off, then rename it back.
+* No FTP access: Rename the plugin folder `wp-content/plugins/botvanguard` to switch the whole plugin off, then rename it back.
 
-Tip: before you change firewall or login settings, open BotVaguard > Dashboard and use the "Back up .htaccess" and "Back up wp-config.php" buttons. Each downloads a copy of the file (it ends in .txt). Keep the wp-config.php copy private: it contains your database password.
+Tip: before you change firewall or login settings, open Sidcraft BotVanguard > Dashboard and use the "Back up .htaccess" and "Back up wp-config.php" buttons. Each downloads a copy of the file (it ends in .txt). Keep the wp-config.php copy private: it contains your database password.
 
 = My site is under a DDoS attack and I cannot log in. What do I do? =
 
-A DDoS attack floods your site with so many requests that it slows down or stops, and your own login may time out. BotVaguard has an attack mode that makes every visitor pass a short browser check before WordPress does any real work. Attack tools almost never pass it. You can switch it on without the dashboard, over FTP or your host's file manager. Use either way:
+A DDoS attack floods your site with so many requests that it slows down or stops, and your own login may time out. Sidcraft BotVanguard has an attack mode that makes every visitor pass a short browser check before WordPress does any real work. Attack tools almost never pass it. You can switch it on without the dashboard, over FTP or your host's file manager. Use either way:
 
 **Way 1: a line in `wp-config.php`**
 
 1. Open `wp-config.php` in your site's main folder.
 2. Add this line above the line that says `/* That's all, stop editing! Happy publishing. */`:
 
-`define( 'BOTVAGUARD_DDOS', true );`
+`define( 'BOTVANGUARD_DDOS', true );`
 
 3. Save. Attack mode is on straight away.
 
-**Way 2: an empty file.** Upload an empty file named `botvaguard-ddos` (no extension) to the `wp-content` folder. Delete it to switch attack mode off again.
+**Way 2: an empty file.** Upload an empty file named `botvanguard-ddos` (no extension) to the `wp-content` folder. Delete it to switch attack mode off again.
 
-Optional, stricter: limit how many requests a minute one address may make with `define( 'BOTVAGUARD_DDOS_RATE', 30 );` (the default in this emergency mode is 60).
+Optional, stricter: limit how many requests a minute one address may make with `define( 'BOTVANGUARD_DDOS_RATE', 30 );` (the default in this emergency mode is 60).
 
-When the attack is over, remove the line or delete the file. Then log in and open BotVaguard > DDoS to see what happened.
+When the attack is over, remove the line or delete the file. Then log in and open Sidcraft BotVanguard > DDoS to see what happened.
 
 = What does attack mode do, exactly? =
 
 * Every visitor who is not logged in and not on your trusted list is shown a short "Checking your browser" page once. Their browser solves a small puzzle and the site opens. They are not asked again for 6 hours (you can change this).
-* Search engines and other bots that you allow in BotVaguard, and that prove who they are, are never asked. Logged-in users are never asked.
+* Search engines and other bots that you allow in Sidcraft BotVanguard, and that prove who they are, are never asked. Logged-in users are never asked.
 * An address that passed the check but still sends too many requests a minute (120 by default) is blocked for 30 minutes.
 * Outside calls to `wp-cron.php`, a favourite target, are refused while it is on.
 * The check page is tiny and needs no database work, so your server can turn away a flood cheaply.
 
 = Can it switch on by itself? =
 
-Yes. In BotVaguard > DDoS the default is Automatic: if the whole site gets more than 600 requests in one minute, attack mode starts and stays on for 30 minutes. Change the numbers to fit your normal traffic. You can also start it by hand for 30 minutes up to 24 hours, or set it to Always on.
+Yes. In Sidcraft BotVanguard > DDoS the default is Automatic: if the whole site gets more than 600 requests in one minute, attack mode starts and stays on for 30 minutes. Change the numbers to fit your normal traffic. You can also start it by hand for 30 minutes up to 24 hours, or set it to Always on.
 
 = Will payments, forms and webhooks still work in attack mode? =
 
-Visitors' browsers pass the check once, so forms and checkouts keep working. Servers that call your site, such as payment webhooks, cannot pass a browser check. The "Never asked" list in BotVaguard > DDoS covers WooCommerce callbacks (`wc-api`) by default. Add the address of any other callback, for example `/wp-json/stripe/`.
+Visitors' browsers pass the check once, so forms and checkouts keep working. Servers that call your site, such as payment webhooks, cannot pass a browser check. The "Never asked" list in Sidcraft BotVanguard > DDoS covers WooCommerce callbacks (`wc-api`) by default. Add the address of any other callback, for example `/wp-json/stripe/`.
 
 = Will attack mode hurt my search ranking? =
 
-Not for the search engines you allow in BotVaguard that prove who they are by reverse DNS (Google, Bing and others). They are not asked. Keep attack mode off when there is no attack, so that other crawlers and visitors are not slowed down. Visitors with JavaScript turned off cannot pass the check while it is on.
+Not for the search engines you allow in Sidcraft BotVanguard that prove who they are by reverse DNS (Google, Bing and others). They are not asked. Keep attack mode off when there is no attack, so that other crawlers and visitors are not slowed down. Visitors with JavaScript turned off cannot pass the check while it is on.
 
 = Is this enough to stop any DDoS attack? =
 
-No. BotVaguard protects your WordPress site from floods of web requests. It cannot stop an attack that fills your server's internet connection before the requests even reach your site. For serious attacks also put your site behind a CDN such as Cloudflare (turn on its "Under Attack" mode), or ask your host for DDoS protection. If you use Cloudflare, set "Proxy" to Cloudflare in BotVaguard > Bots so visitors' real addresses are seen.
+No. Sidcraft BotVanguard protects your WordPress site from floods of web requests. It cannot stop an attack that fills your server's internet connection before the requests even reach your site. For serious attacks also put your site behind a CDN such as Cloudflare (turn on its "Under Attack" mode), or ask your host for DDoS protection. If you use Cloudflare, set "Proxy" to Cloudflare in Sidcraft BotVanguard > Bots so visitors' real addresses are seen.
 
 = Does it slow my site down? =
 
@@ -226,11 +226,11 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 == Changelog ==
 
 = 1.6.0 =
-* Renamed: the plugin is now BotVaguard (folder and slug botvaguard), so that it cannot be confused with other plugins named Bot Shield. Your settings, bans, logs and the firewall lines in .htaccess are kept. Activating BotVaguard switches the old Sidcraft Bot Shield plugin off, whatever folder it is in; delete the old one afterwards. All class and function names are new, so the two plugins can never crash each other. If both are somehow active, BotVaguard stays idle and shows a notice.
+* Renamed: the plugin is now Sidcraft BotVanguard (folder and slug botvanguard), so that it cannot be confused with other plugins named Bot Shield. Your settings, bans, logs and the firewall lines in .htaccess are kept. Activating Sidcraft BotVanguard switches the old Sidcraft Bot Shield plugin off, whatever folder it is in; delete the old one afterwards. All class and function names are new, so the two plugins can never crash each other. If both are somehow active, Sidcraft BotVanguard stays idle and shows a notice.
 * New: its own menu in the WordPress dashboard with a Dashboard (protection status and the latest blocks), Bots, Firewall, Login, Scan and Blocked log screens. It no longer sits under Settings.
 * New: Firewall > REST API (/wp-json/). Watch-only mode (logs what would be closed), or close the REST API to visitors who are not logged in with an allow list of routes (oEmbed, form sending, visitor counting, Contact Form 7, WooCommerce Store API and Jetpack are allowed by default), routes that are always closed, a requests-a-minute limit, and counting of failed REST logins (application passwords) as failed logins. Logged-in users and your trusted addresses are never affected.
 * Blocked requests to the REST API show in the Blocked log under REST API.
-* New: DDoS tab with an attack mode: every visitor passes a short browser check (with a small calculation) before WordPress does real work, per-address request limits, automatic start on a surge of requests, and two emergency switches that work without the dashboard: `define( 'BOTVAGUARD_DDOS', true );` in wp-config.php, or an empty file wp-content/botvaguard-ddos. Search engines you allow and logged-in users are never asked. See the FAQ.
+* New: DDoS tab with an attack mode: every visitor passes a short browser check (with a small calculation) before WordPress does real work, per-address request limits, automatic start on a surge of requests, and two emergency switches that work without the dashboard: `define( 'BOTVANGUARD_DDOS', true );` in wp-config.php, or an empty file wp-content/botvanguard-ddos. Search engines you allow and logged-in users are never asked. See the FAQ.
 * New: Dashboard buttons "Back up .htaccess" and "Back up wp-config.php" download a copy of each file (administrators only).
 * Readme: step-by-step instructions for the emergency switches (SIDCRAFT_BOTSHIELD_OFF and SIDCRAFT_BOTSHIELD_DISABLE_2FA) in the FAQ.
 
@@ -244,7 +244,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * SMTP password: a saved password is now shown as a masked field (••••••••••) with a Change password button, and is only replaced when you press that button. A blank field, or a browser auto-filling the field with your WordPress login password, can no longer overwrite it. An already-encrypted value is never encrypted twice.
 
 = 1.5.3 =
-* Two-factor login: when the email code cannot be sent, the second-step screen now says why (for example "SMTP Error: Could not authenticate") instead of pretending it was sent. Login > Email delivery shows the last email BotVaguard sent: when, to whom, through which server, and whether it was accepted or failed.
+* Two-factor login: when the email code cannot be sent, the second-step screen now says why (for example "SMTP Error: Could not authenticate") instead of pretending it was sent. Login > Email delivery shows the last email Sidcraft BotVanguard sent: when, to whom, through which server, and whether it was accepted or failed.
 
 = 1.5.2 =
 * Two-factor login: new setting "Send login codes to" (Login tab, Email delivery). Leave it empty to use each user's own profile address, or enter one address that receives every email code. The second-step screen now says where the code was sent (for example s*****@gmail.com), so a wrong profile address is easy to spot.
@@ -253,7 +253,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * The test email result no longer sounds like proof of delivery when the PHP mailer is used; it explains that the web server only accepted the message and suggests SMTP.
 
 = 1.5.0 =
-* New: Email delivery settings under Two-factor login (Login tab). Use the PHP mailer (WordPress default) or configure an SMTP server: host, encryption and port, user name and password (stored encrypted, or set SIDCRAFT_BOTSHIELD_SMTP_PASS in wp-config.php), From address and name, and whether it applies to BotVaguard emails only or every email on the site. "Send a test email to me" saves the values, sends a test and shows the server conversation if it fails. Login codes and alerts are sent through it.
+* New: Email delivery settings under Two-factor login (Login tab). Use the PHP mailer (WordPress default) or configure an SMTP server: host, encryption and port, user name and password (stored encrypted, or set SIDCRAFT_BOTSHIELD_SMTP_PASS in wp-config.php), From address and name, and whether it applies to Sidcraft BotVanguard emails only or every email on the site. "Send a test email to me" saves the values, sends a test and shows the server conversation if it fails. Login codes and alerts are sent through it.
 
 = 1.4.1 =
 * Two-factor login: new emergency switch for people locked out by a missing code. Besides the SIDCRAFT_BOTSHIELD_DISABLE_2FA constant in wp-config.php, an empty file named sidcraft-botshield-disable-2fa in the wp-content folder (upload it by FTP) turns two-factor login off. A notice reminds you to remove it.
@@ -292,7 +292,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 == Upgrade Notice ==
 
 = 1.6.0 =
-Renamed to BotVaguard with its own menu and a new REST API protection. After updating by upload, activate BotVaguard and delete the old Sidcraft Bot Shield plugin; your settings are kept.
+Renamed to Sidcraft BotVanguard with its own menu and a new REST API protection. After updating by upload, activate Sidcraft BotVanguard and delete the old Sidcraft Bot Shield plugin; your settings are kept.
 
 = 1.4.0 =
 Adds attempt limits for unknown user names and for repeated visits to login and register pages.

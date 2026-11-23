@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Downloaded address lists (Tor exit nodes, VPN and hosting ranges) and the optional country database. */
-class Botvaguard_Lists {
+class Botvanguard_Lists {
 	const STATUS = 'sidcraft_botshield_lists';
 	const CRON   = 'sidcraft_botshield_update_lists';
 
@@ -34,14 +34,14 @@ class Botvaguard_Lists {
 
 	/** Which list files does an IP belong to? Fails open (false) if a list was never downloaded. */
 	public static function listed( $key, $ip ) {
-		$p = Botvaguard_Ranges::pack( $ip );
+		$p = Botvanguard_Ranges::pack( $ip );
 		if ( '' === $p ) { return false; }
-		return Botvaguard_Ranges::file_contains( self::dir() . $key . ( 4 === strlen( $p ) ? '4' : '6' ) . '.bin', $p );
+		return Botvanguard_Ranges::file_contains( self::dir() . $key . ( 4 === strlen( $p ) ? '4' : '6' ) . '.bin', $p );
 	}
 
 	/** Download the lists that the owner switched on and rebuild the binary files. */
 	public static function update( $only = null ) {
-		$s = Botvaguard_Settings::all();
+		$s = Botvanguard_Settings::all();
 		$want = array( 'tor' => ! empty( $s['block_tor'] ), 'vpn' => ! empty( $s['block_vpn'] ), 'datacenter' => ! empty( $s['block_datacenter'] ) );
 		$st = self::status(); $msgs = array();
 		if ( ! self::ensure_dir() ) { $st['error'] = 'The folder wp-content/uploads/sidcraft-bot-shield is not writable.'; update_option( self::STATUS, $st, false ); return $st; }
@@ -49,19 +49,19 @@ class Botvaguard_Lists {
 			if ( ( $only && $only !== $key ) || ( ! $only && empty( $want[ $key ] ) ) ) { continue; }
 			$p4 = array(); $p6 = array(); $ok = false;
 			foreach ( $src['urls'] as $url ) {
-				$res = wp_safe_remote_get( $url, array( 'timeout' => 25, 'limit_response_size' => 6 * MB_IN_BYTES, 'user-agent' => 'Sidcraft-Bot-Shield/' . BOTVAGUARD_VERSION . '; ' . home_url() ) );
+				$res = wp_safe_remote_get( $url, array( 'timeout' => 25, 'limit_response_size' => 6 * MB_IN_BYTES, 'user-agent' => 'Sidcraft-Bot-Shield/' . BOTVANGUARD_VERSION . '; ' . home_url() ) );
 				if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) { $msgs[] = $src['label'] . ': ' . ( is_wp_error( $res ) ? $res->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code( $res ) ); continue; }
 				foreach ( preg_split( '/\R/', (string) wp_remote_retrieve_body( $res ) ) as $line ) {
 					$line = trim( preg_replace( '/[#;].*$/', '', $line ) );
-					$pr = Botvaguard_Ranges::parse( $line );
+					$pr = Botvanguard_Ranges::parse( $line );
 					if ( ! $pr ) { continue; }
 					if ( 4 === strlen( $pr[0] ) ) { $p4[] = $pr; } else { $p6[] = $pr; }
 					$ok = true;
 				}
 			}
 			if ( $ok ) {
-				$n4 = Botvaguard_Ranges::write( self::dir() . $key . '4.bin', $p4 );
-				$n6 = Botvaguard_Ranges::write( self::dir() . $key . '6.bin', $p6 );
+				$n4 = Botvanguard_Ranges::write( self::dir() . $key . '4.bin', $p4 );
+				$n6 = Botvanguard_Ranges::write( self::dir() . $key . '6.bin', $p6 );
 				$st['lists'][ $key ] = array( 'time' => time(), 'v4' => $n4, 'v6' => $n6 );
 			}
 		}
@@ -71,7 +71,7 @@ class Botvaguard_Lists {
 	}
 
 	public static function schedule() {
-		$s = Botvaguard_Settings::all();
+		$s = Botvanguard_Settings::all();
 		$need = ! empty( $s['block_tor'] ) || ! empty( $s['block_vpn'] ) || ! empty( $s['block_datacenter'] );
 		$next = wp_next_scheduled( self::CRON );
 		if ( $need && ! $next ) { wp_schedule_event( time() + 60, 'daily', self::CRON ); }

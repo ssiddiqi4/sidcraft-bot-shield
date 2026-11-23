@@ -7,9 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  *
  * It cannot stop a flood that fills the server's network line. For that, use a CDN or your host's DDoS protection too.
  */
-class Botvaguard_Ddos {
+class Botvanguard_Ddos {
 	const OPTION = 'sidcraft_botshield_ddos';
-	const UNTIL  = 'botvaguard_ddos_until'; // time until which the mode is on (started by hand or by the automatic switch).
+	const UNTIL  = 'botvanguard_ddos_until'; // time until which the mode is on (started by hand or by the automatic switch).
 	const COOKIE = 'bvg_ddos';
 
 	public static function defaults() {
@@ -46,16 +46,16 @@ class Botvaguard_Ddos {
 	public static function init() {
 		add_action( 'plugins_loaded', array( __CLASS__, 'run' ), 0 );
 		add_action( 'admin_init', array( __CLASS__, 'register' ) );
-		add_action( 'admin_post_botvaguard_ddos_start', array( __CLASS__, 'start' ) );
-		add_action( 'admin_post_botvaguard_ddos_stop', array( __CLASS__, 'stop' ) );
+		add_action( 'admin_post_botvanguard_ddos_start', array( __CLASS__, 'start' ) );
+		add_action( 'admin_post_botvanguard_ddos_stop', array( __CLASS__, 'stop' ) );
 	}
 
-	public static function register() { register_setting( 'botvaguard_ddos_group', self::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( __CLASS__, 'sanitize' ), 'default' => self::defaults() ) ); }
+	public static function register() { register_setting( 'botvanguard_ddos_group', self::OPTION, array( 'type' => 'array', 'sanitize_callback' => array( __CLASS__, 'sanitize' ), 'default' => self::defaults() ) ); }
 
 	/** The emergency switches that work without the dashboard: a line in wp-config.php, or an empty file uploaded by FTP. */
 	public static function forced() {
-		if ( ( defined( 'BOTVAGUARD_DDOS' ) && BOTVAGUARD_DDOS ) || ( defined( 'SIDCRAFT_BOTSHIELD_DDOS' ) && SIDCRAFT_BOTSHIELD_DDOS ) ) { return 'constant'; }
-		if ( defined( 'WP_CONTENT_DIR' ) && file_exists( WP_CONTENT_DIR . '/botvaguard-ddos' ) ) { return 'file'; }
+		if ( ( defined( 'BOTVANGUARD_DDOS' ) && BOTVANGUARD_DDOS ) || ( defined( 'BOTVAGUARD_DDOS' ) && BOTVAGUARD_DDOS ) || ( defined( 'SIDCRAFT_BOTSHIELD_DDOS' ) && SIDCRAFT_BOTSHIELD_DDOS ) ) { return 'constant'; }
+		if ( defined( 'WP_CONTENT_DIR' ) && ( file_exists( WP_CONTENT_DIR . '/botvanguard-ddos' ) || file_exists( WP_CONTENT_DIR . '/botvaguard-ddos' ) ) ) { return 'file'; }
 		return '';
 	}
 
@@ -65,11 +65,11 @@ class Botvaguard_Ddos {
 		$f = self::forced(); if ( '' !== $f ) { return $f; }
 		if ( 'on' === $s['mode'] ) { return 'on'; }
 		$u = (int) get_option( self::UNTIL, 0 );
-		if ( $u > time() ) { return 'auto' === get_option( 'botvaguard_ddos_how', '' ) ? 'auto' : 'manual'; }
+		if ( $u > time() ) { return 'auto' === get_option( 'botvanguard_ddos_how', '' ) ? 'auto' : 'manual'; }
 		return '';
 	}
 
-	private static function dir() { $d = rtrim( Botvaguard_Lists::dir(), '/' ) . '/ddos/'; if ( ! is_dir( $d ) ) { Botvaguard_Lists::ensure_dir(); wp_mkdir_p( $d ); } return $d; }
+	private static function dir() { $d = rtrim( Botvanguard_Lists::dir(), '/' ) . '/ddos/'; if ( ! is_dir( $d ) ) { Botvanguard_Lists::ensure_dir(); wp_mkdir_p( $d ); } return $d; }
 
 	private static function ua() { return isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : ''; }
 	private static function uri() { return isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : ''; } // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only searched for fixed words.
@@ -91,17 +91,17 @@ class Botvaguard_Ddos {
 	public static function challenged_today() { $f = self::dir() . 'c' . gmdate( 'Ymd' ) . '.cnt'; return is_file( $f ) ? (int) filesize( $f ) : 0; }
 
 	private static function trusted( $ip, $ua ) {
-		$list = Botvaguard_Settings::lines( 'ip_allow' ); $list[] = '127.0.0.1'; $list[] = '::1';
-		if ( '' !== $ip && Botvaguard_Guard::ip_in_list( $ip, $list ) ) { return true; }
-		if ( Botvaguard_Guard::is_admin_ip( $ip ) ) { return true; }
+		$list = Botvanguard_Settings::lines( 'ip_allow' ); $list[] = '127.0.0.1'; $list[] = '::1';
+		if ( '' !== $ip && Botvanguard_Guard::ip_in_list( $ip, $list ) ) { return true; }
+		if ( Botvanguard_Guard::is_admin_ip( $ip ) ) { return true; }
 		// Search engines and other bots that are welcome and prove who they are (the same check as bot blocking).
-		$s = Botvaguard_Settings::all(); $ual = strtolower( $ua );
-		foreach ( Botvaguard_Catalog::allowed() as $gk => $g ) {
+		$s = Botvanguard_Settings::all(); $ual = strtolower( $ua );
+		foreach ( Botvanguard_Catalog::allowed() as $gk => $g ) {
 			if ( empty( $s['allow'][ $gk ] ) ) { continue; }
 			foreach ( $g['bots'] as $tok => $info ) {
 				if ( '' === $tok || false === strpos( $ual, $tok ) ) { continue; }
 				$suffixes = $info[1];
-				if ( is_array( $suffixes ) && '' !== $ip ) { return 'fail' !== Botvaguard_Verify::check( $ip, $suffixes ); }
+				if ( is_array( $suffixes ) && '' !== $ip ) { return 'fail' !== Botvanguard_Verify::check( $ip, $suffixes ); }
 				return true;
 			}
 		}
@@ -127,7 +127,7 @@ class Botvaguard_Ddos {
 
 	private static function count_ip( $ip ) {
 		$k = 'bvg_dr_' . md5( $ip );
-		if ( function_exists( 'wp_using_ext_object_cache' ) && wp_using_ext_object_cache() ) { wp_cache_add( $k, 0, 'botvaguard', 60 ); $n = wp_cache_incr( $k, 1, 'botvaguard' ); return false === $n ? 1 : (int) $n; }
+		if ( function_exists( 'wp_using_ext_object_cache' ) && wp_using_ext_object_cache() ) { wp_cache_add( $k, 0, 'botvanguard', 60 ); $n = wp_cache_incr( $k, 1, 'botvanguard' ); return false === $n ? 1 : (int) $n; }
 		$n = (int) get_transient( $k ) + 1; set_transient( $k, $n, MINUTE_IN_SECONDS ); return $n;
 	}
 
@@ -144,9 +144,9 @@ class Botvaguard_Ddos {
 		if ( ( defined( 'WP_CLI' ) && WP_CLI ) || ( 'cli' === PHP_SAPI && empty( $_SERVER['REMOTE_ADDR'] ) ) ) { return; } // command line runs have no visitor.
 		$s = self::all(); $why = self::status( $s );
 		if ( '' === $why && 'auto' !== $s['mode'] ) { return; }
-		$ip = Botvaguard_Guard::client_ip();
+		$ip = Botvanguard_Guard::client_ip();
 		if ( '' === $why ) { // automatic switch: count the request, and start the mode when the site gets more than it should.
-			if ( self::tick() > (int) $s['auto_rate'] ) { update_option( self::UNTIL, time() + (int) $s['auto_minutes'] * MINUTE_IN_SECONDS, false ); update_option( 'botvaguard_ddos_how', 'auto', false ); Botvaguard_Log::add( 'block', 'ddos_start', $ip, self::ua(), self::uri() ); }
+			if ( self::tick() > (int) $s['auto_rate'] ) { update_option( self::UNTIL, time() + (int) $s['auto_minutes'] * MINUTE_IN_SECONDS, false ); update_option( 'botvanguard_ddos_how', 'auto', false ); Botvanguard_Log::add( 'block', 'ddos_start', $ip, self::ua(), self::uri() ); }
 			return;
 		}
 		$ua = self::ua(); $uri = self::uri();
@@ -154,10 +154,10 @@ class Botvaguard_Ddos {
 		if ( is_user_logged_in() ) { return; }
 		foreach ( preg_split( '/\R/', (string) $s['exempt'], -1, PREG_SPLIT_NO_EMPTY ) as $x ) { if ( false !== strpos( $uri, trim( $x ) ) ) { return; } }
 		$force = self::forced(); $rate = $s['rate_limit'];
-		if ( defined( 'BOTVAGUARD_DDOS_RATE' ) && (int) BOTVAGUARD_DDOS_RATE > 0 ) { $rate = (int) BOTVAGUARD_DDOS_RATE; }
+		if ( defined( 'BOTVANGUARD_DDOS_RATE' ) && (int) BOTVANGUARD_DDOS_RATE > 0 ) { $rate = (int) BOTVANGUARD_DDOS_RATE; } elseif ( defined( 'BOTVAGUARD_DDOS_RATE' ) && (int) BOTVAGUARD_DDOS_RATE > 0 ) { $rate = (int) BOTVAGUARD_DDOS_RATE; }
 		if ( 'constant' === $force || 'file' === $force ) { $s['challenge'] = 1; if ( ! $rate ) { $rate = 60; } }
 		if ( $s['block_cron'] && false !== strpos( $uri, 'wp-cron.php' ) ) { self::stop_request( 403, 'Forbidden' ); }
-		if ( '' !== $ip && Botvaguard_Bans::is_banned( $ip ) ) { self::stop_request( 403, 'Forbidden' ); }
+		if ( '' !== $ip && Botvanguard_Bans::is_banned( $ip ) ) { self::stop_request( 403, 'Forbidden' ); }
 		if ( ! $s['challenge'] ) {
 			if ( $rate && '' !== $ip && self::count_ip( $ip ) > $rate ) { self::over_limit( $ip, $s ); }
 			return;
@@ -170,8 +170,8 @@ class Botvaguard_Ddos {
 	}
 
 	private static function over_limit( $ip, $s ) {
-		Botvaguard_Bans::add( $ip, (int) $s['ban_minutes'] * MINUTE_IN_SECONDS, 'DDoS: too many requests', 'auto' );
-		Botvaguard_Log::add( 'block', 'ddos_rate', $ip, self::ua(), self::uri() );
+		Botvanguard_Bans::add( $ip, (int) $s['ban_minutes'] * MINUTE_IN_SECONDS, 'DDoS: too many requests', 'auto' );
+		Botvanguard_Log::add( 'block', 'ddos_rate', $ip, self::ua(), self::uri() );
 		self::stop_request( 429, 'Too many requests. Please try again later.' );
 	}
 
@@ -185,8 +185,8 @@ class Botvaguard_Ddos {
 		$js = self::js( $tok, $life, ! empty( $s['pow'] ) );
 		echo '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html( $name ) . '</title>'
 			. '<style>body{font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f6f7f7;color:#1d2327;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}div{text-align:center;padding:24px}small{color:#646970}</style></head><body><div>'
-			. '<p><strong>' . esc_html__( 'Checking your browser before opening the site…', 'botvaguard' ) . '</strong></p><p><small>' . esc_html__( 'This takes a moment and protects the site from an attack. You will be sent on automatically.', 'botvaguard' ) . '</small></p>'
-			. '<noscript><p>' . esc_html__( 'Please turn on JavaScript to continue.', 'botvaguard' ) . '</p></noscript></div><script>' . $js . '</script></body></html>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the script is built from a signed token made of digits, letters and dots.
+			. '<p><strong>' . esc_html__( 'Checking your browser before opening the site…', 'botvanguard' ) . '</strong></p><p><small>' . esc_html__( 'This takes a moment and protects the site from an attack. You will be sent on automatically.', 'botvanguard' ) . '</small></p>'
+			. '<noscript><p>' . esc_html__( 'Please turn on JavaScript to continue.', 'botvanguard' ) . '</p></noscript></div><script>' . $js . '</script></body></html>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the script is built from a signed token made of digits, letters and dots.
 		exit;
 	}
 
@@ -202,49 +202,49 @@ class Botvaguard_Ddos {
 	// ---- admin ----
 
 	public static function start() {
-		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Not allowed.', 'botvaguard' ), 403 ); }
-		check_admin_referer( 'botvaguard_ddos' );
+		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Not allowed.', 'botvanguard' ), 403 ); }
+		check_admin_referer( 'botvanguard_ddos' );
 		$m = isset( $_POST['minutes'] ) ? max( 5, min( 1440, (int) $_POST['minutes'] ) ) : 60;
-		update_option( self::UNTIL, time() + $m * MINUTE_IN_SECONDS, false ); update_option( 'botvaguard_ddos_how', 'manual', false );
-		wp_safe_redirect( admin_url( 'admin.php?page=botvaguard-ddos&bvg=started' ) ); exit;
+		update_option( self::UNTIL, time() + $m * MINUTE_IN_SECONDS, false ); update_option( 'botvanguard_ddos_how', 'manual', false );
+		wp_safe_redirect( admin_url( 'admin.php?page=botvanguard-ddos&bvg=started' ) ); exit;
 	}
 
 	public static function stop() {
-		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Not allowed.', 'botvaguard' ), 403 ); }
-		check_admin_referer( 'botvaguard_ddos' );
-		delete_option( self::UNTIL ); delete_option( 'botvaguard_ddos_how' );
-		wp_safe_redirect( admin_url( 'admin.php?page=botvaguard-ddos&bvg=stopped' ) ); exit;
+		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Not allowed.', 'botvanguard' ), 403 ); }
+		check_admin_referer( 'botvanguard_ddos' );
+		delete_option( self::UNTIL ); delete_option( 'botvanguard_ddos_how' );
+		wp_safe_redirect( admin_url( 'admin.php?page=botvanguard-ddos&bvg=stopped' ) ); exit;
 	}
 
 	public static function tab( $base ) {
 		$s = self::all(); $why = self::status( $s ); $O = self::OPTION;
-		$labels = array( 'constant' => __( 'ON: forced by a line in wp-config.php', 'botvaguard' ), 'file' => __( 'ON: forced by the file wp-content/botvaguard-ddos', 'botvaguard' ), 'on' => __( 'ON: always on (setting below)', 'botvaguard' ), 'manual' => __( 'ON: started by hand', 'botvaguard' ), 'auto' => __( 'ON: started automatically because of a surge of requests', 'botvaguard' ) );
+		$labels = array( 'constant' => __( 'ON: forced by a line in wp-config.php', 'botvanguard' ), 'file' => __( 'ON: forced by the file wp-content/botvanguard-ddos', 'botvanguard' ), 'on' => __( 'ON: always on (setting below)', 'botvanguard' ), 'manual' => __( 'ON: started by hand', 'botvanguard' ), 'auto' => __( 'ON: started automatically because of a surge of requests', 'botvanguard' ) );
 		$bvg = isset( $_GET['bvg'] ) ? sanitize_key( wp_unslash( $_GET['bvg'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only.
-		if ( ( 'started' === $bvg && '' !== $why ) || ( 'stopped' === $bvg && '' === $why ) ) { echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( 'started' === $bvg ? __( 'Attack mode is on.', 'botvaguard' ) : __( 'Attack mode is off.', 'botvaguard' ) ) . '</p></div>'; }
-		echo '<p style="max-width:820px">' . esc_html__( 'A DDoS attack sends so many requests that your site slows down or stops. Attack mode makes every visitor pass a short browser check before WordPress does any real work. Attack tools almost never pass it, real visitors do in a moment. Search engines you allow and logged-in users are never asked.', 'botvaguard' ) . '</p>';
-		echo '<div class="notice notice-' . ( '' === $why ? 'info' : 'warning' ) . ' inline" style="max-width:820px"><p><strong>' . esc_html__( 'Status:', 'botvaguard' ) . '</strong> ' . esc_html( '' === $why ? __( 'Off (watching: it starts by itself on a surge, if set to Automatic below)', 'botvaguard' ) : $labels[ $why ] ) . '</p>';
-		$until = (int) get_option( self::UNTIL, 0 ); if ( $until > time() && in_array( $why, array( 'auto', 'manual' ), true ) ) { echo '<p>' . esc_html( sprintf( /* translators: %s: time */ __( 'It switches off in %s.', 'botvaguard' ), human_time_diff( time(), $until ) ) ) . '</p>'; }
-		echo '<p>' . esc_html( sprintf( /* translators: 1: requests this minute 2: checks today */ __( 'Requests to your site this minute (counted while Automatic or on): %1$s. Browser checks shown today: %2$s.', 'botvaguard' ), number_format_i18n( self::last_minute() ), number_format_i18n( self::challenged_today() ) ) ) . '</p></div>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin:12px 0">'; wp_nonce_field( 'botvaguard_ddos' );
-		if ( in_array( $why, array( 'auto', 'manual' ), true ) ) { echo '<input type="hidden" name="action" value="botvaguard_ddos_stop"><button class="button">' . esc_html__( 'Switch attack mode off now', 'botvaguard' ) . '</button>'; }
-		elseif ( '' === $why ) { echo '<input type="hidden" name="action" value="botvaguard_ddos_start"><label>' . esc_html__( 'Switch it on for', 'botvaguard' ) . ' <select name="minutes"><option value="30">30 ' . esc_html__( 'minutes', 'botvaguard' ) . '</option><option value="60" selected>1 ' . esc_html__( 'hour', 'botvaguard' ) . '</option><option value="240">4 ' . esc_html__( 'hours', 'botvaguard' ) . '</option><option value="1440">24 ' . esc_html__( 'hours', 'botvaguard' ) . '</option></select></label> <button class="button button-primary">' . esc_html__( 'Start attack mode', 'botvaguard' ) . '</button>'; }
+		if ( ( 'started' === $bvg && '' !== $why ) || ( 'stopped' === $bvg && '' === $why ) ) { echo '<div class="notice notice-success is-dismissible"><p>' . esc_html( 'started' === $bvg ? __( 'Attack mode is on.', 'botvanguard' ) : __( 'Attack mode is off.', 'botvanguard' ) ) . '</p></div>'; }
+		echo '<p style="max-width:820px">' . esc_html__( 'A DDoS attack sends so many requests that your site slows down or stops. Attack mode makes every visitor pass a short browser check before WordPress does any real work. Attack tools almost never pass it, real visitors do in a moment. Search engines you allow and logged-in users are never asked.', 'botvanguard' ) . '</p>';
+		echo '<div class="notice notice-' . ( '' === $why ? 'info' : 'warning' ) . ' inline" style="max-width:820px"><p><strong>' . esc_html__( 'Status:', 'botvanguard' ) . '</strong> ' . esc_html( '' === $why ? __( 'Off (watching: it starts by itself on a surge, if set to Automatic below)', 'botvanguard' ) : $labels[ $why ] ) . '</p>';
+		$until = (int) get_option( self::UNTIL, 0 ); if ( $until > time() && in_array( $why, array( 'auto', 'manual' ), true ) ) { echo '<p>' . esc_html( sprintf( /* translators: %s: time */ __( 'It switches off in %s.', 'botvanguard' ), human_time_diff( time(), $until ) ) ) . '</p>'; }
+		echo '<p>' . esc_html( sprintf( /* translators: 1: requests this minute 2: checks today */ __( 'Requests to your site this minute (counted while Automatic or on): %1$s. Browser checks shown today: %2$s.', 'botvanguard' ), number_format_i18n( self::last_minute() ), number_format_i18n( self::challenged_today() ) ) ) . '</p></div>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="margin:12px 0">'; wp_nonce_field( 'botvanguard_ddos' );
+		if ( in_array( $why, array( 'auto', 'manual' ), true ) ) { echo '<input type="hidden" name="action" value="botvanguard_ddos_stop"><button class="button">' . esc_html__( 'Switch attack mode off now', 'botvanguard' ) . '</button>'; }
+		elseif ( '' === $why ) { echo '<input type="hidden" name="action" value="botvanguard_ddos_start"><label>' . esc_html__( 'Switch it on for', 'botvanguard' ) . ' <select name="minutes"><option value="30">30 ' . esc_html__( 'minutes', 'botvanguard' ) . '</option><option value="60" selected>1 ' . esc_html__( 'hour', 'botvanguard' ) . '</option><option value="240">4 ' . esc_html__( 'hours', 'botvanguard' ) . '</option><option value="1440">24 ' . esc_html__( 'hours', 'botvanguard' ) . '</option></select></label> <button class="button button-primary">' . esc_html__( 'Start attack mode', 'botvanguard' ) . '</button>'; }
 		echo '</form>';
-		echo '<h2>' . esc_html__( 'Settings', 'botvaguard' ) . '</h2><form method="post" action="options.php">'; settings_fields( 'botvaguard_ddos_group' );
+		echo '<h2>' . esc_html__( 'Settings', 'botvanguard' ) . '</h2><form method="post" action="options.php">'; settings_fields( 'botvanguard_ddos_group' );
 		$num = function ( $k, $min, $max ) use ( $s, $O ) { return '<input type="number" class="small-text" min="' . (int) $min . '" max="' . (int) $max . '" name="' . esc_attr( $O ) . '[' . esc_attr( $k ) . ']" value="' . (int) $s[ $k ] . '">'; };
 		$chk = function ( $k, $l ) use ( $s, $O ) { return '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $s[ $k ] ), true, false ) . '> ' . esc_html( $l ) . '</label></p>'; };
 		echo '<p>';
-		foreach ( array( 'off' => __( 'Off: never start by itself (you can still start it by hand or from wp-config.php)', 'botvaguard' ), 'auto' => __( 'Automatic (recommended): start by itself when the site gets a surge of requests', 'botvaguard' ), 'on' => __( 'Always on: every visitor passes the browser check (only for sites under constant attack)', 'botvaguard' ) ) as $k => $l ) { echo '<label style="display:block;margin:3px 0"><input type="radio" name="' . esc_attr( $O ) . '[mode]" value="' . esc_attr( $k ) . '" ' . checked( $s['mode'], $k, false ) . '> ' . esc_html( $l ) . '</label>'; }
-		echo '</p><p>' . esc_html__( 'Automatic start: when the whole site gets more than', 'botvaguard' ) . ' ' . $num( 'auto_rate', 30, 100000 ) . ' ' . esc_html__( 'requests in one minute, stay on for', 'botvaguard' ) . ' ' . $num( 'auto_minutes', 5, 1440 ) . ' ' . esc_html__( 'minutes.', 'botvaguard' ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $num() escapes its parts.
-		echo $chk( 'challenge', __( 'Ask visitors for the browser check', 'botvaguard' ) ) . $chk( 'pow', __( 'Include a small calculation in the check (makes it costlier for attack tools; a few seconds at most on an old phone)', 'botvaguard' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $chk() escapes.
-		echo '<p>' . esc_html__( 'A visitor who passed is not asked again for', 'botvaguard' ) . ' ' . $num( 'cookie_hours', 1, 72 ) . ' ' . esc_html__( 'hours.', 'botvaguard' ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		echo '<p>' . esc_html__( 'Limit: no more than', 'botvaguard' ) . ' ' . $num( 'rate_limit', 0, 5000 ) . ' ' . esc_html__( 'requests a minute from one address (0 = no limit); an address that goes over is blocked for', 'botvaguard' ) . ' ' . $num( 'ban_minutes', 1, 1440 ) . ' ' . esc_html__( 'minutes.', 'botvaguard' ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		echo $chk( 'block_cron', __( 'Refuse outside calls to wp-cron.php while attack mode is on (a favourite target)', 'botvaguard' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		echo '<p><label for="bvg-ex"><strong>' . esc_html__( 'Never asked (part of the address, one per line)', 'botvaguard' ) . '</strong></label><br><textarea id="bvg-ex" name="' . esc_attr( $O ) . '[exempt]" rows="4" class="large-text code">' . esc_textarea( $s['exempt'] ) . '</textarea><br><span class="description">' . esc_html__( 'Payment and webhook callbacks come from servers, not browsers, so they cannot pass the check. The defaults cover WooCommerce (wc-api). Add the address of any other callback, for example /wp-json/stripe/.', 'botvaguard' ) . '</span></p>';
-		submit_button( __( 'Save DDoS settings', 'botvaguard' ) ); echo '</form>';
-		echo '<h2>' . esc_html__( 'Under attack and cannot log in?', 'botvaguard' ) . '</h2><div style="max-width:820px"><p>' . esc_html__( 'Use FTP or your host’s file manager. Either of these switches attack mode on at once, without the dashboard:', 'botvaguard' ) . '</p>';
-		echo '<p><strong>1.</strong> ' . esc_html__( 'Add this line to wp-config.php, above the line that says “That’s all, stop editing”:', 'botvaguard' ) . '</p><pre style="user-select:all;background:#fff;border:1px solid #c3c4c7;padding:8px">define( \'BOTVAGUARD_DDOS\', true );</pre>';
-		echo '<p><strong>2.</strong> ' . esc_html__( 'Or upload an empty file named botvaguard-ddos (no extension) to the wp-content folder.', 'botvaguard' ) . '</p>';
-		echo '<p>' . esc_html__( 'Optional, stricter: set how many requests a minute one address may make with', 'botvaguard' ) . ' <code>define( \'BOTVAGUARD_DDOS_RATE\', 30 );</code>. ' . esc_html__( 'When the attack is over, remove the line or delete the file.', 'botvaguard' ) . '</p>';
-		echo '<p class="description">' . esc_html__( 'Honest limits: this protects your WordPress site from floods of web requests. It cannot stop an attack that fills your server’s internet connection. For that, put the site behind a CDN such as Cloudflare (turn on its “Under Attack” mode) or ask your host for DDoS protection.', 'botvaguard' ) . '</p></div>';
+		foreach ( array( 'off' => __( 'Off: never start by itself (you can still start it by hand or from wp-config.php)', 'botvanguard' ), 'auto' => __( 'Automatic (recommended): start by itself when the site gets a surge of requests', 'botvanguard' ), 'on' => __( 'Always on: every visitor passes the browser check (only for sites under constant attack)', 'botvanguard' ) ) as $k => $l ) { echo '<label style="display:block;margin:3px 0"><input type="radio" name="' . esc_attr( $O ) . '[mode]" value="' . esc_attr( $k ) . '" ' . checked( $s['mode'], $k, false ) . '> ' . esc_html( $l ) . '</label>'; }
+		echo '</p><p>' . esc_html__( 'Automatic start: when the whole site gets more than', 'botvanguard' ) . ' ' . $num( 'auto_rate', 30, 100000 ) . ' ' . esc_html__( 'requests in one minute, stay on for', 'botvanguard' ) . ' ' . $num( 'auto_minutes', 5, 1440 ) . ' ' . esc_html__( 'minutes.', 'botvanguard' ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $num() escapes its parts.
+		echo $chk( 'challenge', __( 'Ask visitors for the browser check', 'botvanguard' ) ) . $chk( 'pow', __( 'Include a small calculation in the check (makes it costlier for attack tools; a few seconds at most on an old phone)', 'botvanguard' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $chk() escapes.
+		echo '<p>' . esc_html__( 'A visitor who passed is not asked again for', 'botvanguard' ) . ' ' . $num( 'cookie_hours', 1, 72 ) . ' ' . esc_html__( 'hours.', 'botvanguard' ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '<p>' . esc_html__( 'Limit: no more than', 'botvanguard' ) . ' ' . $num( 'rate_limit', 0, 5000 ) . ' ' . esc_html__( 'requests a minute from one address (0 = no limit); an address that goes over is blocked for', 'botvanguard' ) . ' ' . $num( 'ban_minutes', 1, 1440 ) . ' ' . esc_html__( 'minutes.', 'botvanguard' ) . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo $chk( 'block_cron', __( 'Refuse outside calls to wp-cron.php while attack mode is on (a favourite target)', 'botvanguard' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		echo '<p><label for="bvg-ex"><strong>' . esc_html__( 'Never asked (part of the address, one per line)', 'botvanguard' ) . '</strong></label><br><textarea id="bvg-ex" name="' . esc_attr( $O ) . '[exempt]" rows="4" class="large-text code">' . esc_textarea( $s['exempt'] ) . '</textarea><br><span class="description">' . esc_html__( 'Payment and webhook callbacks come from servers, not browsers, so they cannot pass the check. The defaults cover WooCommerce (wc-api). Add the address of any other callback, for example /wp-json/stripe/.', 'botvanguard' ) . '</span></p>';
+		submit_button( __( 'Save DDoS settings', 'botvanguard' ) ); echo '</form>';
+		echo '<h2>' . esc_html__( 'Under attack and cannot log in?', 'botvanguard' ) . '</h2><div style="max-width:820px"><p>' . esc_html__( 'Use FTP or your host’s file manager. Either of these switches attack mode on at once, without the dashboard:', 'botvanguard' ) . '</p>';
+		echo '<p><strong>1.</strong> ' . esc_html__( 'Add this line to wp-config.php, above the line that says “That’s all, stop editing”:', 'botvanguard' ) . '</p><pre style="user-select:all;background:#fff;border:1px solid #c3c4c7;padding:8px">define( \'BOTVANGUARD_DDOS\', true );</pre>';
+		echo '<p><strong>2.</strong> ' . esc_html__( 'Or upload an empty file named botvanguard-ddos (no extension) to the wp-content folder.', 'botvanguard' ) . '</p>';
+		echo '<p>' . esc_html__( 'Optional, stricter: set how many requests a minute one address may make with', 'botvanguard' ) . ' <code>define( \'BOTVANGUARD_DDOS_RATE\', 30 );</code>. ' . esc_html__( 'When the attack is over, remove the line or delete the file.', 'botvanguard' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Honest limits: this protects your WordPress site from floods of web requests. It cannot stop an attack that fills your server’s internet connection. For that, put the site behind a CDN such as Cloudflare (turn on its “Under Attack” mode) or ask your host for DDoS protection.', 'botvanguard' ) . '</p></div>';
 	}
 }

@@ -1,4 +1,4 @@
-# BotVaguard
+# Sidcraft BotVanguard
 
 WordPress plugin: lets search engines and AI assistants in; blocks scrapers, scanners and fake bots; block or allow countries, IP ranges, VPNs, proxies and Tor.
 

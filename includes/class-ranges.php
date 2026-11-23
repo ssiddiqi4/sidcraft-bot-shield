@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * IPv4 / IPv6 helpers: single addresses, CIDR (10.0.0.0/8, 2001:db8::/32) and dash ranges (1.2.3.4 - 1.2.3.99),
  * plus sorted binary range files that are searched without loading them into memory.
  */
-class Botvaguard_Ranges {
+class Botvanguard_Ranges {
 	/** Address as packed bytes (4 or 16). IPv4-mapped IPv6 becomes plain IPv4. */
 	public static function pack( $ip ) {
 		$ip = trim( (string) $ip );

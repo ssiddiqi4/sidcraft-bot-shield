@@ -2,12 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
- * Where BotVaguard's emails (login codes, alerts) are sent from: WordPress's own PHP mailer, or an SMTP server you configure.
+ * Where Sidcraft BotVanguard's emails (login codes, alerts) are sent from: WordPress's own PHP mailer, or an SMTP server you configure.
  * Settings live in the Login tab under Two-factor login.
  */
-class Botvaguard_Mailer {
+class Botvanguard_Mailer {
 
-	/** True while one of BotVaguard's own emails is being sent. */
+	/** True while one of Sidcraft BotVanguard's own emails is being sent. */
 	private static $mine = false;
 	private static $log = '';
 	private static $error = '';
@@ -20,12 +20,12 @@ class Botvaguard_Mailer {
 		add_action( 'admin_post_sidcraft_botshield_mail_test', array( __CLASS__, 'test_action' ) );
 	}
 
-	/** Send one of BotVaguard's emails. */
+	/** Send one of Sidcraft BotVanguard's emails. */
 	public static function send( $to, $subject, $body, $headers = '' ) {
 		self::$mine = true; self::$error = '';
 		$ok = wp_mail( $to, $subject, $body, $headers );
 		self::$mine = false;
-		$s = Botvaguard_LoginSettings::all();
+		$s = Botvanguard_LoginSettings::all();
 		update_option( 'sidcraft_botshield_mail_last', array( 'time' => time(), 'to' => (string) $to, 'subject' => (string) $subject, 'ok' => (bool) $ok, 'error' => self::$error, 'via' => self::smtp_on( $s ) ? 'smtp ' . $s['smtp_host'] . ':' . (int) $s['smtp_port'] : 'php' ), false );
 		return $ok;
 	}
@@ -33,7 +33,7 @@ class Botvaguard_Mailer {
 	/** Why the last email could not be sent ('' when it could). */
 	public static function last_error() { return self::$error; }
 
-	private static function settings( $override = null ) { return is_array( $override ) ? $override : Botvaguard_LoginSettings::all(); }
+	private static function settings( $override = null ) { return is_array( $override ) ? $override : Botvanguard_LoginSettings::all(); }
 	private static $override = null;
 
 	private static function applies() {
@@ -103,20 +103,20 @@ class Botvaguard_Mailer {
 
 	/** Save the values on the screen, send a test email with them and keep the server conversation for the result box. */
 	public static function test_action() {
-		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'You do not have permission to do this.', 'botvaguard' ), 403 ); }
+		if ( ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'You do not have permission to do this.', 'botvanguard' ), 403 ); }
 		check_admin_referer( 'sidcraft_botshield_mail_test', 'sbs_mail_nonce' );
-		$O  = Botvaguard_LoginSettings::OPTION;
-		$in = isset( $_POST[ $O ] ) && is_array( $_POST[ $O ] ) ? wp_unslash( $_POST[ $O ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- every key is cleaned in Botvaguard_LoginSettings::sanitize().
-		$s  = Botvaguard_LoginSettings::sanitize( $in );
-		update_option( Botvaguard_LoginSettings::OPTION, array_merge( Botvaguard_LoginSettings::all(), $s ) ); // the test saves what you typed, so nothing is lost when the page reloads.
+		$O  = Botvanguard_LoginSettings::OPTION;
+		$in = isset( $_POST[ $O ] ) && is_array( $_POST[ $O ] ) ? wp_unslash( $_POST[ $O ] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- every key is cleaned in Botvanguard_LoginSettings::sanitize().
+		$s  = Botvanguard_LoginSettings::sanitize( $in );
+		update_option( Botvanguard_LoginSettings::OPTION, array_merge( Botvanguard_LoginSettings::all(), $s ) ); // the test saves what you typed, so nothing is lost when the page reloads.
 		$u  = wp_get_current_user(); $to = $u->user_email;
 		self::$override = $s; self::$log = ''; self::$error = '';
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
 		/* translators: %s: site name */
-		$ok = self::send( $to, sprintf( __( '[%s] BotVaguard test email', 'botvaguard' ), $site ), __( "This is a test email from BotVaguard.\n\nIf you can read it, login codes and alerts can reach you.", 'botvaguard' ) );
+		$ok = self::send( $to, sprintf( __( '[%s] Sidcraft BotVanguard test email', 'botvanguard' ), $site ), __( "This is a test email from Sidcraft BotVanguard.\n\nIf you can read it, login codes and alerts can reach you.", 'botvanguard' ) );
 		self::$override = null;
 		set_transient( 'sidcraft_botshield_mail_test_' . get_current_user_id(), array( 'ok' => (bool) $ok, 'to' => $to, 'error' => self::$error, 'log' => substr( self::$log, -3000 ), 'mode' => $s['mail_mode'] ), 300 );
-		wp_safe_redirect( admin_url( 'admin.php?page=botvaguard&tab=login#sbs-mail' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=botvanguard&tab=login#sbs-mail' ) );
 		exit;
 	}
 

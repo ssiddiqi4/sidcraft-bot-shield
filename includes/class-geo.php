@@ -2,12 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Which country is a visitor in? Uses what your host or CDN already tells us, then an optional country database file. */
-class Botvaguard_Geo {
+class Botvanguard_Geo {
 	private static $db = false;
 
 	/** Look an address up in the country database file only (no request headers). */
 	public static function from_db( $ip ) {
-		if ( false === self::$db ) { self::$db = Botvaguard_Lists::mmdb_exists() ? Botvaguard_Mmdb::open( Botvaguard_Lists::mmdb_path() ) : null; }
+		if ( false === self::$db ) { self::$db = Botvanguard_Lists::mmdb_exists() ? Botvanguard_Mmdb::open( Botvanguard_Lists::mmdb_path() ) : null; }
 		return self::$db ? self::$db->country( $ip ) : '';
 	}
 
@@ -15,10 +15,10 @@ class Botvaguard_Geo {
 
 	/** Two-letter code and where it came from, e.g. array( 'DE', 'Cloudflare' ). Empty code = unknown. */
 	public static function detect( $ip ) {
-		$proxy = Botvaguard_Settings::get( 'proxy' );
-		$sources = array( array( 'GEOIP_COUNTRY_CODE', __( 'server', 'botvaguard' ) ) ); // set by the web server itself, never by the visitor.
+		$proxy = Botvanguard_Settings::get( 'proxy' );
+		$sources = array( array( 'GEOIP_COUNTRY_CODE', __( 'server', 'botvanguard' ) ) ); // set by the web server itself, never by the visitor.
 		if ( 'cloudflare' === $proxy ) { $sources[] = array( 'HTTP_CF_IPCOUNTRY', 'Cloudflare' ); }
-		if ( 'xff' === $proxy ) { $sources[] = array( 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'CloudFront' ); $sources[] = array( 'HTTP_GEOIP_COUNTRY_CODE', __( 'proxy', 'botvaguard' ) ); }
+		if ( 'xff' === $proxy ) { $sources[] = array( 'HTTP_CLOUDFRONT_VIEWER_COUNTRY', 'CloudFront' ); $sources[] = array( 'HTTP_GEOIP_COUNTRY_CODE', __( 'proxy', 'botvanguard' ) ); }
 		foreach ( $sources as $s ) {
 			if ( ! empty( $_SERVER[ $s[0] ] ) ) {
 				$c = strtoupper( sanitize_text_field( wp_unslash( $_SERVER[ $s[0] ] ) ) );
@@ -26,12 +26,12 @@ class Botvaguard_Geo {
 			}
 		}
 		$c = self::from_db( $ip );
-		return array( $c, '' === $c ? '' : __( 'country database', 'botvaguard' ) );
+		return array( $c, '' === $c ? '' : __( 'country database', 'botvanguard' ) );
 	}
 
 	/** Cloudflare marks Tor visitors with the pseudo country T1. */
 	public static function cloudflare_tor() {
-		return 'cloudflare' === Botvaguard_Settings::get( 'proxy' ) && isset( $_SERVER['HTTP_CF_IPCOUNTRY'] ) && 'T1' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) );
+		return 'cloudflare' === Botvanguard_Settings::get( 'proxy' ) && isset( $_SERVER['HTTP_CF_IPCOUNTRY'] ) && 'T1' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) );
 	}
 
 	public static function country( $ip ) {

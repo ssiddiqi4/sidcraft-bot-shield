@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Small QR code generator (byte mode, error correction L, versions 1 to 10) that outputs an SVG. No external service is used. */
-class Botvaguard_Qr {
+class Botvanguard_Qr {
 	// version => list of ( blocks, codewords per block, data codewords per block ).
 	private static $ecc = array( 1 => array( array( 1, 26, 19 ) ), 2 => array( array( 1, 44, 34 ) ), 3 => array( array( 1, 70, 55 ) ), 4 => array( array( 1, 100, 80 ) ), 5 => array( array( 1, 134, 108 ) ), 6 => array( array( 2, 86, 68 ) ), 7 => array( array( 2, 98, 78 ) ), 8 => array( array( 2, 121, 97 ) ), 9 => array( array( 2, 146, 116 ) ), 10 => array( array( 2, 86, 68 ), array( 2, 87, 69 ) ) );
 	private static $align = array( 1 => array(), 2 => array( 6, 18 ), 3 => array( 6, 22 ), 4 => array( 6, 26 ), 5 => array( 6, 30 ), 6 => array( 6, 34 ), 7 => array( 6, 22, 38 ), 8 => array( 6, 24, 42 ), 9 => array( 6, 26, 46 ), 10 => array( 6, 28, 50 ) );

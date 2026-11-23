@@ -1,7 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-class Botvaguard_Log {
+class Botvanguard_Log {
 	const LOG = 'sidcraft_botshield_log';
 	const STATS = 'sidcraft_botshield_stats';
 
@@ -14,7 +14,7 @@ class Botvaguard_Log {
 		$st[ $day ]['reasons'][ $reason ] = ( $st[ $day ]['reasons'][ $reason ] ?? 0 ) + 1;
 		krsort( $st ); $st = array_slice( $st, 0, 30, true );
 		update_option( self::STATS, $st, false );
-		if ( ! Botvaguard_Settings::get( 'keep_log' ) ) { return; }
+		if ( ! Botvanguard_Settings::get( 'keep_log' ) ) { return; }
 		$log = get_option( self::LOG, array() ); $log = is_array( $log ) ? $log : array();
 		array_unshift( $log, array( 't' => $time, 'a' => $action, 'r' => $reason, 'ip' => $ip, 'ua' => substr( $ua, 0, 160 ), 'p' => substr( $path, 0, 120 ), 'c' => (string) $country ) );
 		$cut = time() - 30 * DAY_IN_SECONDS;
@@ -25,16 +25,16 @@ class Botvaguard_Log {
 	/** Reason codes grouped into the types shown on the overview card. */
 	public static function types() {
 		return array(
-			'bots'    => array( __( 'Bad bots', 'botvaguard' ), '#b32d2e' ),
-			'probes'  => array( __( 'Attack probes & bans', 'botvaguard' ), '#8a2be2' ),
-			'country' => array( __( 'Country', 'botvaguard' ), '#2271b1' ),
-			'ip'      => array( __( 'Blocked addresses', 'botvaguard' ), '#bd5b00' ),
-			'vpn'     => array( __( 'VPN / proxy / Tor', 'botvaguard' ), '#007a5a' ),
-			'waf'     => array( __( 'Firewall rules', 'botvaguard' ), '#d63638' ),
-			'login'   => array( __( 'Login protection', 'botvaguard' ), '#996800' ),
-			'ddos'    => array( __( 'DDoS', 'botvaguard' ), '#7a1f1f' ),
-			'rest'    => array( __( 'REST API', 'botvaguard' ), '#0a7ea4' ),
-			'rate'    => array( __( 'Too many requests', 'botvaguard' ), '#646970' ),
+			'bots'    => array( __( 'Bad bots', 'botvanguard' ), '#b32d2e' ),
+			'probes'  => array( __( 'Attack probes & bans', 'botvanguard' ), '#8a2be2' ),
+			'country' => array( __( 'Country', 'botvanguard' ), '#2271b1' ),
+			'ip'      => array( __( 'Blocked addresses', 'botvanguard' ), '#bd5b00' ),
+			'vpn'     => array( __( 'VPN / proxy / Tor', 'botvanguard' ), '#007a5a' ),
+			'waf'     => array( __( 'Firewall rules', 'botvanguard' ), '#d63638' ),
+			'login'   => array( __( 'Login protection', 'botvanguard' ), '#996800' ),
+			'ddos'    => array( __( 'DDoS', 'botvanguard' ), '#7a1f1f' ),
+			'rest'    => array( __( 'REST API', 'botvanguard' ), '#0a7ea4' ),
+			'rate'    => array( __( 'Too many requests', 'botvanguard' ), '#646970' ),
 		);
 	}
 

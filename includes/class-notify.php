@@ -2,20 +2,20 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Emails to the admin when an address is blocked, and the "unlock me" link for an administrator who locked themselves out. */
-class Botvaguard_Notify {
+class Botvanguard_Notify {
 	const HOOK = 'sidcraft_botshield_notify';
 
 	public static function init() { add_action( self::HOOK, array( __CLASS__, 'send' ), 10, 4 ); }
 
-	public static function to() { $e = (string) Botvaguard_FwSettings::get( 'notify_email' ); return is_email( $e ) ? $e : (string) get_option( 'admin_email' ); }
+	public static function to() { $e = (string) Botvanguard_FwSettings::get( 'notify_email' ); return is_email( $e ) ? $e : (string) get_option( 'admin_email' ); }
 
 	public static function sign( $data ) { return hash_hmac( 'sha256', $data, wp_salt( 'auth' ) ); }
 
 	/** Queue an email (the host name lookup can be slow, so it happens in the background). */
 	public static function schedule( $ip, $reason, $seconds, $kind ) {
-		$mode = Botvaguard_FwSettings::get( 'notify_mode' );
+		$mode = Botvanguard_FwSettings::get( 'notify_mode' );
 		if ( 'off' === $mode || ( 'nf' === $mode && ! in_array( $kind, array( 'nf', 'url' ), true ) ) ) { return; }
-		$cap = (int) Botvaguard_FwSettings::get( 'notify_cap' ); $k = 'sbs_mailcap_' . gmdate( 'YmdH' ); $n = (int) get_transient( $k );
+		$cap = (int) Botvanguard_FwSettings::get( 'notify_cap' ); $k = 'sbs_mailcap_' . gmdate( 'YmdH' ); $n = (int) get_transient( $k );
 		if ( $cap > 0 && $n >= $cap ) { set_transient( 'sbs_mailskip', (int) get_transient( 'sbs_mailskip' ) + 1, DAY_IN_SECONDS ); return; }
 		set_transient( $k, $n + 1, HOUR_IN_SECONDS );
 		$args = array( $ip, $reason, (int) $seconds, time() );
@@ -30,21 +30,21 @@ class Botvaguard_Notify {
 	}
 
 	public static function send( $ip, $reason, $seconds, $time ) {
-		$host = self::host( $ip ); if ( '' !== $host ) { Botvaguard_Bans::set_host( $ip, $host ); }
+		$host = self::host( $ip ); if ( '' !== $host ) { Botvanguard_Bans::set_host( $ip, $host ); }
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
-		$until = $seconds > 0 ? sprintf( /* translators: %s: date */ __( 'until %s', 'botvaguard' ), wp_date( 'Y-m-d H:i', $time + $seconds ) ) : __( 'permanently', 'botvaguard' );
+		$until = $seconds > 0 ? sprintf( /* translators: %s: date */ __( 'until %s', 'botvanguard' ), wp_date( 'Y-m-d H:i', $time + $seconds ) ) : __( 'permanently', 'botvanguard' );
 		$unblock = add_query_arg( array( 'action' => 'sidcraft_botshield_unban_mail', 'ip' => rawurlencode( $ip ), 'sig' => self::sign( 'unban|' . $ip ) ), admin_url( 'admin-post.php' ) );
 		$skip = (int) get_transient( 'sbs_mailskip' ); if ( $skip ) { delete_transient( 'sbs_mailskip' ); }
-		$body = sprintf( /* translators: %s: site */ __( "BotVaguard blocked a visitor on %s.", 'botvaguard' ), $site ) . "\n\n"
-			. __( 'IP address:', 'botvaguard' ) . ' ' . $ip . "\n"
-			. __( 'Host name:', 'botvaguard' ) . ' ' . ( '' !== $host ? $host : __( '(none found)', 'botvaguard' ) ) . "\n"
-			. __( 'Reason:', 'botvaguard' ) . ' ' . $reason . "\n"
-			. __( 'Blocked:', 'botvaguard' ) . ' ' . $until . "\n"
-			. __( 'Time:', 'botvaguard' ) . ' ' . wp_date( 'Y-m-d H:i:s', $time ) . "\n\n"
-			. __( 'Blocked by mistake? Unblock this address (you must be logged in as an administrator):', 'botvaguard' ) . "\n" . $unblock . "\n\n"
-			. __( 'All blocked addresses:', 'botvaguard' ) . "\n" . admin_url( 'admin.php?page=botvaguard&tab=firewall' ) . "\n"
-			. ( $skip ? "\n" . sprintf( /* translators: %d: number */ __( '%d other block(s) were not emailed because of the hourly limit.', 'botvaguard' ), $skip ) . "\n" : '' );
-		Botvaguard_Mailer::send( self::to(), sprintf( /* translators: 1: site 2: IP */ __( '[%1$s] Blocked %2$s', 'botvaguard' ), $site, $ip ), $body );
+		$body = sprintf( /* translators: %s: site */ __( "Sidcraft BotVanguard blocked a visitor on %s.", 'botvanguard' ), $site ) . "\n\n"
+			. __( 'IP address:', 'botvanguard' ) . ' ' . $ip . "\n"
+			. __( 'Host name:', 'botvanguard' ) . ' ' . ( '' !== $host ? $host : __( '(none found)', 'botvanguard' ) ) . "\n"
+			. __( 'Reason:', 'botvanguard' ) . ' ' . $reason . "\n"
+			. __( 'Blocked:', 'botvanguard' ) . ' ' . $until . "\n"
+			. __( 'Time:', 'botvanguard' ) . ' ' . wp_date( 'Y-m-d H:i:s', $time ) . "\n\n"
+			. __( 'Blocked by mistake? Unblock this address (you must be logged in as an administrator):', 'botvanguard' ) . "\n" . $unblock . "\n\n"
+			. __( 'All blocked addresses:', 'botvanguard' ) . "\n" . admin_url( 'admin.php?page=botvanguard&tab=firewall' ) . "\n"
+			. ( $skip ? "\n" . sprintf( /* translators: %d: number */ __( '%d other block(s) were not emailed because of the hourly limit.', 'botvanguard' ), $skip ) . "\n" : '' );
+		Botvanguard_Mailer::send( self::to(), sprintf( /* translators: 1: site 2: IP */ __( '[%1$s] Blocked %2$s', 'botvanguard' ), $site, $ip ), $body );
 	}
 
 	// ---------- unlock links ----------
@@ -65,6 +65,6 @@ class Botvaguard_Notify {
 		$k = 'sbs_unlockreq_' . md5( $ip ); if ( get_transient( $k ) ) { return; }
 		set_transient( $k, 1, 10 * MINUTE_IN_SECONDS );
 		$site = wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES );
-		Botvaguard_Mailer::send( self::to(), sprintf( /* translators: %s: site */ __( '[%s] Someone asked to be unblocked', 'botvaguard' ), $site ), sprintf( /* translators: 1: IP 2: link */ __( "The address %1\$s is blocked on your site and asked for an unlock link.\n\nIf this is you or someone you trust, open this link within an hour to unblock the address and keep it unblocked for a week:\n%2\$s\n\nIf you do not know who this is, ignore this email.", 'botvaguard' ), $ip, self::unlock_link( $ip ) ) );
+		Botvanguard_Mailer::send( self::to(), sprintf( /* translators: %s: site */ __( '[%s] Someone asked to be unblocked', 'botvanguard' ), $site ), sprintf( /* translators: 1: IP 2: link */ __( "The address %1\$s is blocked on your site and asked for an unlock link.\n\nIf this is you or someone you trust, open this link within an hour to unblock the address and keep it unblocked for a week:\n%2\$s\n\nIf you do not know who this is, ignore this email.", 'botvanguard' ), $ip, self::unlock_link( $ip ) ) );
 	}
 }

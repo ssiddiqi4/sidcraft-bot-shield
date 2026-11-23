@@ -2,10 +2,10 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Optional: ask proxycheck.io whether an address is a VPN or proxy. Off by default; the owner supplies a key. */
-class Botvaguard_Api {
+class Botvanguard_Api {
 	/** Answers are cached for a week (a failed lookup for ten minutes) so each address is sent at most once. */
 	public static function is_proxy( $ip, $key ) {
-		if ( '' === Botvaguard_Ranges::pack( $ip ) || ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) { return false; }
+		if ( '' === Botvanguard_Ranges::pack( $ip ) || ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) { return false; }
 		$k = 'sbs_api_' . md5( $ip );
 		$c = get_transient( $k );
 		if ( false !== $c ) { return 'yes' === $c; }

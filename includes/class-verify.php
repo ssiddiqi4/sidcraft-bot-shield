@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Proves that a visitor claiming to be a search engine really comes from that company (reverse DNS, then forward DNS). */
-class Botvaguard_Verify {
+class Botvanguard_Verify {
 
 	/** @return string pass|fail|unknown */
 	public static function check( $ip, $suffixes ) {

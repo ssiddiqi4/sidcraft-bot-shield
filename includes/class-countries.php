@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** ISO 3166-1 country codes and English names for the country picker. */
-class Botvaguard_Countries {
+class Botvanguard_Countries {
 	public static function all() {
 		static $list = null;
 		if ( null === $list ) {

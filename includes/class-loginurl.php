@@ -4,12 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 // phpcs:disable WordPress.Security.NonceVerification, WordPress.Security.ValidatedSanitizedInput -- routing happens before WordPress knows who the visitor is.
 
 /** Custom login address: /wp-login.php and /wp-admin stop working for visitors, and the login page lives at /your-secret instead. */
-class Botvaguard_LoginUrl {
+class Botvanguard_LoginUrl {
 	private static $slug = ''; private static $is_login = false; private static $block = false;
 
 	public static function init() {
 		if ( defined( 'SIDCRAFT_BOTSHIELD_LOGIN_URL_OFF' ) && SIDCRAFT_BOTSHIELD_LOGIN_URL_OFF ) { return; }
-		$s = Botvaguard_LoginSettings::all();
+		$s = Botvanguard_LoginSettings::all();
 		if ( ! $s['url_on'] || '' === $s['url_slug'] || is_multisite() ) { return; }
 		self::$slug = $s['url_slug'];
 		add_action( 'plugins_loaded', array( __CLASS__, 'route' ), 9999 );
@@ -57,7 +57,7 @@ class Botvaguard_LoginUrl {
 			exit;
 		}
 		if ( ! self::$block ) { return; }
-		$s = Botvaguard_LoginSettings::all();
+		$s = Botvanguard_LoginSettings::all();
 		self::count_wrong_address( $s );
 		if ( 'home' === $s['url_redirect'] ) { wp_safe_redirect( home_url( '/' ) ); exit; }
 		if ( 'custom' === $s['url_redirect'] && '' !== $s['url_custom'] ) { wp_safe_redirect( $s['url_custom'] ); exit; }
@@ -73,18 +73,18 @@ class Botvaguard_LoginUrl {
 	private static function count_wrong_address( $s ) {
 		if ( empty( $s['url_block'] ) || is_user_logged_in() ) { return; }
 		foreach ( array_keys( $_COOKIE ) as $c ) { if ( 0 === strpos( (string) $c, 'wordpress_logged_in_' ) ) { return; } } // someone with a login cookie (for example an expired session) is not a bot.
-		$ip = Botvaguard_Guard::client_ip(); if ( '' === $ip ) { return; }
-		$trusted = Botvaguard_Settings::lines( 'ip_allow' ); if ( apply_filters( 'sidcraft_botshield_trust_loopback', true ) ) { $trusted = array_merge( $trusted, array( '127.0.0.1', '::1' ) ); }
-		if ( Botvaguard_Ranges::in_list( $ip, $trusted ) || Botvaguard_Bans::is_banned( $ip ) ) { return; }
+		$ip = Botvanguard_Guard::client_ip(); if ( '' === $ip ) { return; }
+		$trusted = Botvanguard_Settings::lines( 'ip_allow' ); if ( apply_filters( 'sidcraft_botshield_trust_loopback', true ) ) { $trusted = array_merge( $trusted, array( '127.0.0.1', '::1' ) ); }
+		if ( Botvanguard_Ranges::in_list( $ip, $trusted ) || Botvanguard_Bans::is_banned( $ip ) ) { return; }
 		$k = 'sbs_wu_' . md5( $ip ); $now = time(); $win = (int) $s['url_minutes'] * MINUTE_IN_SECONDS;
 		$hits = get_transient( $k ); $hits = is_array( $hits ) ? array_values( array_filter( $hits, function ( $t ) use ( $now, $win ) { return $t > $now - $win; } ) ) : array();
 		$hits[] = $now; $hits = array_slice( $hits, -( (int) $s['url_attempts'] ) ); set_transient( $k, $hits, $win );
 		if ( count( $hits ) < (int) $s['url_attempts'] ) { return; }
 		delete_transient( $k );
 		$ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
-		Botvaguard_Log::add( 'block', 'login_url', $ip, $ua, self::request_path() );
-		Botvaguard_Bans::add( $ip, (int) $s['url_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d tries at a wrong login address in %2$d minutes', 'botvaguard' ), (int) $s['url_attempts'], (int) $s['url_minutes'] ), 'url' );
-		Botvaguard_Guard::banned_page( $ip );
+		Botvanguard_Log::add( 'block', 'login_url', $ip, $ua, self::request_path() );
+		Botvanguard_Bans::add( $ip, (int) $s['url_days'] * DAY_IN_SECONDS, sprintf( /* translators: 1: number 2: minutes */ __( '%1$d tries at a wrong login address in %2$d minutes', 'botvanguard' ), (int) $s['url_attempts'], (int) $s['url_minutes'] ), 'url' );
+		Botvanguard_Guard::banned_page( $ip );
 	}
 
 	/** wp-login.php links become links to the secret address. */

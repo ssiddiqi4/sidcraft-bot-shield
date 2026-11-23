@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // phpcs:disable WordPress.Security.NonceVerification, WordPress.Security.ValidatedSanitizedInput, WordPress.WP.AlternativeFunctions, WordPress.PHP.NoSilencedErrors, WordPress.PHP.DevelopmentFunctions -- a firewall has to read the raw request and run before WordPress is loaded.
 
-class Botvaguard_Waf {
+class Botvanguard_Waf {
 	/** Rule id => array( category, label, pattern, where ). where: v = values, n = parameter names, c = cookies/headers only, g = query+cookies only. */
 	public static function rules() {
 		return array(
@@ -145,7 +145,7 @@ class Botvaguard_Waf {
 			define( 'SIDCRAFT_BOTSHIELD_WAF_DONE', 1 );
 			$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
 			if ( ! empty( $c['proxy_header'] ) && ! empty( $_SERVER[ $c['proxy_header'] ] ) ) { $x = trim( explode( ',', (string) $_SERVER[ $c['proxy_header'] ] )[0] ); if ( filter_var( $x, FILTER_VALIDATE_IP ) ) { $ip = $x; } }
-			if ( '' !== $ip && ! empty( $c['trusted'] ) && class_exists( 'Botvaguard_Ranges' ) && Botvaguard_Ranges::in_list( $ip, (array) $c['trusted'] ) ) { return; }
+			if ( '' !== $ip && ! empty( $c['trusted'] ) && class_exists( 'Botvanguard_Ranges' ) && Botvanguard_Ranges::in_list( $ip, (array) $c['trusted'] ) ) { return; }
 			$path = (string) parse_url( isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '/', PHP_URL_PATH );
 			if ( false !== strpos( $path, 'wp-cron.php' ) ) { return; }
 			$files = array(); foreach ( $_FILES as $f ) { if ( ! is_array( $f ) || ! isset( $f['name'] ) ) { continue; } foreach ( (array) $f['name'] as $i => $n ) { $t = is_array( $f['tmp_name'] ) ? ( $f['tmp_name'][ $i ] ?? '' ) : ( $f['tmp_name'] ?? '' ); $files[ is_array( $n ) ? 'x' : (string) $n ] = is_string( $t ) ? $t : ''; } if ( ! is_array( $f['name'] ) ) { $files[ (string) $f['name'] ] = (string) ( $f['tmp_name'] ?? '' ); } }
@@ -159,12 +159,12 @@ class Botvaguard_Waf {
 			);
 			$hit = self::inspect( $req, array( 'disabled' => $c['disabled'] ?? array(), 'allow' => $c['allow'] ?? array(), 'editor' => $editor, 'admin_fields' => self::admin_fields() ) );
 			if ( ! $hit ) { return; }
-			$line = botvaguard_json( array( 't' => time(), 'ip' => $ip, 'rule' => $hit['rule'], 'param' => substr( $hit['param'], 0, 80 ), 'p' => substr( $path, 0, 120 ), 'ua' => substr( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ), 0, 160 ), 'm' => 'learning' === $c['mode'] ? 'monitor' : 'block' ) );
+			$line = botvanguard_json( array( 't' => time(), 'ip' => $ip, 'rule' => $hit['rule'], 'param' => substr( $hit['param'], 0, 80 ), 'p' => substr( $path, 0, 120 ), 'ua' => substr( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ), 0, 160 ), 'm' => 'learning' === $c['mode'] ? 'monitor' : 'block' ) );
 			$log = $dir . '/waf-log.jsonl';
 			if ( ! is_file( $log ) || filesize( $log ) < 262144 ) { @file_put_contents( $log, $line . "\n", FILE_APPEND | LOCK_EX ); }
 			if ( 'learning' === $c['mode'] ) { return; }
 			if ( ! headers_sent() ) { header( 'HTTP/1.1 403 Forbidden' ); header( 'Content-Type: text/plain; charset=UTF-8' ); header( 'X-Robots-Tag: noindex' ); }
-			echo 'Blocked by the BotVaguard firewall.';
+			echo 'Blocked by the Sidcraft BotVanguard firewall.';
 			exit;
 		} catch ( \Throwable $e ) { return; }
 	}
@@ -176,4 +176,4 @@ class Botvaguard_Waf {
 }
 
 /** json_encode without needing WordPress. */
-function botvaguard_json( $v ) { return json_encode( $v, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR ); }
+function botvanguard_json( $v ) { return json_encode( $v, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PARTIAL_OUTPUT_ON_ERROR ); }

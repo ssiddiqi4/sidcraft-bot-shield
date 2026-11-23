@@ -45,7 +45,7 @@ class Botvaguard_SecureAdmin {
 		echo '<form method="post" action="options.php">'; settings_fields( 'sidcraft_botshield_fw_group' );
 		echo '<input type="hidden" name="' . esc_attr( $O ) . '[waf_rules_present]" value="1">';
 		self::box( __( 'Web application firewall', 'botvaguard' ), function () use ( $s, $O ) {
-			foreach ( array( 'enabled' => __( 'Enabled and protecting: block attacks', 'botvaguard' ), 'learning' => __( 'Learning mode: only record for 7 days, then switch on (recommended for a new install)', 'botvaguard' ), 'disabled' => __( 'Disabled', 'botvaguard' ) ) as $v => $l ) { echo '<p style="margin:4px 0"><label><input type="radio" name="' . esc_attr( $O ) . '[waf_mode]" value="' . esc_attr( $v ) . '" ' . checked( $s['waf_mode'], $v, false ) . '> ' . esc_html( $l ) . '</label></p>'; }
+			foreach ( array( 'enabled' => __( 'Enabled and protecting: attacks are blocked', 'botvaguard' ), 'learning' => __( 'Learning mode: only record for 7 days, then switch on (recommended for a new install)', 'botvaguard' ), 'disabled' => __( 'Disabled', 'botvaguard' ) ) as $v => $l ) { echo '<p style="margin:4px 0"><label><input type="radio" name="' . esc_attr( $O ) . '[waf_mode]" value="' . esc_attr( $v ) . '" ' . checked( $s['waf_mode'], $v, false ) . '> ' . esc_html( $l ) . '</label></p>'; }
 			echo '<h4>' . esc_html__( 'Rules', 'botvaguard' ) . '</h4>';
 			$cats = Botvaguard_Waf::categories();
 			foreach ( $cats as $ck => $cl ) {

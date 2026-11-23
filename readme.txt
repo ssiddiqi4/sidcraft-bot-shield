@@ -147,7 +147,7 @@ If the emergency switch is not enough:
 * Two-factor login: It has its own switch. Add `define( 'SIDCRAFT_BOTSHIELD_DISABLE_2FA', true );` to `wp-config.php`, or upload an empty file named `sidcraft-botshield-disable-2fa` (no extension) to the `wp-content` folder.
 * No FTP access: Rename the plugin folder `wp-content/plugins/botvanguard` to switch the whole plugin off, then rename it back.
 
-Tip: before you change firewall or login settings, open Sidcraft BotVanguard > Dashboard and use the "Back up .htaccess", "Back up wp-config.php" and "Back up php.ini" buttons. Each downloads a copy of the file (it ends in .txt). The php.ini button copies php.ini from your site's main folder, or .user.ini if your host uses that instead. Keep the wp-config.php copy private: it contains your database password.
+Tip: before you change firewall or login settings, open Sidcraft BotVanguard > Dashboard and use the "Back up .htaccess", "Back up wp-config.php", "Back up php.ini" and "Back up .user.ini" buttons. Each downloads a copy of the file (it ends in .txt). php.ini and .user.ini are read from your site's main folder; which one exists depends on your host, so the button for a missing file simply tells you it was not found. Keep the wp-config.php copy private: it contains your database password.
 
 = My site is under a DDoS attack and I cannot log in. What do I do? =
 
@@ -231,7 +231,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * New: Firewall > REST API (/wp-json/). Watch-only mode (logs what would be closed), or close the REST API to visitors who are not logged in with an allow list of routes (oEmbed, form sending, visitor counting, Contact Form 7, WooCommerce Store API and Jetpack are allowed by default), routes that are always closed, a requests-a-minute limit, and counting of failed REST logins (application passwords) as failed logins. Logged-in users and your trusted addresses are never affected.
 * Blocked requests to the REST API show in the Blocked log under REST API.
 * New: DDoS tab with an attack mode: every visitor passes a short browser check (with a small calculation) before WordPress does real work, per-address request limits, automatic start on a surge of requests, and two emergency switches that work without the dashboard: `define( 'BOTVANGUARD_DDOS', true );` in wp-config.php, or an empty file wp-content/botvanguard-ddos. Search engines you allow and logged-in users are never asked. See the FAQ.
-* New: Dashboard buttons "Back up .htaccess", "Back up wp-config.php" and "Back up php.ini" download a copy of each file (administrators only).
+* New: Dashboard buttons "Back up .htaccess", "Back up wp-config.php", "Back up php.ini" and "Back up .user.ini" download a copy of each file (administrators only).
 * Readme: step-by-step instructions for the emergency switches (SIDCRAFT_BOTSHIELD_OFF and SIDCRAFT_BOTSHIELD_DISABLE_2FA) in the FAQ.
 
 = 1.5.6 =

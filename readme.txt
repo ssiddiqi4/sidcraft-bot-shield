@@ -127,9 +127,27 @@ No. They are allowed by default. If you do not want AI companies to read your si
 
 No. It lets them in or keeps them out by name. Use robots.txt rules for that as well, and keep in mind that a robots.txt request is only a request.
 
-= I locked myself out. =
+= I locked myself out. What is the emergency switch? =
 
-Logged-in users are never blocked. If you were blocked while logged out, add your address to "Never block these addresses". If you cannot open the settings, rename the plugin folder over FTP to switch it off.
+Logged-in users are never blocked. If you were blocked while logged out, add your address to "Never block these addresses" (BotVaguard > Bots). If you cannot open the settings, use one of the emergency switches below. They work even when you cannot log in.
+
+**Switch off all blocking: `SIDCRAFT_BOTSHIELD_OFF`**
+
+1. Open `wp-config.php` in your site's main folder (over FTP, SFTP or your host's file manager).
+2. Add this line above the line that says `/* That's all, stop editing! Happy publishing. */`:
+
+`define( 'SIDCRAFT_BOTSHIELD_OFF', true );`
+
+3. Save the file and reload your site. BotVaguard stops all of its blocking: bad-bot and country blocking, the firewall, login lockouts, the REST API rules, the blocked core files check and the custom login address, so `wp-login.php` works again. The plugin stays active and its settings are kept.
+4. Log in, fix the setting that locked you out (for example add your address to "Never block these addresses"), then delete the line from `wp-config.php` to switch the protection back on.
+
+Good to know: the switch does not remove the lines that BotVaguard wrote into `.htaccess` (the optional pre-WordPress firewall and the core files rule). If one of those is what blocks you, open `.htaccess` and delete the block between the lines `# BEGIN Sidcraft Bot Shield ...` and `# END Sidcraft Bot Shield ...`, or switch the option off in the Firewall tab once you can log in. Two-factor login has its own switch, see below.
+
+**Locked out by a missing two-factor code: `SIDCRAFT_BOTSHIELD_DISABLE_2FA`**
+
+Add `define( 'SIDCRAFT_BOTSHIELD_DISABLE_2FA', true );` to `wp-config.php` in the same way, or upload an empty file named `sidcraft-botshield-disable-2fa` (no extension) to the `wp-content` folder. Two-factor login is then off until you remove the line or the file. A notice in the dashboard reminds you to remove it.
+
+**No FTP access at all?** Rename the plugin folder `botvaguard` in `wp-content/plugins` (host file manager) to switch the whole plugin off, then rename it back.
 
 = Does it slow my site down? =
 
@@ -169,6 +187,7 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * New: its own menu in the WordPress dashboard with a Dashboard (protection status and the latest blocks), Bots, Firewall, Login, Scan and Blocked log screens. It no longer sits under Settings.
 * New: Firewall > REST API (/wp-json/). Watch-only mode (logs what would be closed), or close the REST API to visitors who are not logged in with an allow list of routes (oEmbed, form sending, visitor counting, Contact Form 7, WooCommerce Store API and Jetpack are allowed by default), routes that are always closed, a requests-a-minute limit, and counting of failed REST logins (application passwords) as failed logins. Logged-in users and your trusted addresses are never affected.
 * Blocked requests to the REST API show in the Blocked log under REST API.
+* Readme: step-by-step instructions for the emergency switches (SIDCRAFT_BOTSHIELD_OFF and SIDCRAFT_BOTSHIELD_DISABLE_2FA) in the FAQ.
 
 = 1.5.6 =
 * New: Firewall tab > "Block direct access to core files". Tick xmlrpc.php, wp-settings.php and/or wp-config.php to refuse direct requests to them. The plugin writes a rule into .htaccess (Apache, LiteSpeed; removed when you untick the boxes or deactivate), shows the lines to add on nginx, and also refuses xmlrpc.php and wp-config.php itself as a second line of defence. wp-settings.php can only be blocked by the server rule, because WordPress stops before any plugin loads when it is opened directly. Addresses on your trusted list are still let through for xmlrpc.php.

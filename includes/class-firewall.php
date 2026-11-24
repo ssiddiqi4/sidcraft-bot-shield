@@ -62,6 +62,7 @@ class Botvanguard_Firewall {
 		$s = Botvanguard_FwSettings::all(); $ip = self::ip(); $ua = self::ua(); $path = self::path();
 		if ( '' !== $ip && self::trusted( $ip ) ) { return; }
 		self::probe();
+		self::forbidden_names( $s, $ip, $ua, $path );
 		$logged = is_user_logged_in(); $admin = $logged && current_user_can( 'manage_options' );
 		// Simple hardening checks that need no rules.
 		if ( ! $logged ) {
@@ -281,6 +282,25 @@ class Botvanguard_Firewall {
 		if ( ! self::is_crawler( $ua ) || self::is_search_engine( $ua ) ) { return; }
 		$k = 'sbs_rc_' . md5( $ip ); $n = (int) get_transient( $k ) + 1; set_transient( $k, $n, MINUTE_IN_SECONDS );
 		if ( $n > (int) $s['crawler_per_min'] ) { self::limit_hit( 'rate_crawler', $ip, $ua, $path, $s ); }
+	}
+
+	/** The first line of the owner's forbidden list found in the request address (case does not matter), or ''. */
+	public static function forbidden_match( $list, $text ) {
+		$t = strtolower( rawurldecode( (string) $text ) );
+		foreach ( preg_split( '/\R/', (string) $list, -1, PREG_SPLIT_NO_EMPTY ) as $l ) { $l = strtolower( trim( $l ) ); if ( strlen( $l ) >= 3 && false !== strpos( $t, $l ) ) { return $l; } }
+		return '';
+	}
+
+	/** Refuse, and block for good (or for the chosen days), an address that asks for a forbidden file name or word such as backup.tar.gz. Never applies to logged-in users, the owner's own addresses or search engines. */
+	private static function forbidden_names( $s, $ip, $ua, $path ) {
+		if ( empty( $s['fb_on'] ) || '' === trim( (string) $s['fb_list'] ) || '' === $ip || is_user_logged_in() || self::is_search_engine( $ua ) || Botvanguard_Bans::is_banned( $ip ) ) { return; }
+		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : $path;
+		$hit  = self::forbidden_match( $s['fb_list'], $uri );
+		if ( '' === $hit ) { return; }
+		Botvanguard_Log::add( 'block', 'forbidden_name', $ip, $ua, $path );
+		/* translators: %s: the forbidden name that was requested */
+		Botvanguard_Bans::add( $ip, (int) $s['fb_days'] * DAY_IN_SECONDS, sprintf( __( 'Asked for forbidden name: %s', 'botvanguard' ), $hit ), 'fb' );
+		self::deny( 'forbidden' );
 	}
 
 	/** Block addresses that keep asking for pages that do not exist (bots looking for weak spots). */

@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.6.1
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -225,6 +225,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.7.0 =
+* New: Firewall tab, "Forbidden files and words". Type names such as back.tar or backup.tar.gz (one per line); an address that asks for one is refused and blocked for good (or for the number of days you choose). Search engines, logged-in users and your never-block list are never blocked.
+
 = 1.6.1 =
 * Fixed: with a custom login address switched on, the login page could show "Warning: Undefined variable $user_login" and "$error" (and garbage text in the username box) on servers that display PHP warnings. WordPress's login page now runs with its variables in the global scope, as it does at /wp-login.php.
 
@@ -293,6 +296,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.7.0 =
+New optional Firewall rule: block addresses that ask for forbidden file names such as backup.tar.gz. Off until you turn it on.
 
 = 1.6.1 =
 Fixes undefined-variable warnings on the login page when a custom login address is used.

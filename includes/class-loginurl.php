@@ -53,6 +53,10 @@ class Botvanguard_LoginUrl {
 		if ( self::$is_login ) {
 			if ( ! headers_sent() ) { nocache_headers(); }
 			$pagenow = 'wp-login.php';
+			// wp-login.php is written to run at the top level of a script. Included from here its
+			// variables would be local to this function ("Undefined variable $user_login"), so the
+			// ones it shares between its parts are bound to the global scope first.
+			global $error, $user_login, $user_email, $user_pass, $interim_login, $action, $redirect_to, $errors, $wp_error, $secure_cookie, $rp_cookie, $rp_path, $login_header_url, $login_header_title;
 			require_once ABSPATH . 'wp-login.php';
 			exit;
 		}

@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.6.0
+Stable tag: 1.6.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -225,6 +225,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.6.1 =
+* Fixed: with a custom login address switched on, the login page could show "Warning: Undefined variable $user_login" and "$error" (and garbage text in the username box) on servers that display PHP warnings. WordPress's login page now runs with its variables in the global scope, as it does at /wp-login.php.
+
 = 1.6.0 =
 * Renamed: the plugin is now Sidcraft BotVanguard (folder and slug botvanguard), so that it cannot be confused with other plugins named Bot Shield. Your settings, bans, logs and the firewall lines in .htaccess are kept. Activating Sidcraft BotVanguard switches the old Sidcraft Bot Shield plugin off, whatever folder it is in; delete the old one afterwards. All class and function names are new, so the two plugins can never crash each other. If both are somehow active, Sidcraft BotVanguard stays idle and shows a notice.
 * New: its own menu in the WordPress dashboard with a Dashboard (protection status and the latest blocks), Bots, Firewall, Login, Scan and Blocked log screens. It no longer sits under Settings.
@@ -290,6 +293,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.6.1 =
+Fixes undefined-variable warnings on the login page when a custom login address is used.
 
 = 1.6.0 =
 Renamed to Sidcraft BotVanguard with its own menu and a new REST API protection. After updating by upload, activate Sidcraft BotVanguard and delete the old Sidcraft Bot Shield plugin; your settings are kept.

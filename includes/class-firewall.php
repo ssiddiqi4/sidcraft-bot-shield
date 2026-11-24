@@ -287,7 +287,15 @@ class Botvanguard_Firewall {
 	/** The first line of the owner's forbidden list found in the request address (case does not matter), or ''. */
 	public static function forbidden_match( $list, $text ) {
 		$t = strtolower( rawurldecode( (string) $text ) );
-		foreach ( preg_split( '/\R/', (string) $list, -1, PREG_SPLIT_NO_EMPTY ) as $l ) { $l = strtolower( trim( $l ) ); if ( strlen( $l ) >= 3 && false !== strpos( $t, $l ) ) { return $l; } }
+		$parts = null;
+		foreach ( preg_split( '/\R/', (string) $list, -1, PREG_SPLIT_NO_EMPTY ) as $l ) {
+			$l = strtolower( trim( $l ) ); if ( strlen( $l ) < 3 ) { continue; }
+			if ( false === strpos( $l, '*' ) && false === strpos( $l, '?' ) ) { if ( false !== strpos( $t, $l ) ) { return $l; } continue; }
+			// A wildcard line (* = any characters, ? = one character) must match a whole piece of the address: each folder or file name, each search word, or the whole path when the line holds a slash.
+			if ( null === $parts ) { $parts = preg_split( '#[/?&=\s]+#', $t, -1, PREG_SPLIT_NO_EMPTY ); $parts[] = (string) strtok( $t, '?' ); }
+			$re = '#^' . str_replace( array( '\\*', '\\?' ), array( '.*', '.' ), preg_quote( $l, '#' ) ) . '$#';
+			foreach ( $parts as $p ) { if ( preg_match( $re, $p ) ) { return $l; } }
+		}
 		return '';
 	}
 

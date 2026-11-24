@@ -304,6 +304,7 @@ class Botvanguard_Admin {
 			echo '<a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_backup&file=' . $k ), 'sidcraft_botshield_backup' ) ) . '">' . esc_html( $l ) . '</a> ';
 		}
 		echo '</p>';
+		Botvanguard_Config::box();
 		echo '<h2>' . esc_html__( 'Latest blocks', 'botvanguard' ) . '</h2>';
 		$entries = array_slice( Botvanguard_Log::entries(), 0, 10 );
 		if ( ! $entries ) { echo '<p>' . esc_html__( 'Nothing blocked yet.', 'botvanguard' ) . '</p>'; }

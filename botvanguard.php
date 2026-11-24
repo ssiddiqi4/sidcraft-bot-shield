@@ -3,7 +3,7 @@
  * Plugin Name:       Sidcraft BotVanguard
  * Plugin URI:        https://github.com/ssiddiqi4/sidcraft-bot-shield
  * Description:       Lets search engines and AI assistants (Google, Bing, Apple, ChatGPT, Claude, Perplexity, Copilot and more) in, and blocks scrapers, scripts, scanners and fake bots. Also blocks countries, IP ranges, VPNs and Tor, with a web application firewall, two-factor login, a custom login address and a malware scanner.
- * Version:           1.8.0
+ * Version:           1.9.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Suhaib Siddiqi
@@ -36,7 +36,7 @@ if ( botvanguard_old_plugins() ) {
 	return;
 }
 
-define( 'BOTVANGUARD_VERSION', '1.8.0' );
+define( 'BOTVANGUARD_VERSION', '1.9.0' );
 define( 'BOTVANGUARD_FILE', __FILE__ );
 define( 'BOTVANGUARD_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -83,6 +83,8 @@ register_deactivation_hook( __FILE__, function () { wp_clear_scheduled_hook( Bot
 register_activation_hook( __FILE__, function () { if ( Botvanguard_Firewall::ext_on() ) { Botvanguard_Firewall::ext_enable(); } if ( Botvanguard_Firewall::core_files() ) { Botvanguard_Firewall::core_sync(); } } );
 if ( is_admin() ) {
 	require_once __DIR__ . '/includes/class-secure-admin.php';
+	require_once __DIR__ . '/includes/class-config.php';
 	require_once __DIR__ . '/includes/class-admin.php';
+	Botvanguard_Config::init();
 	Botvanguard_Admin::init();
 }

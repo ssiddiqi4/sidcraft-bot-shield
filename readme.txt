@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.7.3
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -208,6 +208,7 @@ By default this plugin contacts no external service about your visitors.
 * **Tor exit list (only if "Block Tor" is on):** once a day the plugin downloads https://check.torproject.org/torbulkexitlist from the Tor Project. No data is sent. Privacy: https://www.torproject.org/about/privacy_policy/
 * **VPN and hosting lists (only if those options are on):** once a day the plugin downloads public lists from https://raw.githubusercontent.com/X4BNet/lists_vpn (GitHub). Only your server's address is visible to GitHub. Terms: https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
 * **proxycheck.io (only if you turn on the live check and enter a key):** the visitor's IP address and your key are sent to https://proxycheck.io once per address per week to ask whether it is a VPN or proxy. Terms: https://proxycheck.io/terms Privacy: https://proxycheck.io/privacy
+* **AbuseIPDB (only if you turn on "AbuseIPDB" in the Firewall tab and enter your key):** the visitor's IP address and your API key are sent to https://api.abuseipdb.com once per address per day (or the number of hours you choose) to ask for its abuse score. Verified search engine crawlers are not sent. Terms: https://www.abuseipdb.com/terms Privacy: https://www.abuseipdb.com/privacy
 * **Country database:** a file you upload yourself; it is read on your server and nothing is sent.
 
 * **WordPress.org (scan; only when you run or schedule a scan):** the plugin asks api.wordpress.org for the official checksums of your WordPress version and for update and plugin information, downloads.wordpress.org for the official checksums of your plugins, and (only when you click Repair) core.svn.wordpress.org or plugins.svn.wordpress.org for the official copy of one file. Your WordPress version, locale, and the names and versions of your plugins are sent, as WordPress itself does when it checks for updates. Privacy: https://wordpress.org/about/privacy/
@@ -224,6 +225,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.8.0 =
+* New: Firewall tab, "AbuseIPDB". Paste your AbuseIPDB API key and visitors whose address has an abuse score above your limit (40% to start) are denied. Real search engine crawlers are always let through, checked by their address and not only their name. If AbuseIPDB cannot be reached, visitors are let through. Each address is looked up once and remembered.
 
 = 1.7.3 =
 * Plugin Check: Firewall tab values are now escaped where they are printed.
@@ -305,6 +309,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.8.0 =
+New optional Firewall rule: deny addresses with a high AbuseIPDB score (needs your API key). Off until you turn it on.
 
 = 1.7.3 =
 Code-quality fix (Plugin Check). No change in behaviour.

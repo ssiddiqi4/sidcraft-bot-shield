@@ -37,6 +37,10 @@ class Botvanguard_FwSettings {
 			'fb_on'           => 0,          // refuse and block an address that asks for a forbidden file name or word.
 			'fb_list'         => '',         // one name or word per line, for example backup.tar.gz
 			'fb_days'         => 0,          // 0 = block for good.
+			'ab_on'           => 0,          // deny visitors whose address has a high AbuseIPDB score.
+			'ab_key'          => '',         // the owner's AbuseIPDB API key.
+			'ab_min'          => 40,         // deny when the abuse confidence score is above this percent.
+			'ab_hours'        => 24,         // how long a looked-up score is remembered.
 			'nf_exempt'       => "favicon.ico\napple-touch-icon\nrobots.txt\n.well-known\nsitemap",
 			'notify_mode'     => 'nf',       // off | nf (missing-pages blocks) | all (every automatic block).
 			'notify_email'    => '',
@@ -97,6 +101,11 @@ class Botvanguard_FwSettings {
 		$o['bf_lock_hours'] = max( 1, min( 720, (int) ( $in['bf_lock_hours'] ?? 4 ) ) );
 		$sp = $in['strong_pw'] ?? ''; $o['strong_pw'] = in_array( $sp, array( 'off', 'admins', 'all' ), true ) ? $sp : 'admins';
 		$o['crawler_per_min'] = max( 0, min( 5000, (int) ( $in['crawler_per_min'] ?? 0 ) ) );
+		$o['ab_on']      = empty( $in['ab_on'] ) ? 0 : 1;
+		$o['ab_min']     = max( 1, min( 100, (int) ( $in['ab_min'] ?? 40 ) ) );
+		$o['ab_hours']   = max( 1, min( 720, (int) ( $in['ab_hours'] ?? 24 ) ) );
+		$k = isset( $in['ab_key'] ) ? preg_replace( '/[^A-Za-z0-9]/', '', (string) $in['ab_key'] ) : '';
+		$o['ab_key']     = ! empty( $in['ab_key_clear'] ) ? '' : ( '' !== $k ? substr( $k, 0, 128 ) : (string) $old['ab_key'] ); // a blank box keeps the saved key.
 		$o['fb_on']      = empty( $in['fb_on'] ) ? 0 : 1;
 		$o['fb_days']    = max( 0, min( 3650, (int) ( $in['fb_days'] ?? 0 ) ) );
 		$fb = array(); foreach ( preg_split( '/\R/', (string) ( $in['fb_list'] ?? '' ) ) as $l ) { $l = strtolower( trim( sanitize_text_field( $l ) ) ); if ( strlen( $l ) >= 3 && strlen( $l ) <= 120 && count( $fb ) < 300 ) { $fb[] = $l; } }

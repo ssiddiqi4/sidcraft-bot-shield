@@ -62,6 +62,7 @@ class Botvanguard_Firewall {
 		$s = Botvanguard_FwSettings::all(); $ip = self::ip(); $ua = self::ua(); $path = self::path();
 		if ( '' !== $ip && self::trusted( $ip ) ) { return; }
 		self::probe();
+		self::abuse_check( $s, $ip, $ua, $path );
 		self::forbidden_names( $s, $ip, $ua, $path );
 		$logged = is_user_logged_in(); $admin = $logged && current_user_can( 'manage_options' );
 		// Simple hardening checks that need no rules.
@@ -282,6 +283,47 @@ class Botvanguard_Firewall {
 		if ( ! self::is_crawler( $ua ) || self::is_search_engine( $ua ) ) { return; }
 		$k = 'sbs_rc_' . md5( $ip ); $n = (int) get_transient( $k ) + 1; set_transient( $k, $n, MINUTE_IN_SECONDS );
 		if ( $n > (int) $s['crawler_per_min'] ) { self::limit_hit( 'rate_crawler', $ip, $ua, $path, $s ); }
+	}
+
+	/** The AbuseIPDB abuse confidence score (0-100) of an address, or -1 when it could not be looked up. Remembered for a while so one visitor costs one lookup. */
+	public static function abuse_score( $ip, $s ) {
+		$ck = 'sbs_ab_' . md5( $ip ); $c = get_transient( $ck );
+		if ( false !== $c ) { return (int) $c; }
+		if ( get_transient( 'sbs_ab_pause' ) ) { return -1; } // the daily allowance is used up, try again later.
+		$res = wp_remote_get( add_query_arg( array( 'ipAddress' => $ip, 'maxAgeInDays' => 90 ), 'https://api.abuseipdb.com/api/v2/check' ), array( 'timeout' => 3, 'headers' => array( 'Key' => (string) $s['ab_key'], 'Accept' => 'application/json' ) ) );
+		if ( is_wp_error( $res ) ) { update_option( 'sidcraft_botshield_ab_err', $res->get_error_message(), false ); set_transient( $ck, -1, 10 * MINUTE_IN_SECONDS ); return -1; }
+		$code = (int) wp_remote_retrieve_response_code( $res ); $j = json_decode( (string) wp_remote_retrieve_body( $res ), true );
+		if ( 200 !== $code || ! isset( $j['data']['abuseConfidenceScore'] ) ) {
+			if ( 429 === $code ) { set_transient( 'sbs_ab_pause', 1, HOUR_IN_SECONDS ); }
+			/* translators: %d: HTTP status code */
+			update_option( 'sidcraft_botshield_ab_err', 429 === $code ? __( 'AbuseIPDB says the daily number of checks is used up.', 'botvanguard' ) : sprintf( __( 'AbuseIPDB answered with code %d. Check the API key.', 'botvanguard' ), $code ), false );
+			set_transient( $ck, -1, 10 * MINUTE_IN_SECONDS ); return -1;
+		}
+		delete_option( 'sidcraft_botshield_ab_err' );
+		$score = max( 0, min( 100, (int) $j['data']['abuseConfidenceScore'] ) );
+		set_transient( $ck, $score, max( 1, (int) $s['ab_hours'] ) * HOUR_IN_SECONDS );
+		return $score;
+	}
+
+	/** True for a real search engine crawler: it says so in its name AND its address belongs to that company. Someone who only claims to be Googlebot is not exempt. */
+	private static function verified_search_engine( $ip, $ua ) {
+		$u = strtolower( $ua ); $g = Botvanguard_Catalog::allowed();
+		foreach ( $g['search']['bots'] ?? array() as $tok => $i ) {
+			if ( '' === $tok || false === strpos( $u, $tok ) ) { continue; }
+			return ! is_array( $i[1] ) || 'fail' !== Botvanguard_Verify::check( $ip, $i[1] ); // a lookup that cannot finish is given the benefit of the doubt.
+		}
+		return false;
+	}
+
+	/** Deny a visitor whose address has an AbuseIPDB score above the owner's limit. Search engines (checked by address, not only by name), logged-in users, the owner's own addresses and private addresses are let through. */
+	private static function abuse_check( $s, $ip, $ua, $path ) {
+		if ( empty( $s['ab_on'] ) || '' === trim( (string) $s['ab_key'] ) || '' === $ip || is_user_logged_in() ) { return; }
+		if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) { return; }
+		if ( self::verified_search_engine( $ip, $ua ) ) { return; }
+		$score = self::abuse_score( $ip, $s );
+		if ( $score <= (int) $s['ab_min'] ) { return; }
+		Botvanguard_Log::add( 'block', 'abuseipdb', $ip, $ua, $path );
+		self::deny( 'abuse' );
 	}
 
 	/** The first line of the owner's forbidden list found in the request address (case does not matter), or ''. */

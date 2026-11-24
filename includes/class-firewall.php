@@ -517,6 +517,8 @@ class Botvanguard_Firewall {
 
 	const CORE_MARK = 'Sidcraft Bot Shield Core Files';
 	const CORE_ERR  = 'sidcraft_botshield_core_error';
+	const LOGS      = '@logs'; // marker in the list of files: error logs and PHP settings files (not .php scripts).
+	const LOG_NAMES = 'error_log|php_errorlog|debug\\.log|php\\.ini|\\.user\\.ini';
 
 	/** Names (without .php) the owner switched on. */
 	public static function core_files() {
@@ -524,6 +526,7 @@ class Botvanguard_Firewall {
 		if ( $s['core_xmlrpc'] ) { $f[] = 'xmlrpc'; }
 		if ( $s['core_settings'] ) { $f[] = 'wp-settings'; }
 		if ( $s['core_config'] ) { $f[] = 'wp-config'; }
+		if ( $s['core_logs'] ) { $f[] = self::LOGS; }
 		return $f;
 	}
 
@@ -568,13 +571,18 @@ class Botvanguard_Firewall {
 
 	/** Apache and LiteSpeed lines for .htaccess. */
 	public static function core_htaccess( $files ) {
-		$alt = implode( '|', array_map( 'preg_quote', $files ) );
-		return "<IfModule mod_rewrite.c>\nRewriteEngine On\nRewriteRule ^(?:" . $alt . ")\\.php$ - [F,L]\n</IfModule>";
+		$php = array_values( array_diff( $files, array( self::LOGS ) ) ); $out = array();
+		if ( $php ) { $out[] = "<IfModule mod_rewrite.c>\nRewriteEngine On\nRewriteRule ^(?:" . implode( '|', array_map( 'preg_quote', $php ) ) . ")\\.php$ - [F,L]\n</IfModule>"; }
+		if ( in_array( self::LOGS, $files, true ) ) { $out[] = '<FilesMatch "^(?:' . self::LOG_NAMES . ')$">' . "\n<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\nOrder allow,deny\nDeny from all\n</IfModule>\n</FilesMatch>"; }
+		return implode( "\n", $out );
 	}
 
 	/** nginx lines to add by hand. */
 	public static function core_nginx( $files ) {
-		return 'location ~* ^/(?:' . implode( '|', array_map( 'preg_quote', $files ) ) . ')\.php$ {' . "\n\tdeny all;\n}";
+		$php = array_values( array_diff( $files, array( self::LOGS ) ) ); $out = array();
+		if ( $php ) { $out[] = 'location ~* ^/(?:' . implode( '|', array_map( 'preg_quote', $php ) ) . ')\.php$ {' . "\n\tdeny all;\n}"; }
+		if ( in_array( self::LOGS, $files, true ) ) { $out[] = 'location ~* /(?:' . self::LOG_NAMES . ')$ {' . "\n\tdeny all;\n}"; }
+		return implode( "\n", $out );
 	}
 
 	/* ---------- REST API (/wp-json/) protection ---------- */

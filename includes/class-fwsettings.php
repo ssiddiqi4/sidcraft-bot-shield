@@ -59,6 +59,7 @@ class Botvanguard_FwSettings {
 			'core_xmlrpc'     => 0,          // refuse direct requests to xmlrpc.php.
 			'core_settings'   => 0,          // refuse direct requests to wp-settings.php.
 			'core_config'     => 0,          // refuse direct requests to wp-config.php.
+			'core_logs'       => 0,          // refuse direct downloads of error_log, php.ini and .user.ini (server rule).
 		);
 	}
 
@@ -88,7 +89,7 @@ class Botvanguard_FwSettings {
 		$lines = array();
 		foreach ( preg_split( '/\R/', (string) ( $in['waf_allow'] ?? '' ) ) as $l ) { $l = trim( sanitize_text_field( $l ) ); if ( '' !== $l && preg_match( '#^(\*|/\S*)(\s+\S+){0,2}$#', $l ) && count( $lines ) < 300 ) { $lines[] = $l; } }
 		$o['waf_allow'] = implode( "\n", array_unique( $lines ) );
-		foreach ( array( 'waf_ban', 'bf_on', 'user_on', 'probe_on', 'bf_generic', 'breached_pw', 'hide_version', 'enum_block', 'rest_users', 'blank_post', 'core_xmlrpc', 'core_settings', 'core_config', 'rest_auth' ) as $k ) { $o[ $k ] = empty( $in[ $k ] ) ? 0 : 1; }
+		foreach ( array( 'waf_ban', 'bf_on', 'user_on', 'probe_on', 'bf_generic', 'breached_pw', 'hide_version', 'enum_block', 'rest_users', 'blank_post', 'core_xmlrpc', 'core_settings', 'core_config', 'core_logs', 'rest_auth' ) as $k ) { $o[ $k ] = empty( $in[ $k ] ) ? 0 : 1; }
 		$o['bf_invalid_lock'] = 0;
 		foreach ( array( 'user', 'probe' ) as $p ) {
 			$o[ $p . '_attempts' ] = max( 1, min( 100, (int) ( $in[ $p . '_attempts' ] ?? 5 ) ) );

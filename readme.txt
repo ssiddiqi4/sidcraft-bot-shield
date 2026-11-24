@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.9.0
+Stable tag: 1.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -226,6 +226,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.10.0 =
+* New: Firewall tab, "Block direct access to core and server files" now also blocks web access to PHP error logs and PHP settings files: error_log, php_errorlog, debug.log, php.ini and .user.ini, in every folder of your site. Off until you turn it on. It adds a rule to .htaccess (Apache and LiteSpeed) between the Sidcraft Bot Shield Core Files lines, and shows the lines to add by hand on nginx or when .htaccess cannot be written.
+
 = 1.9.0 =
 * New: Dashboard, "Export and import settings". Save every BotVanguard setting and list to a .json file and restore it later or on another site. API keys and tokens are left out unless you tick the box. A setting missing from the file keeps its current value. The block log, current blocks and scan results are not part of the file.
 
@@ -312,6 +315,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.10.0 =
+New optional Firewall rule: block web downloads of error_log, debug.log, php.ini and .user.ini.
 
 = 1.9.0 =
 New: export and import of all settings on the Dashboard tab, for backup and restore.

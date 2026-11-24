@@ -555,6 +555,14 @@ class Botvanguard_Scanner {
 		return '';
 	}
 
+	/** Delete every file in quarantine for good. Returns how many were removed. */
+	public static function purge_all() {
+		$q = self::quarantined(); $n = count( $q );
+		foreach ( array_keys( $q ) as $qid ) { wp_delete_file( self::qdir() . sanitize_key( (string) $qid ) . '.q' ); }
+		update_option( self::QUARANTINE, array(), false );
+		return $n;
+	}
+
 	/** Replace a modified or missing core/plugin file with the official copy. Returns '' or an error. */
 	public static function repair_file( $id ) {
 		global $wp_version; $f = self::findings(); if ( ! isset( $f[ $id ] ) || empty( $f[ $id ]['extra']['repair'] ) ) { return __( 'This result cannot be repaired.', 'botvanguard' ); }

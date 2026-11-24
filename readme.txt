@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.11.0
+Stable tag: 1.11.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -227,6 +227,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.11.1 =
+* New: Scan tab, Quarantine: a "Delete all quarantined files" button removes every quarantined file for good, after a confirmation.
+
 = 1.11.0 =
 * New: Scan tab, "Known-malware lookup". Optional and off by default. With your own free abuse.ch Auth-Key, files the scan flags are checked by their SHA-256 fingerprint against the MalwareBazaar list of known malware, and a match is reported as critical with the malware family. Only the fingerprint is sent, at most 30 files per scan. abuse.ch is free for personal and non-commercial use; business use may need a paid abuse.ch licence (noted on the screen and in External services).
 
@@ -322,6 +325,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.11.1 =
+New button to delete all quarantined files at once.
 
 = 1.11.0 =
 New optional scan check: look flagged files up in abuse.ch MalwareBazaar (needs your own Auth-Key; see the licence note).

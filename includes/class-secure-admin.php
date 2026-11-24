@@ -371,6 +371,7 @@ class Botvanguard_SecureAdmin {
 		echo '<h2 id="sbs-quarantine" style="margin-top:30px">' . esc_html( sprintf( /* translators: %d: number of files */ __( 'Quarantine (%d)', 'botvanguard' ), count( $q ) ) ) . '</h2>';
 		if ( ! $q ) { echo '<p class="description">' . esc_html__( 'No files are in quarantine. When you quarantine a flagged file it appears here, and you can restore or delete it.', 'botvanguard' ) . '</p>'; return; }
 		echo '<p class="description">' . esc_html__( 'Files moved out of the site. They cannot run here. If the site broke after you quarantined one, restore it.', 'botvanguard' ) . '</p>';
+		echo '<p><a class="button" style="color:#b32d2e;border-color:#b32d2e" onclick="return confirm(\'' . esc_js( sprintf( /* translators: %d: number of files */ __( 'Delete all %d quarantined files for good? This cannot be undone.', 'botvanguard' ), count( $q ) ) ) . '\')" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_finding&act=purge_all' ), 'sidcraft_botshield_finding' ) ) . '">' . esc_html( sprintf( /* translators: %d: number of files */ __( 'Delete all quarantined files (%d)', 'botvanguard' ), count( $q ) ) ) . '</a></p>';
 		echo '<table class="widefat striped"><thead><tr><th>' . esc_html__( 'File', 'botvanguard' ) . '</th><th>' . esc_html__( 'When', 'botvanguard' ) . '</th><th>' . esc_html__( 'Why', 'botvanguard' ) . '</th><th></th></tr></thead><tbody>';
 		foreach ( $q as $qid => $x ) {
 			$u = function ( $a ) use ( $qid ) { return wp_nonce_url( admin_url( 'admin-post.php?action=sidcraft_botshield_finding&act=' . $a . '&id=' . rawurlencode( $qid ) ), 'sidcraft_botshield_finding' ); };
@@ -439,6 +440,7 @@ class Botvanguard_SecureAdmin {
 		elseif ( 'quarantine' === $act ) { $err = Botvanguard_Scanner::quarantine_file( $id ); }
 		elseif ( 'restore' === $act ) { $err = Botvanguard_Scanner::restore_file( $id ); }
 		elseif ( 'purge' === $act ) { $err = Botvanguard_Scanner::purge_file( $id ); }
+		elseif ( 'purge_all' === $act ) { $n = Botvanguard_Scanner::purge_all(); set_transient( 'sidcraft_botshield_notice_ok', sprintf( /* translators: %d: number of files */ _n( '%d quarantined file was deleted.', '%d quarantined files were deleted.', $n, 'botvanguard' ), $n ), 60 ); }
 		elseif ( 'repair' === $act ) { $err = Botvanguard_Scanner::repair_file( $id ); }
 		if ( '' !== $err ) { set_transient( 'sidcraft_botshield_notice', $err, 60 ); self::back( 'scan' ); }
 		self::back( 'scan', array( 'sbs_ok' => 1 ) );

@@ -292,6 +292,26 @@ class Botvanguard_Scanner {
 		return true;
 	}
 
+	/** Ask abuse.ch MalwareBazaar whether the SHA-256 fingerprint of a file is a known malware sample. Only the fingerprint is sent, never the file. Returns the malware family (or "malware"), or '' when unknown or on any problem. */
+	public static function mb_lookup( $abs ) {
+		$sha = hash_file( 'sha256', $abs ); if ( ! is_string( $sha ) ) { return ''; }
+		$ck = 'sbs_mb_' . $sha; $c = get_transient( $ck ); if ( false !== $c ) { return is_string( $c ) && 'none' !== $c ? $c : ''; }
+		$r = wp_remote_post( 'https://mb-api.abuse.ch/api/v1/', array( 'timeout' => 6, 'headers' => array( 'Auth-Key' => (string) Botvanguard_ScanSettings::get( 'mb_key' ) ), 'body' => array( 'query' => 'get_info', 'hash' => $sha ) ) );
+		if ( is_wp_error( $r ) ) { update_option( 'sidcraft_botshield_mb_err', $r->get_error_message(), false ); return ''; }
+		$j = json_decode( (string) wp_remote_retrieve_body( $r ), true ); $q = is_array( $j ) ? (string) ( $j['query_status'] ?? '' ) : '';
+		if ( 200 !== (int) wp_remote_retrieve_response_code( $r ) || ! is_array( $j ) || ( '' === $q ) ) {
+			/* translators: %d: HTTP status code */
+			update_option( 'sidcraft_botshield_mb_err', sprintf( __( 'MalwareBazaar answered with code %d. Check the Auth-Key.', 'botvanguard' ), (int) wp_remote_retrieve_response_code( $r ) ), false ); return '';
+		}
+		if ( 'hash_not_found' === $q ) { delete_option( 'sidcraft_botshield_mb_err' ); set_transient( $ck, 'none', 7 * DAY_IN_SECONDS ); return ''; }
+		$d = isset( $j['data'][0] ) && is_array( $j['data'][0] ) ? $j['data'][0] : null;
+		if ( ! $d ) { update_option( 'sidcraft_botshield_mb_err', sprintf( /* translators: %s: status text from the service */ __( 'MalwareBazaar answered: %s', 'botvanguard' ), sanitize_text_field( $q ) ), false ); return ''; }
+		delete_option( 'sidcraft_botshield_mb_err' );
+		$fam = ! empty( $d['signature'] ) && is_string( $d['signature'] ) ? sanitize_text_field( $d['signature'] ) : 'malware';
+		set_transient( $ck, $fam, 7 * DAY_IN_SECONDS );
+		return $fam;
+	}
+
 	// ---------- malware signatures ----------
 	public static function signatures() {
 		return array(
@@ -349,7 +369,12 @@ class Botvanguard_Scanner {
 					if ( 'img' === $kind ) { if ( $do_img && $in_up ) { $head = (string) file_get_contents( $abs, false, null, 0, 65536 ); if ( preg_match( '/<\?php|<\?=|<script\s+language\s*=\s*[\'"]?php/i', $head, $m, PREG_OFFSET_CAPTURE ) ) { self::add( 'image_php', 'critical', __( 'A media file contains hidden PHP code', 'botvanguard' ), __( 'This file looks like an image or document but contains PHP code.', 'botvanguard' ), $rel, array( 'sig' => 'img', 'line' => substr_count( substr( $head, 0, (int) $m[0][1] ), "\n" ) + 1 ) ); } } }
 					elseif ( $do_mal ) {
 						$text = (string) file_get_contents( $abs, false, null, 0, $max );
-						foreach ( self::scan_text( $text, $kind ) as $hit ) { self::add( 'malware', $hit[1], sprintf( /* translators: %s: description */ __( 'Suspicious code: %s', 'botvanguard' ), $hit[2] ), $rel . ':' . $hit[3], $rel, array( 'sig' => $hit[0], 'line' => $hit[3], 'snippet' => $hit[4] ) ); }
+						$found = self::scan_text( $text, $kind );
+						if ( $found && Botvanguard_ScanSettings::get( 'mb_on' ) && '' !== (string) Botvanguard_ScanSettings::get( 'mb_key' ) && (int) ( $st['mb'] ?? 0 ) < 30 ) {
+							$st['mb'] = (int) ( $st['mb'] ?? 0 ) + 1; $known = self::mb_lookup( $abs );
+							if ( $known ) { self::add( 'malware', 'critical', sprintf( /* translators: %s: malware family */ __( 'Known malware (MalwareBazaar): %s', 'botvanguard' ), $known ), $rel, $rel, array( 'sig' => 'known_malware', 'line' => 0, 'snippet' => '' ) ); }
+						}
+						foreach ( $found as $hit ) { self::add( 'malware', $hit[1], sprintf( /* translators: %s: description */ __( 'Suspicious code: %s', 'botvanguard' ), $hit[2] ), $rel . ':' . $hit[3], $rel, array( 'sig' => $hit[0], 'line' => $hit[3], 'snippet' => $hit[4] ) ); }
 					}
 				}
 			}

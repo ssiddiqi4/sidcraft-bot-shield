@@ -30,7 +30,7 @@ class Botvanguard_ScanSettings {
 	}
 
 	public static function defaults() {
-		return array( 'preset' => 'standard', 'checks' => self::presets()['standard']['checks'], 'max_mb' => 2, 'tick_sec' => 12, 'skip_paths' => '', 'schedule' => 'off', 'hour' => 3, 'weekday' => 1, 'email_on' => 0, 'email_to' => '', 'email_level' => 'high' );
+		return array( 'preset' => 'standard', 'checks' => self::presets()['standard']['checks'], 'max_mb' => 2, 'mb_on' => 0, 'mb_key' => '', 'tick_sec' => 12, 'skip_paths' => '', 'schedule' => 'off', 'hour' => 3, 'weekday' => 1, 'email_on' => 0, 'email_to' => '', 'email_level' => 'high' );
 	}
 
 	public static function all() {
@@ -46,10 +46,13 @@ class Botvanguard_ScanSettings {
 	public static function enabled( $check ) { $c = self::get( 'checks' ); return ! empty( $c[ $check ] ); }
 
 	public static function sanitize( $in ) {
-		$in = is_array( $in ) ? $in : array(); $o = array(); $presets = self::presets();
+		$in = is_array( $in ) ? $in : array(); $o = array(); $presets = self::presets(); $old = self::all();
 		$o['preset'] = ( isset( $in['preset'] ) && ( 'custom' === $in['preset'] || isset( $presets[ $in['preset'] ] ) ) ) ? $in['preset'] : 'standard';
 		if ( 'custom' === $o['preset'] ) { $o['checks'] = array(); foreach ( array_keys( self::check_labels() ) as $k ) { $o['checks'][ $k ] = empty( $in['checks'][ $k ] ) ? 0 : 1; } }
 		else { $o['checks'] = $presets[ $o['preset'] ]['checks']; }
+		$o['mb_on']    = empty( $in['mb_on'] ) ? 0 : 1;
+		$k = isset( $in['mb_key'] ) ? preg_replace( '/[^A-Za-z0-9]/', '', (string) $in['mb_key'] ) : '';
+		$o['mb_key']   = ! empty( $in['mb_key_clear'] ) ? '' : ( '' !== $k ? substr( $k, 0, 128 ) : (string) $old['mb_key'] ); // a blank box keeps the saved key.
 		$o['max_mb']   = max( 1, min( 20, (int) ( $in['max_mb'] ?? 2 ) ) );
 		if ( 'deep' === $o['preset'] ) { $o['max_mb'] = max( $o['max_mb'], 5 ); }
 		$o['tick_sec'] = max( 4, min( 30, (int) ( $in['tick_sec'] ?? 12 ) ) );

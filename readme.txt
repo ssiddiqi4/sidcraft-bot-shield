@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.10.1
+Stable tag: 1.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -209,6 +209,7 @@ By default this plugin contacts no external service about your visitors.
 * **VPN and hosting lists (only if those options are on):** once a day the plugin downloads public lists from https://raw.githubusercontent.com/X4BNet/lists_vpn (GitHub). Only your server's address is visible to GitHub. Terms: https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
 * **proxycheck.io (only if you turn on the live check and enter a key):** the visitor's IP address and your key are sent to https://proxycheck.io once per address per week to ask whether it is a VPN or proxy. Terms: https://proxycheck.io/terms Privacy: https://proxycheck.io/privacy
 * **AbuseIPDB (only if you turn on "AbuseIPDB" in the Firewall tab and enter your key):** the visitor's IP address and your API key are sent to https://api.abuseipdb.com once per address per day (or the number of hours you choose) to ask for its abuse score. Verified search engine crawlers are not sent. Terms: https://www.abuseipdb.com/terms Privacy: https://www.abuseipdb.com/privacy
+* **abuse.ch MalwareBazaar (only if you turn on "Known-malware lookup" in the Scan tab and enter your own Auth-Key):** the SHA-256 fingerprint (not the file) of a file the scan already flagged is sent to https://mb-api.abuse.ch, at most 30 files per scan. abuse.ch provides this free of charge for personal and non-commercial use under its fair-use rules; business or commercial use may need a paid abuse.ch licence, which you must obtain from abuse.ch yourself. Terms: https://abuse.ch/terms-of-use/
 * **Country database:** a file you upload yourself; it is read on your server and nothing is sent.
 
 * **WordPress.org (scan; only when you run or schedule a scan):** the plugin asks api.wordpress.org for the official checksums of your WordPress version and for update and plugin information, downloads.wordpress.org for the official checksums of your plugins, and (only when you click Repair) core.svn.wordpress.org or plugins.svn.wordpress.org for the official copy of one file. Your WordPress version, locale, and the names and versions of your plugins are sent, as WordPress itself does when it checks for updates. Privacy: https://wordpress.org/about/privacy/
@@ -225,6 +226,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.11.0 =
+* New: Scan tab, "Known-malware lookup". Optional and off by default. With your own free abuse.ch Auth-Key, files the scan flags are checked by their SHA-256 fingerprint against the MalwareBazaar list of known malware, and a match is reported as critical with the malware family. Only the fingerprint is sent, at most 30 files per scan. abuse.ch is free for personal and non-commercial use; business use may need a paid abuse.ch licence (noted on the screen and in External services).
 
 = 1.10.1 =
 * Firewall tab: the error log and php.ini option now always shows the nginx line to give your host, not only after a problem.
@@ -318,6 +322,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.11.0 =
+New optional scan check: look flagged files up in abuse.ch MalwareBazaar (needs your own Auth-Key; see the licence note).
 
 = 1.10.1 =
 Small wording improvement on the Firewall tab. No change in behaviour.

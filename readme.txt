@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.7.1
+Stable tag: 1.7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -225,6 +225,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.7.2 =
+* Plugin Check: escaping warnings in the Firewall tab fixed.
+
 = 1.7.1 =
 * New: wildcards in the forbidden list. * means any characters and ? one character, for example *.tar, *gz, *.sql or backup*.zip. A wildcard line must match a whole file or folder name, so *gz does not block /gzip-guide/.
 
@@ -299,6 +302,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.7.2 =
+Code-quality fix (Plugin Check). No change in behaviour.
 
 = 1.7.1 =
 The forbidden files and words list now accepts wildcards such as *.tar and *gz.

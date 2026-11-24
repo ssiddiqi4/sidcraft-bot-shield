@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.7.2
+Stable tag: 1.7.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -225,6 +225,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.7.3 =
+* Plugin Check: Firewall tab values are now escaped where they are printed.
+
 = 1.7.2 =
 * Plugin Check: escaping warnings in the Firewall tab fixed.
 
@@ -302,6 +305,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.7.3 =
+Code-quality fix (Plugin Check). No change in behaviour.
 
 = 1.7.2 =
 Code-quality fix (Plugin Check). No change in behaviour.

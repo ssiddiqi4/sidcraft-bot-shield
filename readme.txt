@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.11.1
+Stable tag: 1.11.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -227,6 +227,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.11.2 =
+* New: Scan tab, a "Quarantine all" button above the results moves every flagged file that can be removed from here into quarantine, after a confirmation. Any file can be restored from the Quarantine list. Core files with bad code are skipped (use Repair).
+
 = 1.11.1 =
 * New: Scan tab, Quarantine: a "Delete all quarantined files" button removes every quarantined file for good, after a confirmation.
 
@@ -325,6 +328,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.11.2 =
+New "Quarantine all" button on the Scan tab.
 
 = 1.11.1 =
 New button to delete all quarantined files at once.

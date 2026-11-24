@@ -537,6 +537,20 @@ class Botvanguard_Scanner {
 		self::remove_finding( $id ); return '';
 	}
 
+	/** Findings that can be moved into quarantine from here (same rule as the single Quarantine button). */
+	public static function quarantinable() {
+		$out = array();
+		foreach ( self::findings() as $id => $x ) { if ( '' === self::removal_block( $x ) && '' !== self::safe_path( $x['rel'] ) ) { $out[] = $id; } }
+		return $out;
+	}
+
+	/** Quarantine every file that can be quarantined. Returns array( moved, failed ). */
+	public static function quarantine_all() {
+		$moved = 0; $failed = 0;
+		foreach ( self::quarantinable() as $id ) { if ( '' === self::quarantine_file( $id ) ) { $moved++; } else { $failed++; } }
+		return array( $moved, $failed );
+	}
+
 	/** Put a quarantined file back where it was. */
 	public static function restore_file( $qid ) {
 		$q = self::quarantined(); if ( ! isset( $q[ $qid ] ) ) { return __( 'Unknown file.', 'botvanguard' ); }

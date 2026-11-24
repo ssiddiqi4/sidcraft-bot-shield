@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.10.0
+Stable tag: 1.10.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -226,6 +226,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 
 == Changelog ==
 
+= 1.10.1 =
+* Firewall tab: the error log and php.ini option now always shows the nginx line to give your host, not only after a problem.
+
 = 1.10.0 =
 * New: Firewall tab, "Block direct access to core and server files" now also blocks web access to PHP error logs and PHP settings files: error_log, php_errorlog, debug.log, php.ini and .user.ini, in every folder of your site. Off until you turn it on. It adds a rule to .htaccess (Apache and LiteSpeed) between the Sidcraft Bot Shield Core Files lines, and shows the lines to add by hand on nginx or when .htaccess cannot be written.
 
@@ -315,6 +318,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 * First release.
 
 == Upgrade Notice ==
+
+= 1.10.1 =
+Small wording improvement on the Firewall tab. No change in behaviour.
 
 = 1.10.0 =
 New optional Firewall rule: block web downloads of error_log, debug.log, php.ini and .user.ini.

@@ -120,7 +120,9 @@ class Botvanguard_SecureAdmin {
 				'core_config'   => array( 'wp-config.php', __( 'It never shows your passwords, but opening it directly makes WordPress start for nothing.', 'botvanguard' ) ),
 			);
 			foreach ( $rows as $k => $r ) {
-				echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $s[ $k ] ), true, false ) . '> <code>' . esc_html( $r[0] ) . '</code></label><br><span class="description">' . esc_html( $r[1] ) . '</span></p>';
+				echo '<p><label><input type="checkbox" name="' . esc_attr( $O ) . '[' . esc_attr( $k ) . ']" value="1" ' . checked( ! empty( $s[ $k ] ), true, false ) . '> <code>' . esc_html( $r[0] ) . '</code></label><br><span class="description">' . esc_html( $r[1] ) . '</span>';
+				if ( 'core_logs' === $k ) { echo '<br><span class="description">' . esc_html__( 'nginx does not read .htaccess. On nginx, ask your host to add this to the site configuration:', 'botvanguard' ) . ' <code style="user-select:all">' . esc_html( preg_replace( '/\s+/', ' ', Botvanguard_Firewall::core_nginx( array( Botvanguard_Firewall::LOGS ) ) ) ) . '</code></span>'; }
+				echo '</p>';
 			}
 			$files = Botvanguard_Firewall::core_files(); $err = get_option( Botvanguard_Firewall::CORE_ERR, '' );
 			if ( $files && 'nginx' === $err ) {

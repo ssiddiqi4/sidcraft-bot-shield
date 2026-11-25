@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.11.3
+Stable tag: 1.11.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -226,6 +226,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.11.4 =
+* Fixed: PHP warning "Undefined array key exclude" each time the Scan settings were opened (class-secure-admin.php line 403). The "Do not scan these paths" box read the old setting name; it now reads the saved value, so the paths you entered also show again in the box.
 
 = 1.11.3 =
 * Fixed: the error log filled with "Cannot modify header information - headers already sent" warnings (class-guard.php line 175) whenever a blocked visitor was shown the access-denied page and something else on the site had already printed output (a notice, a stray space, another plugin). The block page, the unlock page, the firewall block message and the two-factor page now check that headers can still be sent first, and show the page either way. Nothing else changes: the visitor is still blocked.

@@ -49,9 +49,7 @@ class Botvanguard_Firewall {
 	}
 
 	private static function deny( $reason, $status = 403, $retry = 0 ) {
-		status_header( $status ); nocache_headers(); header( 'X-Robots-Tag: noindex, nofollow' );
-		if ( $retry ) { header( 'Retry-After: ' . (int) $retry ); }
-		header( 'Content-Type: text/plain; charset=UTF-8' );
+		Botvanguard_Guard::send_headers( $status, array_merge( array( 'X-Robots-Tag: noindex, nofollow' ), $retry ? array( 'Retry-After: ' . (int) $retry ) : array(), array( 'Content-Type: text/plain; charset=UTF-8' ) ) );
 		echo esc_html( 429 === $status ? __( 'Too many requests. Please slow down.', 'botvanguard' ) : __( 'Blocked by the Sidcraft BotVanguard firewall.', 'botvanguard' ) );
 		exit;
 	}

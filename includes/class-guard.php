@@ -148,11 +148,7 @@ class Botvanguard_Guard {
 		if ( ! $enforce ) { return; }
 		if ( $d['ban'] && '' !== $ip ) { Botvanguard_Bans::add( $ip, (int) Botvanguard_Settings::get( 'ban_hours' ) * HOUR_IN_SECONDS, $d['reason'] ); }
 		if ( 'rate_limit' !== $d['reason'] ) { self::banned_page( $ip, $d['reason'] ); }
-		status_header( 429 );
-		nocache_headers();
-		header( 'X-Robots-Tag: noindex, nofollow' );
-		if ( 'rate_limit' === $d['reason'] ) { header( 'Retry-After: 60' ); }
-		header( 'Content-Type: text/plain; charset=UTF-8' );
+		self::send_headers( 429, array_merge( array( 'X-Robots-Tag: noindex, nofollow' ), 'rate_limit' === $d['reason'] ? array( 'Retry-After: 60' ) : array(), array( 'Content-Type: text/plain; charset=UTF-8' ) ) );
 		echo esc_html__( 'Access denied.', 'botvanguard' );
 		exit;
 	}
@@ -162,7 +158,7 @@ class Botvanguard_Guard {
 		if ( ( defined( 'WP_CLI' ) && WP_CLI ) || 'cli' === PHP_SAPI ) { return; }
 		if ( isset( $_GET['sbs_unlock'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- the signed link is the proof.
 			$ip = Botvanguard_Notify::check_unlock( sanitize_text_field( wp_unslash( $_GET['sbs_unlock'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			status_header( $ip ? 200 : 403 ); nocache_headers(); header( 'Content-Type: text/html; charset=UTF-8' );
+			self::send_headers( $ip ? 200 : 403, array( 'Content-Type: text/html; charset=UTF-8' ) );
 			if ( $ip ) { Botvanguard_Bans::remove( $ip ); set_transient( 'sbs_adm_' . md5( $ip ), 1, 7 * DAY_IN_SECONDS ); foreach ( array( 'sbs_nf_', 'sbs_lf_', 'sbs_fp_', 'sbs_wafn_', 'sbs_rate_' ) as $p ) { delete_transient( $p . md5( $ip ) ); } }
 			echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html__( 'Unblock', 'botvanguard' ) . '</title></head><body style="font:16px/1.5 sans-serif;max-width:480px;margin:12vh auto;padding:0 16px"><p>' . esc_html( $ip ? sprintf( /* translators: %s: IP address */ __( 'The address %s is unblocked.', 'botvanguard' ), $ip ) : __( 'This unlock link is not valid any more.', 'botvanguard' ) ) . '</p><p><a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html__( 'Go to the site', 'botvanguard' ) . '</a></p></body></html>';
 			exit;
@@ -170,9 +166,21 @@ class Botvanguard_Guard {
 		if ( isset( $_POST['sbs_unlock_request'] ) ) { $ip = self::client_ip(); if ( '' !== $ip ) { Botvanguard_Notify::request_unlock( $ip ); } } // phpcs:ignore WordPress.Security.NonceVerification.Missing -- visitors have no nonce; the action only emails the owner.
 	}
 
+	/**
+	 * Send the status and headers of a block page. Another plugin or the theme may already have printed something
+	 * (a notice, a space before <?php): headers can no longer be sent then, and trying only fills the error log
+	 * with "Cannot modify header information" warnings. The page itself is still shown.
+	 */
+	public static function send_headers( $status, array $headers, $no_cache = true ) {
+		if ( headers_sent() ) { return; }
+		status_header( $status );
+		if ( $no_cache ) { nocache_headers(); }
+		foreach ( $headers as $h ) { header( $h ); }
+	}
+
 	/** What a blocked address sees: a short message and a button that emails the site owner an unlock link. */
 	public static function banned_page( $ip, $reason = 'banned' ) {
-		status_header( 403 ); nocache_headers(); header( 'X-Robots-Tag: noindex, nofollow' ); header( 'Content-Type: text/html; charset=UTF-8' );
+		self::send_headers( 403, array( 'X-Robots-Tag: noindex, nofollow', 'Content-Type: text/html; charset=UTF-8' ) );
 		$sent = isset( $_POST['sbs_unlock_request'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- display only.
 		echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html__( 'Access denied', 'botvanguard' ) . '</title></head><body style="font:16px/1.5 -apple-system,Segoe UI,sans-serif;max-width:520px;margin:12vh auto;padding:0 16px;color:#1d2327"><h1 style="font-size:22px">' . esc_html__( 'Access denied', 'botvanguard' ) . '</h1><p>' . esc_html( 'banned' === $reason ? __( 'Your address has been blocked because it sent too many suspicious requests.', 'botvanguard' ) : __( 'Your request was stopped by the security rules of this site.', 'botvanguard' ) ) . '</p>';
 		if ( $sent ) { echo '<p style="background:#edfaef;border-left:4px solid #00a32a;padding:8px 12px">' . esc_html__( 'If you are the owner of this site, an unlock link was emailed to the site administrator.', 'botvanguard' ) . '</p>'; }

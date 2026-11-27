@@ -5,7 +5,7 @@ Tags: two-factor, 2fa, passkey, firewall, security
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.11.4
+Stable tag: 1.11.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -226,6 +226,9 @@ Downloaded lists and the uploaded database are stored in wp-content/uploads/sidc
 2. Recent activity: what was blocked, and why.
 
 == Changelog ==
+
+= 1.11.5 =
+* New: two messages for blocked visitors on the Bots tab. One goes with the Countries rules and one with the VPN, proxy, Tor and data-centre rules. The text appears on the Access denied page in place of the standard sentence. Leave a box empty to keep the standard text. Up to 500 characters.
 
 = 1.11.4 =
 * Fixed: PHP warning "Undefined array key exclude" each time the Scan settings were opened (class-secure-admin.php line 403). The "Do not scan these paths" box read the old setting name; it now reads the saved value, so the paths you entered also show again in the box.

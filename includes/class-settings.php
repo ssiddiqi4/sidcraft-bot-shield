@@ -32,6 +32,8 @@ class Botvanguard_Settings {
 			'block_proxy_headers' => 0,
 			'vpn_api'         => 'none',   // none | proxycheck
 			'vpn_api_key'     => '',
+			'geo_message'     => '',       // shown on the block page to visitors blocked by a country rule (empty = standard text).
+			'vpn_message'     => '',       // shown on the block page to visitors blocked by a VPN, proxy or Tor rule.
 			'keep_log'        => 1,
 			'remove_data'     => 0,
 		);
@@ -68,7 +70,13 @@ class Botvanguard_Settings {
 		$out['vpn_api']       = 'proxycheck' === ( $in['vpn_api'] ?? 'none' ) ? 'proxycheck' : 'none';
 		$out['vpn_api_key']   = preg_replace( '/[^A-Za-z0-9\-_]/', '', (string) ( $in['vpn_api_key'] ?? '' ) );
 		if ( 'proxycheck' === $out['vpn_api'] && '' === $out['vpn_api_key'] ) { $out['vpn_api'] = 'none'; }
+		foreach ( array( 'geo_message', 'vpn_message' ) as $k ) { $out[ $k ] = self::clean_message( $in[ $k ] ?? '' ); }
 		return $out;
+	}
+
+	/** A short message for blocked visitors: plain text, line breaks kept, at most 500 characters. */
+	private static function clean_message( $text ) {
+		return mb_substr( trim( sanitize_textarea_field( (string) $text ) ), 0, 500 );
 	}
 
 	/** One entry per line; tokens are lowercased, IPs are validated. */

@@ -181,12 +181,20 @@ class Botvanguard_Guard {
 	/** What a blocked address sees: a short message and a button that emails the site owner an unlock link. */
 	public static function banned_page( $ip, $reason = 'banned' ) {
 		self::send_headers( 403, array( 'X-Robots-Tag: noindex, nofollow', 'Content-Type: text/html; charset=UTF-8' ) );
+		$custom = self::custom_message( $reason );
 		$sent = isset( $_POST['sbs_unlock_request'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- display only.
-		echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html__( 'Access denied', 'botvanguard' ) . '</title></head><body style="font:16px/1.5 -apple-system,Segoe UI,sans-serif;max-width:520px;margin:12vh auto;padding:0 16px;color:#1d2327"><h1 style="font-size:22px">' . esc_html__( 'Access denied', 'botvanguard' ) . '</h1><p>' . esc_html( 'banned' === $reason ? __( 'Your address has been blocked because it sent too many suspicious requests.', 'botvanguard' ) : __( 'Your request was stopped by the security rules of this site.', 'botvanguard' ) ) . '</p>';
+		echo '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html__( 'Access denied', 'botvanguard' ) . '</title></head><body style="font:16px/1.5 -apple-system,Segoe UI,sans-serif;max-width:520px;margin:12vh auto;padding:0 16px;color:#1d2327"><h1 style="font-size:22px">' . esc_html__( 'Access denied', 'botvanguard' ) . '</h1><p>' . ( '' !== $custom ? nl2br( esc_html( $custom ) ) : esc_html( 'banned' === $reason ? __( 'Your address has been blocked because it sent too many suspicious requests.', 'botvanguard' ) : __( 'Your request was stopped by the security rules of this site.', 'botvanguard' ) ) ) . '</p>';
 		if ( $sent ) { echo '<p style="background:#edfaef;border-left:4px solid #00a32a;padding:8px 12px">' . esc_html__( 'If you are the owner of this site, an unlock link was emailed to the site administrator.', 'botvanguard' ) . '</p>'; }
 		else { echo '<p>' . esc_html__( 'If you are the owner of this site and blocked yourself, you can ask for an unlock link by email.', 'botvanguard' ) . '</p><form method="post"><input type="hidden" name="sbs_unlock_request" value="1"><button style="font:inherit;padding:8px 14px;cursor:pointer">' . esc_html__( 'Email me an unlock link', 'botvanguard' ) . '</button></form>'; }
 		echo '<p style="color:#646970;font-size:13px">' . esc_html( $ip ) . ( defined( 'SIDCRAFT_BOTSHIELD_DEBUG' ) && SIDCRAFT_BOTSHIELD_DEBUG ? ' &middot; ' . esc_html( $reason ) : '' ) . '</p></body></html>';
 		exit;
+	}
+
+	/** The owner's message for a block reason: country rules and VPN / proxy / Tor rules each have their own. */
+	private static function custom_message( $reason ) {
+		if ( in_array( $reason, array( 'geo_unknown', 'geo_blocked', 'geo_not_allowed' ), true ) ) { return (string) Botvanguard_Settings::get( 'geo_message' ); }
+		if ( in_array( $reason, array( 'tor', 'vpn', 'datacenter', 'proxy_header', 'vpn_api' ), true ) ) { return (string) Botvanguard_Settings::get( 'vpn_message' ); }
+		return '';
 	}
 
 	public static function robots( $out ) {
